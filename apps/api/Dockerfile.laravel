@@ -1,0 +1,20 @@
+FROM php:8.2-fpm-alpine
+
+RUN apk add --no-cache nginx bash curl composer git \
+    && docker-php-ext-install pdo pdo_mysql
+
+WORKDIR /var/www/html
+
+# Crear composer.json e instalar Laravel 11 + Sanctum
+RUN echo '{"require": {"laravel/framework": "^11.0", "laravel/sanctum": "^4.0"}, "config": {"allow-plugins": {"php-http/discovery": true}, "policy.advisories.block": false}}' > composer.json && \
+    composer install --no-dev --optimize-autoloader && \
+    php artisan key:generate --force
+
+# Asegurar que existan los directorios
+RUN mkdir -p /var/www/html/storage /var/www/html/bootstrap/cache
+
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+
+EXPOSE 9000
+
+CMD ["php-fpm"]

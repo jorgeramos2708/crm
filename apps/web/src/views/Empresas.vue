@@ -1,0 +1,216 @@
+<template>
+  <div class="p-6">
+    <header class="mb-6 flex justify-end">
+      <div class="flex gap-2">
+        <a href="/api/companies/export" class="px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-700">Exportar CSV</a>
+        <button @click="openModal(null)" class="bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90">+ Nueva Empresa</button>
+      </div>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Lista -->
+      <div class="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+        <div class="p-4 border-b border-zinc-200 dark:border-zinc-700">
+          <input v-model="q" @input="fetchEmpresas" type="text" placeholder="Buscar por nombre o dominio..." class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm" />
+        </div>
+        <ul class="divide-y divide-zinc-200 dark:divide-zinc-700">
+          <li v-for="e in empresas" :key="e.id" @click="seleccionar(e)" class="px-6 py-4 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 cursor-pointer" :class="{ 'bg-zinc-100 dark:bg-zinc-700/70': selected?.id === e.id }">
+            <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ e.nombre }}</div>
+            <div class="text-sm text-zinc-500">{{ e.dominio || 'Sin dominio' }}</div>
+          </li>
+          <li v-if="empresas.length === 0" class="px-6 py-12 text-center text-zinc-500 text-sm">No hay empresas.</li>
+        </ul>
+      </div>
+
+      <!-- Detalle -->
+      <div class="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">
+        <div v-if="!selected" class="text-zinc-500 text-sm">Selecciona una empresa para ver sus contactos.</div>
+        <div v-else>
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 class="text-xl font-bold">{{ selected.nombre }}</h2>
+              <p class="text-sm text-zinc-500">{{ selected.dominio || 'Sin dominio' }}</p>
+            </div>
+            <div class="flex gap-2">
+              <button @click="openModal(selected)" class="text-blue-600 hover:underline text-sm">Editar</button>
+              <button @click="eliminar" class="text-red-600 hover:underline text-sm">Eliminar</button>
+            </div>
+          </div>
+
+          <h3 class="font-medium text-sm mb-2">Contactos vinculados ({{ selected.contactos?.length || 0 }})</h3>
+          <ul class="divide-y divide-zinc-200 dark:divide-zinc-700 mb-4">
+            <li v-for="c in selected.contactos || []" :key="c.id" class="py-2 flex items-center justify-between text-sm">
+              <span>{{ c.nombre }} <span class="text-zinc-500">{{ c.email ? `· ${c.email}` : '' }}</span></span>
+              <button @click="desvincular(c)" class="text-red-600 hover:underline text-xs">Quitar</button>
+            </li>
+            <li v-if="!(selected.contactos?.length)" class="py-2 text-sm text-zinc-500">Sin contactos vinculados.</li>
+          </ul>
+
+          <div class="flex gap-2">
+            <select v-model="linkId" class="flex-1 px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm">
+              <option value="">Seleccionar contacto...</option>
+              <option v-for="c in contactos" :key="c.id" :value="c.id">{{ c.nombre }}{{ c.email ? ` (${c.email})` : '' }}</option>
+            </select>
+            <button @click="vincular" :disabled="!linkId" class="px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-50">Vincular</button>
+          </div>
+
+          <h3 class="font-medium text-sm mt-6 mb-2">Archivos</h3>
+          <ul class="divide-y divide-zinc-200 dark:divide-zinc-700 mb-2">
+            <li v-for="a in adjuntos" :key="a.id" class="py-2 flex items-center justify-between text-sm">
+              <span>{{ a.nombre }} <span class="text-zinc-500 text-xs">{{ Math.round((a.tamano || 0) / 1024) }} KB</span></span>
+              <span class="flex gap-2 text-xs">
+                <a :href="`/api/archivos/${a.id}/download`" class="text-blue-600 hover:underline">Descargar</a>
+                <button @click="borrarArchivo(a)" class="text-red-600 hover:underline">Eliminar</button>
+              </span>
+            </li>
+            <li v-if="!adjuntos.length" class="py-2 text-sm text-zinc-500">Sin archivos.</li>
+          </ul>
+          <label class="inline-block px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-700 cursor-pointer">
+            Subir archivo
+            <input type="file" class="hidden" @change="subirArchivo" />
+          </label>
+
+          <h3 class="font-medium text-sm mt-6 mb-2">Historial</h3>
+          <ul class="space-y-2 max-h-64 overflow-y-auto">
+            <li v-for="(it, idx) in timeline" :key="idx" class="text-sm border-l-2 border-zinc-200 dark:border-zinc-700 pl-3">
+              <span class="inline-block text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-700 text-zinc-500 mr-1">{{ it.kind }}</span>
+              <span v-if="it.kind === 'actividad'">{{ it.data.titulo }}</span>
+              <span v-else-if="it.kind === 'tarea'">Tarea: {{ it.data.titulo }} ({{ it.data.estado }})</span>
+              <span v-else>Archivo: {{ it.data.nombre }}</span>
+              <div class="text-xs text-zinc-500">{{ new Date(it.data.created_at || it.data.createdAt).toLocaleString() }}</div>
+            </li>
+            <li v-if="!timeline.length" class="text-sm text-zinc-500">Sin historial.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal -->
+    <div v-if="showModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div class="bg-white dark:bg-zinc-800 rounded-2xl p-6 w-full max-w-md">
+        <h2 class="text-xl font-bold mb-4">{{ editing ? 'Editar Empresa' : 'Nueva Empresa' }}</h2>
+        <form @submit.prevent="guardar" class="space-y-4">
+          <div>
+            <label class="block text-sm mb-1">Nombre *</label>
+            <input v-model="form.nombre" type="text" required class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700" />
+          </div>
+          <div>
+            <label class="block text-sm mb-1">Dominio</label>
+            <input v-model="form.dominio" type="text" placeholder="empresa.com" class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700" />
+          </div>
+          <CustomFields entidad="empresa" v-model="form.custom" />
+          <div class="flex gap-2 pt-2">
+            <button type="button" @click="showModal = false" class="flex-1 px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600">Cancelar</button>
+            <button type="submit" :disabled="saving" class="flex-1 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-4 py-2 rounded-lg hover:opacity-90 disabled:opacity-50">{{ saving ? 'Guardando...' : 'Guardar' }}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue'
+import axios from 'axios'
+import CustomFields from '../components/CustomFields.vue'
+
+const empresas = ref([])
+const contactos = ref([])
+const selected = ref(null)
+const q = ref('')
+const showModal = ref(false)
+const editing = ref(null)
+const saving = ref(false)
+const form = ref({ nombre: '', dominio: '' })
+const linkId = ref('')
+
+const fetchEmpresas = async () => {
+  try {
+    const { data } = await axios.get('/api/companies', { params: { limit: 50, q: q.value || undefined } })
+    empresas.value = data.data || []
+  } catch (e) { console.error(e) }
+}
+
+const fetchContactos = async () => {
+  try {
+    const { data } = await axios.get('/api/contactos', { params: { limit: 100 } })
+    contactos.value = data.data || data
+  } catch (e) { console.error(e) }
+}
+
+const adjuntos = ref([])
+const timeline = ref([])
+
+const seleccionar = async (e) => {
+  try {
+    const { data } = await axios.get(`/api/companies/${e.id}`)
+    selected.value = data
+    const [adj, tl] = await Promise.all([
+      axios.get('/api/archivos', { params: { entityType: 'empresa', entityId: e.id } }),
+      axios.get('/api/timeline', { params: { entityType: 'empresa', entityId: e.id } }),
+    ])
+    adjuntos.value = adj.data || []
+    timeline.value = tl.data || []
+  } catch (e2) { console.error(e2) }
+}
+
+const subirArchivo = async (ev) => {
+  const file = ev.target.files?.[0]
+  if (!file || !selected.value) return
+  const form = new FormData()
+  form.append('file', file)
+  form.append('entityType', 'empresa')
+  form.append('entityId', selected.value.id)
+  try {
+    await axios.post('/api/archivos', form)
+    await seleccionar(selected.value)
+  } catch (e) { alert(e.response?.data?.error || 'Error subiendo archivo') } finally { ev.target.value = '' }
+}
+
+const borrarArchivo = async (a) => {
+  if (!confirm(`¿Eliminar ${a.nombre}?`)) return
+  await axios.delete(`/api/archivos/${a.id}`)
+  await seleccionar(selected.value)
+}
+
+const openModal = (e) => {
+  editing.value = e
+  form.value = { nombre: e?.nombre || '', dominio: e?.dominio || '', custom: { ...(e?.custom || {}) } }
+  showModal.value = true
+}
+
+const guardar = async () => {
+  saving.value = true
+  try {
+    if (editing.value) {
+      await axios.put(`/api/companies/${editing.value.id}`, form.value)
+    } else {
+      await axios.post('/api/companies', form.value)
+    }
+    showModal.value = false
+    await fetchEmpresas()
+    if (selected.value && editing.value) await seleccionar(editing.value)
+  } catch (e) { console.error(e) } finally { saving.value = false }
+}
+
+const eliminar = async () => {
+  if (!confirm(`¿Eliminar ${selected.value.nombre}?`)) return
+  await axios.delete(`/api/companies/${selected.value.id}`)
+  selected.value = null
+  await fetchEmpresas()
+}
+
+const vincular = async () => {
+  if (!linkId.value || !selected.value) return
+  await axios.post(`/api/companies/${selected.value.id}/contacts`, { contactoId: linkId.value })
+  linkId.value = ''
+  await seleccionar(selected.value)
+}
+
+const desvincular = async (c) => {
+  await axios.delete(`/api/companies/${selected.value.id}/contacts/${c.id}`)
+  await seleccionar(selected.value)
+}
+
+onMounted(async () => { await Promise.all([fetchEmpresas(), fetchContactos()]) })
+</script>

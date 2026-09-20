@@ -1,0 +1,12 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+allowBuilds:
+  esbuild: true
+  sharp: true
+  husky: true
+  "@tailwindcss/oxide": true
+  "@swc/core": true
+  unrs-resolver: true
+  next: true  vue-demi: set this to true or false

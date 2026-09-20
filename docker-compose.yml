@@ -1,0 +1,143 @@
+name: crm
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: crm-postgres
+    environment:
+      POSTGRES_USER: crm
+      POSTGRES_PASSWORD: crm_dev_password
+      POSTGRES_DB: crm
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crm -d crm"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: crm-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  minio:
+    image: quay.io/minio/minio:latest
+    container_name: crm-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: crm
+      MINIO_ROOT_PASSWORD: crm_dev_password
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: crm-api
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./apps/api:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      HOST: 0.0.0.0
+      DATABASE_URL: postgres://crm:crm_dev_password@postgres:5432/crm
+      REDIS_URL: redis://redis:6379
+      CORS_ORIGIN: http://localhost:8081
+      SESSION_COOKIE: crm_session
+      SESSION_TTL_SECONDS: 604800
+      RATE_LIMIT_MAX: 300
+      RATE_LIMIT_WINDOW_SECONDS: 60
+      # Clave hex 32 bytes para cifrar tokens OAuth/secret en reposo. CAMBIAR por despliegue.
+      MICROSOFT_CRYPTO_KEY: 0977bac398073dfeee3d5223b9ba1a201414227e037ec1825ee50c25a10cc017
+      GRAPH_PUBLIC_URL: http://localhost:3001
+      # Moneda del despliegue: MXN por defecto, USD opcional (sin EUR)
+      CURRENCY: MXN
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_USER: crm
+      MINIO_PASSWORD: crm_dev_password
+      MINIO_BUCKET: crm-archivos
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    command: sh -c "npm install && npx tsx src/server.ts"
+
+  worker:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: crm-worker
+    volumes:
+      - ./apps/api:/app
+      - /app/node_modules
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgres://crm:crm_dev_password@postgres:5432/crm
+      REDIS_URL: redis://redis:6379
+      # Misma clave que api: si difiere, no podrá descifrar tokens.
+      MICROSOFT_CRYPTO_KEY: 0977bac398073dfeee3d5223b9ba1a201414227e037ec1825ee50c25a10cc017
+      GRAPH_PUBLIC_URL: http://localhost:3001
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_USER: crm
+      MINIO_PASSWORD: crm_dev_password
+      MINIO_BUCKET: crm-archivos
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_started
+    restart: unless-stopped
+    command: sh -c "npm install && npx tsx src/worker.ts"
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile.vue
+      args:
+        VITE_API_URL: http://localhost:3001
+    container_name: crm-web
+    ports:
+      - "8081:80"
+    environment:
+      VITE_APP_NAME: CRM
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:

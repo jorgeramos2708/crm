@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Tipografía global: Plus Jakarta Sans (auto-alojada, OFL)
+   Títulos y métricas: 600-700 (clases font-semibold/font-bold)
+   Textos, formularios y etiquetas: 400 (base)
+   Botones y navegación: 500 */
+@layer base {
+  body {
+    font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  h1, h2 {
+    font-weight: 700;
+  }
+  h3 {
+    font-weight: 600;
+  }
+  button {
+    font-weight: 500;
+  }
+  nav a, aside a {
+    font-weight: 500;
+  }
+  label {
+    font-weight: 400;
+  }
+  input, select, textarea {
+    font-weight: 400;
+  }
+  ::selection {
+    background: #e8e3d9;
+  }
+  :focus-visible {
+    outline: 2px solid #a8a094;
+    outline-offset: 2px;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #d7d0c2;
+    border-radius: 8px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+@media print {
+  aside, header {
+    display: none !important;
+  }
+  main {
+    margin: 0 !important;
+  }
+}
