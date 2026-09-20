@@ -1,6 +1,6 @@
 # CRM
 
-CRM general (estilo HubSpot): contactos y segmentación, oportunidades/embudo de ventas, actividades/seguimiento y reportes. Web desktop/móvil, alojado en infraestructura propia.
+CRM general: contactos y segmentación, oportunidades/embudo de ventas, actividades/seguimiento y reportes. Web desktop/móvil, alojado en infraestructura propia.
 
 ## Stack
 
