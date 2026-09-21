@@ -74,18 +74,12 @@
             {{ contacto.cargo || "-" }}
           </Td>
           <Td align="right" class="font-medium">
-            <button
-              @click="openModal(contacto)"
-              class="text-blue-600 hover:text-blue-900 dark:hover:text-blue-400 mr-3"
+            <Btn variant="link" class="mr-3" @click="openModal(contacto)"
+              >Editar</Btn
             >
-              Editar
-            </button>
-            <button
-              @click="eliminarContacto(contacto)"
-              class="text-red-600 hover:text-red-900 dark:hover:text-red-400"
+            <Btn variant="link-danger" @click="eliminarContacto(contacto)"
+              >Eliminar</Btn
             >
-              Eliminar
-            </button>
           </Td>
         </tr>
         <tr v-if="cargando && !contactos.length">

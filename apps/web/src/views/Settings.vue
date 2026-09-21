@@ -1030,7 +1030,7 @@
             class="w-full"
           />
         </Field>
-        <Field>
+        <div>
           <label class="block text-sm mb-1">{{
             editingUser ? "Nueva contraseña (vacío = mantener)" : "Contraseña *"
           }}</label>
@@ -1041,7 +1041,7 @@
             autocomplete="new-password"
             class="w-full"
           />
-        </Field>
+        </div>
         <div class="grid grid-cols-2 gap-3">
           <Field label="Rol">
             <Select v-model="userForm.role" class="w-full">

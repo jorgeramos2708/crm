@@ -278,3 +278,27 @@ describe("Icon", () => {
     expect(svg.attributes("width")).toBe("16");
   });
 });
+
+describe("Field accesibilidad", () => {
+  it("la etiqueta envuelve al control (asociación implícita)", () => {
+    const w = mount(Field, {
+      props: { label: "Nombre", required: true },
+      slots: { default: '<input type="text" />' },
+    });
+    const label = w.find("label");
+    expect(label.exists()).toBe(true);
+    expect(label.find("input").exists()).toBe(true);
+  });
+});
+
+describe("Btn link-danger", () => {
+  it("usa rojo sin relleno y sin padding de botón", () => {
+    const w = mount(Btn, {
+      props: { variant: "link-danger" },
+      slots: { default: "Eliminar" },
+    });
+    expect(w.classes()).toContain("text-red-600");
+    expect(w.classes()).not.toContain("px-4");
+    expect(w.classes()).not.toContain("bg-red-600");
+  });
+});

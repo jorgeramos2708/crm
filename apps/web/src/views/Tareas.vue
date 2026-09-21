@@ -79,15 +79,8 @@
               <Icon name="vinculo" class="h-3 w-3" /> {{ t._vinculo }}
             </div>
             <div class="flex gap-3 mt-2 text-xs">
-              <button
-                @click="openModal(t)"
-                class="text-blue-600 hover:underline"
-              >
-                Editar
-              </button>
-              <button @click="eliminar(t)" class="text-red-600 hover:underline">
-                Eliminar
-              </button>
+              <Btn variant="link" @click="openModal(t)">Editar</Btn>
+              <Btn variant="link-danger" @click="eliminar(t)">Eliminar</Btn>
             </div>
           </div>
           <div

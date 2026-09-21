@@ -41,15 +41,8 @@
             formatCurrency(p.total)
           }}</Td>
           <td class="px-6 py-4 text-right text-sm">
-            <button
-              @click="verDetalle(p)"
-              class="text-blue-600 hover:underline mr-3"
-            >
-              Ver
-            </button>
-            <button @click="eliminar(p)" class="text-red-600 hover:underline">
-              Eliminar
-            </button>
+            <Btn variant="link" class="mr-3" @click="verDetalle(p)">Ver</Btn>
+            <Btn variant="link-danger" @click="eliminar(p)">Eliminar</Btn>
           </td>
         </tr>
         <tr v-if="cargando && !presupuestos.length">

@@ -57,9 +57,7 @@
             >{{ o.probabilidad ?? 50 }}%</Td
           >
           <td class="px-6 py-4 text-right text-sm">
-            <button @click="eliminar(o)" class="text-red-600 hover:underline">
-              Eliminar
-            </button>
+            <Btn variant="link-danger" @click="eliminar(o)">Eliminar</Btn>
           </td>
         </tr>
         <tr v-if="cargando && !negocios.length">

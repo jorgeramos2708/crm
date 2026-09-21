@@ -75,6 +75,7 @@ const variants = {
     "border border-zinc-300 dark:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-700",
   ghost: "hover:bg-zinc-100 dark:hover:bg-zinc-700",
   link: "text-blue-600 hover:underline",
+  "link-danger": "text-red-600 hover:underline",
   danger: "bg-red-600 text-white font-medium hover:bg-red-700",
 };
 
@@ -90,7 +91,8 @@ const classes = computed(() => {
     variants[props.variant] || variants.primary,
   ];
   if (props.variant === "ghost") cls.push("rounded-xl p-2");
-  else if (props.variant !== "link") cls.push(sizes[props.size] || sizes.md);
+  else if (!["link", "link-danger"].includes(props.variant))
+    cls.push(sizes[props.size] || sizes.md);
   if (tag.value !== "button" && (props.disabled || props.loading))
     cls.push("pointer-events-none opacity-50");
   return cls;

@@ -62,18 +62,12 @@
               </p>
             </div>
             <div class="flex gap-2">
-              <button
-                @click="openModal(selected)"
-                class="text-blue-600 hover:underline text-sm"
+              <Btn variant="link" class="text-sm" @click="openModal(selected)"
+                >Editar</Btn
               >
-                Editar
-              </button>
-              <button
-                @click="eliminar"
-                class="text-red-600 hover:underline text-sm"
+              <Btn variant="link-danger" class="text-sm" @click="eliminar"
+                >Eliminar</Btn
               >
-                Eliminar
-              </button>
             </div>
           </div>
 
@@ -92,12 +86,9 @@
                   c.email ? `· ${c.email}` : ""
                 }}</span></span
               >
-              <button
-                @click="desvincular(c)"
-                class="text-red-600 hover:underline text-xs"
+              <Btn variant="link-danger" class="text-xs" @click="desvincular(c)"
+                >Quitar</Btn
               >
-                Quitar
-              </button>
             </li>
             <li
               v-if="!selected.contactos?.length"
@@ -139,12 +130,9 @@
                   variant="link"
                   >Descargar</Btn
                 >
-                <button
-                  @click="borrarArchivo(a)"
-                  class="text-red-600 hover:underline"
+                <Btn variant="link-danger" @click="borrarArchivo(a)"
+                  >Eliminar</Btn
                 >
-                  Eliminar
-                </button>
               </span>
             </li>
             <li v-if="!adjuntos.length" class="py-2 text-sm text-zinc-500">

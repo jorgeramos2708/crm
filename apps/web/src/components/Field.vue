@@ -1,11 +1,13 @@
-<!-- Field (Fase 3): etiqueta + control + ayuda/error.
-  Estandariza el patrón label block + input (ex: modal de Contactos). -->
+<!-- Field (Fase 3, rev. Fase 9): etiqueta + control + ayuda/error.
+  La etiqueta ENVUELVE al control (asociación implícita para lectores de
+  pantalla) con el mismo espaciado visual del patrón label block + input. -->
 <template>
   <div>
-    <label v-if="label" class="mb-1 block text-sm">
-      {{ label }}<span v-if="required"> *</span>
+    <label v-if="label" class="block text-sm">
+      <span class="mb-1 block">{{ label }}<span v-if="required"> *</span></span>
+      <slot />
     </label>
-    <slot />
+    <slot v-else />
     <p v-if="error" class="mt-1 text-xs text-red-600 dark:text-red-400">
       {{ error }}
     </p>
