@@ -53,6 +53,7 @@ import {
   SquarePen,
   ShieldCheck,
   Puzzle,
+  Link2,
 } from "@lucide/vue";
 
 const props = defineProps({
@@ -89,6 +90,7 @@ const icons = {
   usuarios: Users,
   equipo: Users,
   integraciones: Puzzle,
+  vinculo: Link2,
 };
 
 const icon = computed(() => icons[props.name] || House);

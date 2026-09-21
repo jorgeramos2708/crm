@@ -114,6 +114,7 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import axios from "axios";
+import { toast } from "../utils/toast";
 import Skeleton from "../components/Skeleton.vue";
 import Select from "../components/Select.vue";
 import Pagination from "../components/Pagination.vue";
@@ -144,6 +145,7 @@ const fetchActividades = async () => {
     totalPages.value = Math.ceil(total.value / pageSize);
   } catch (e) {
     console.error("Error fetching actividades:", e);
+    toast.error("Error al cargar actividades");
   } finally {
     cargando.value = false;
   }

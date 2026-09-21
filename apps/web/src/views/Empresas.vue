@@ -279,10 +279,9 @@ const fetchContactos = async () => {
     contactos.value = data.data || data;
   } catch (e) {
     console.error(e);
+    toast.error("Error al cargar contactos");
   }
 };
-
-const adjuntos = ref([]);
 const timeline = ref([]);
 
 const seleccionar = async (e) => {
@@ -301,6 +300,7 @@ const seleccionar = async (e) => {
     timeline.value = tl.data || [];
   } catch (e2) {
     console.error(e2);
+    toast.error("Error al cargar el detalle");
   }
 };
 
@@ -323,8 +323,13 @@ const subirArchivo = async (ev) => {
 
 const borrarArchivo = async (a) => {
   if (!(await confirmar(`¿Eliminar ${a.nombre}?`))) return;
-  await axios.delete(`/api/archivos/${a.id}`);
-  await seleccionar(selected.value);
+  try {
+    await axios.delete(`/api/archivos/${a.id}`);
+    await seleccionar(selected.value);
+  } catch (e) {
+    console.error(e);
+    toast.error(e.response?.data?.error || "Error al eliminar archivo");
+  }
 };
 
 const openModal = (e) => {
@@ -358,23 +363,38 @@ const guardar = async () => {
 
 const eliminar = async () => {
   if (!(await confirmar(`¿Eliminar ${selected.value.nombre}?`))) return;
-  await axios.delete(`/api/companies/${selected.value.id}`);
-  selected.value = null;
-  await fetchEmpresas();
+  try {
+    await axios.delete(`/api/companies/${selected.value.id}`);
+    selected.value = null;
+    await fetchEmpresas();
+  } catch (e) {
+    console.error(e);
+    toast.error(e.response?.data?.error || "Error al eliminar");
+  }
 };
 
 const vincular = async () => {
   if (!linkId.value || !selected.value) return;
-  await axios.post(`/api/companies/${selected.value.id}/contacts`, {
-    contactoId: linkId.value,
-  });
-  linkId.value = "";
-  await seleccionar(selected.value);
+  try {
+    await axios.post(`/api/companies/${selected.value.id}/contacts`, {
+      contactoId: linkId.value,
+    });
+    linkId.value = "";
+    await seleccionar(selected.value);
+  } catch (e) {
+    console.error(e);
+    toast.error(e.response?.data?.error || "Error al vincular");
+  }
 };
 
 const desvincular = async (c) => {
-  await axios.delete(`/api/companies/${selected.value.id}/contacts/${c.id}`);
-  await seleccionar(selected.value);
+  try {
+    await axios.delete(`/api/companies/${selected.value.id}/contacts/${c.id}`);
+    await seleccionar(selected.value);
+  } catch (e) {
+    console.error(e);
+    toast.error(e.response?.data?.error || "Error al desvincular");
+  }
 };
 
 onMounted(async () => {

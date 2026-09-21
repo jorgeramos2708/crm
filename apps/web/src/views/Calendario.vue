@@ -12,13 +12,13 @@
       <span v-else class="px-2 py-1 rounded-full bg-zinc-100 dark:bg-zinc-700 text-zinc-500">Outlook: {{ fuentes.outlook?.error || 'no conectado' }}</span>
       <span v-if="fuentes.google?.connected" class="px-2 py-1 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300">Google conectado</span>
       <span v-else class="px-2 py-1 rounded-full bg-zinc-100 dark:bg-zinc-700 text-zinc-500">Google: {{ fuentes.google?.error || 'no conectado' }}</span>
-      <router-link to="/settings" class="underline text-zinc-500 ml-auto">Configurar conexiones</router-link>
+      <Btn variant="link" to="/settings" class="ml-auto">Configurar conexiones</Btn>
     </div>
 
-    <div class="panel-flat overflow-hidden">
+    <Card class="overflow-hidden">
       <ul class="divide-y divide-zinc-200 dark:divide-zinc-700">
         <li v-for="e in eventos" :key="e.provider + e.id" class="px-6 py-4 flex items-start gap-3">
-          <span class="mt-1 w-2.5 h-2.5 rounded-full flex-shrink-0" :class="e.provider === 'outlook' ? 'bg-blue-500' : 'bg-red-500'"></span>
+          <Badge :color="e.provider === 'outlook' ? 'blue' : 'red'" dot-size="h-2.5 w-2.5" class="mt-1 flex-shrink-0" />
           <div class="min-w-0">
             <div class="font-medium text-sm">{{ e.subject }}</div>
             <div class="text-xs text-zinc-500">{{ fmtRango(e.start, e.end) }}{{ e.location ? ` · ${e.location}` : '' }}</div>
@@ -29,7 +29,7 @@
         <li v-if="!eventos.length && !loading" class="px-6 py-12 text-center text-zinc-500 text-sm">Sin eventos en el rango.</li>
         <li v-if="loading" class="px-6 py-12 text-center text-zinc-500 text-sm">Cargando...</li>
       </ul>
-    </div>
+    </Card>
   </div>
 </template>
 
@@ -37,6 +37,10 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import Skeleton from '../components/Skeleton.vue'
+import Btn from '../components/Btn.vue'
+import Badge from '../components/Badge.vue'
+import Card from '../components/Card.vue'
+import { toast } from '../utils/toast'
 
 const eventos = ref([])
 const fuentes = ref({ outlook: {}, google: {} })
@@ -57,7 +61,7 @@ const fetchCal = async () => {
     const { data } = await axios.get('/api/calendario', { params: { end } })
     eventos.value = data.data || []
     fuentes.value = data.fuentes || {}
-  } catch (e) { console.error(e) } finally { loading.value = false }
+  } catch (e) { console.error(e); toast.error('Error al cargar calendario') } finally { loading.value = false }
 }
 
 onMounted(fetchCal)

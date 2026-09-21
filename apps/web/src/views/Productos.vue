@@ -9,172 +9,122 @@
         class="flex-1 min-w-[200px]"
       />
       <div class="ml-auto">
-        <button
-          @click="openModal(null)"
-          class="bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90"
+        <Btn @click="openModal(null)">+ Nuevo Producto</Btn>
+      </div>
+    </div>
+
+    <Card class="overflow-hidden">
+      <Table>
+        <template #head>
+          <tr>
+            <Th>Producto</Th>
+            <Th>SKU</Th>
+            <Th align="right">Precio</Th>
+            <Th>Estado</Th>
+            <Th align="right">Acciones</Th>
+          </tr>
+        </template>
+        <tr
+          v-for="p in productos"
+          :key="p.id"
+          class="hover:bg-zinc-50 dark:hover:bg-zinc-700/50"
         >
-          + Nuevo Producto
-        </button>
-      </div>
-    </div>
-
-    <div class="panel-flat overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="w-full">
-          <thead class="bg-zinc-50 dark:bg-zinc-700/50">
-            <tr>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider"
-              >
-                Producto
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider"
-              >
-                SKU
-              </th>
-              <th
-                class="px-6 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider"
-              >
-                Precio
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider"
-              >
-                Estado
-              </th>
-              <th
-                class="px-6 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider"
-              >
-                Acciones
-              </th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
-            <tr
-              v-for="p in productos"
-              :key="p.id"
-              class="hover:bg-zinc-50 dark:hover:bg-zinc-700/50"
+          <Td primary>
+            {{ p.nombre }}
+            <div
+              v-if="p.descripcion"
+              class="font-normal text-xs text-zinc-500 truncate max-w-xs"
             >
-              <td class="px-6 py-4 text-sm font-medium">
-                {{ p.nombre }}
-                <div
-                  v-if="p.descripcion"
-                  class="font-normal text-xs text-zinc-500 truncate max-w-xs"
-                >
-                  {{ p.descripcion }}
-                </div>
-              </td>
-              <td class="px-6 py-4 text-sm text-zinc-500 font-mono text-xs">
-                {{ p.sku || "—" }}
-              </td>
-              <td class="px-6 py-4 text-sm text-right tabular-nums">
-                {{ formatCurrency(p.precio) }}
-              </td>
-              <td class="px-6 py-4 text-sm">
-                {{ p.activo ? "Activo" : "Inactivo" }}
-              </td>
-              <td class="px-6 py-4 text-right text-sm">
-                <button
-                  @click="openModal(p)"
-                  class="text-blue-600 hover:underline mr-3"
-                >
-                  Editar
-                </button>
-                <button
-                  @click="eliminar(p)"
-                  class="text-red-600 hover:underline"
-                >
-                  Eliminar
-                </button>
-              </td>
-            </tr>
-            <tr v-if="cargando && !productos.length">
-              <td colspan="5">
-                <div class="p-4"><Skeleton :filas="5" /></div>
-              </td>
-            </tr>
-            <tr v-if="!cargando && !productos.length">
-              <td
-                colspan="5"
-                class="px-6 py-12 text-center text-sm text-zinc-500"
-              >
-                Sin productos en el catálogo.
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+              {{ p.descripcion }}
+            </div>
+          </Td>
+          <Td class="font-mono">
+            {{ p.sku || "—" }}
+          </Td>
+          <Td align="right" tone="strong" class="tabular-nums">
+            {{ formatCurrency(p.precio) }}
+          </Td>
+          <Td>
+            <Badge
+              :color="p.activo ? 'green' : 'zinc'"
+              variant="pill"
+              :dot="false"
+              >{{ p.activo ? "Activo" : "Inactivo" }}</Badge
+            >
+          </Td>
+          <td class="px-6 py-4 text-right text-sm">
+            <button
+              @click="openModal(p)"
+              class="text-blue-600 hover:underline mr-3"
+            >
+              Editar
+            </button>
+            <button @click="eliminar(p)" class="text-red-600 hover:underline">
+              Eliminar
+            </button>
+          </td>
+        </tr>
+        <tr v-if="cargando && !productos.length">
+          <td colspan="5">
+            <div class="p-4"><Skeleton :filas="5" /></div>
+          </td>
+        </tr>
+        <tr v-if="!cargando && !productos.length">
+          <td colspan="5" class="px-6 py-12 text-center text-sm text-zinc-500">
+            Sin productos en el catálogo.
+          </td>
+        </tr>
+      </Table>
+    </Card>
 
-    <div
-      v-if="showModal"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-    >
-      <div class="bg-white dark:bg-zinc-800 rounded-2xl p-6 w-full max-w-md">
+    <Modal :open="showModal" @close="showModal = false">
+      <template #title>
         <h2 class="text-xl font-bold mb-4">
           {{ editing ? "Editar Producto" : "Nuevo Producto" }}
         </h2>
-        <form @submit.prevent="guardar" class="space-y-4">
-          <div>
-            <label class="block text-sm mb-1">Nombre *</label>
+      </template>
+      <form @submit.prevent="guardar" class="space-y-4">
+        <Field label="Nombre" required>
+          <Input v-model="form.nombre" type="text" required class="w-full" />
+        </Field>
+        <div class="grid grid-cols-2 gap-3">
+          <Field label="SKU">
+            <Input v-model="form.sku" type="text" class="w-full font-mono" />
+          </Field>
+          <Field label="Precio" required>
             <input
-              v-model="form.nombre"
-              type="text"
+              v-model.number="form.precio"
+              type="number"
+              min="0"
               required
               class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700"
             />
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-sm mb-1">SKU</label>
-              <input
-                v-model="form.sku"
-                type="text"
-                class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 font-mono text-sm"
-              />
-            </div>
-            <div>
-              <label class="block text-sm mb-1">Precio *</label>
-              <input
-                v-model.number="form.precio"
-                type="number"
-                min="0"
-                required
-                class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700"
-              />
-            </div>
-          </div>
-          <div>
-            <label class="block text-sm mb-1">Descripción</label>
-            <textarea
-              v-model="form.descripcion"
-              rows="2"
-              class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700"
-            ></textarea>
-          </div>
-          <label class="flex items-center gap-2 text-sm cursor-pointer"
-            ><input type="checkbox" v-model="form.activo" class="w-4 h-4" />
-            Activo</label
+          </Field>
+        </div>
+        <Field label="Descripción">
+          <Input
+            v-model="form.descripcion"
+            multiline
+            :rows="2"
+            class="w-full"
+          />
+        </Field>
+        <label class="flex items-center gap-2 text-sm cursor-pointer"
+          ><input type="checkbox" v-model="form.activo" class="w-4 h-4" />
+          Activo</label
+        >
+        <div class="flex gap-2 pt-2">
+          <Btn
+            type="button"
+            variant="outline"
+            class="flex-1"
+            @click="showModal = false"
+            >Cancelar</Btn
           >
-          <div class="flex gap-2 pt-2">
-            <button
-              type="button"
-              @click="showModal = false"
-              class="flex-1 px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              class="flex-1 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-4 py-2 rounded-lg hover:opacity-90"
-            >
-              Guardar
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+          <Btn type="submit" variant="primary" class="flex-1">Guardar</Btn>
+        </div>
+      </form>
+    </Modal>
   </div>
 </template>
 
@@ -186,6 +136,14 @@ import { confirmar } from "../utils/confirm";
 import { formatCurrency, loadCurrency } from "../utils/currency";
 import Skeleton from "../components/Skeleton.vue";
 import Input from "../components/Input.vue";
+import Btn from "../components/Btn.vue";
+import Badge from "../components/Badge.vue";
+import Card from "../components/Card.vue";
+import Table from "../components/Table.vue";
+import Modal from "../components/Modal.vue";
+import Field from "../components/Field.vue";
+import Th from "../components/Th.vue";
+import Td from "../components/Td.vue";
 
 const productos = ref([]);
 const q = ref("");
@@ -209,6 +167,7 @@ const fetchProductos = async () => {
     productos.value = data || [];
   } catch (e) {
     console.error(e);
+    toast.error("Error al cargar productos");
   } finally {
     cargando.value = false;
   }

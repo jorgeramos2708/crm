@@ -15,7 +15,9 @@
     :href="tag === 'a' ? href : undefined"
     :type="tag === 'button' ? type : undefined"
     :disabled="tag === 'button' ? disabled || loading : undefined"
-    :aria-disabled="tag !== 'button' && (disabled || loading) ? 'true' : undefined"
+    :aria-disabled="
+      tag !== 'button' && (disabled || loading) ? 'true' : undefined
+    "
     :class="classes"
   >
     <svg
@@ -25,50 +27,70 @@
       fill="none"
       aria-hidden="true"
     >
-      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" opacity="0.25" />
-      <path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+      <circle
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        stroke-width="3"
+        opacity="0.25"
+      />
+      <path
+        d="M22 12a10 10 0 0 0-10-10"
+        stroke="currentColor"
+        stroke-width="3"
+        stroke-linecap="round"
+      />
     </svg>
     <slot />
   </component>
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { RouterLink } from 'vue-router'
+import { computed } from "vue";
+import { RouterLink } from "vue-router";
 
 const props = defineProps({
-  variant: { type: String, default: 'primary' },
-  size: { type: String, default: 'md' },
+  variant: { type: String, default: "primary" },
+  size: { type: String, default: "md" },
   to: { type: [String, Object], default: null },
   href: { type: String, default: null },
-  type: { type: String, default: 'button' },
+  type: { type: String, default: "button" },
   disabled: { type: Boolean, default: false },
   loading: { type: Boolean, default: false },
-})
+});
 
-const tag = computed(() => (props.to ? RouterLink : props.href ? 'a' : 'button'))
+const tag = computed(() =>
+  props.to ? RouterLink : props.href ? "a" : "button",
+);
 
 const variants = {
-  primary: 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium hover:opacity-90',
-  outline: 'border border-zinc-300 dark:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-700',
-  ghost: 'hover:bg-zinc-100 dark:hover:bg-zinc-700',
-  link: 'text-blue-600 hover:underline',
-  danger: 'bg-red-600 text-white font-medium hover:bg-red-700',
-}
+  primary:
+    "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium hover:opacity-90",
+  secondary:
+    "bg-zinc-100 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 hover:opacity-90",
+  outline:
+    "border border-zinc-300 dark:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-700",
+  ghost: "hover:bg-zinc-100 dark:hover:bg-zinc-700",
+  link: "text-blue-600 hover:underline",
+  danger: "bg-red-600 text-white font-medium hover:bg-red-700",
+};
 
 const sizes = {
-  sm: 'px-3 py-1 text-xs rounded-lg',
-  md: 'px-4 py-2 text-sm rounded-lg',
-}
+  sm: "px-3 py-1 text-xs rounded-lg",
+  md: "px-4 py-2 text-sm rounded-lg",
+  lg: "px-6 py-3 rounded-lg",
+};
 
 const classes = computed(() => {
   const cls = [
-    'inline-flex items-center justify-center gap-2 transition-colors disabled:opacity-50',
+    "inline-flex items-center justify-center gap-2 transition-colors disabled:opacity-50",
     variants[props.variant] || variants.primary,
-  ]
-  if (props.variant === 'ghost') cls.push('rounded-xl p-2')
-  else if (props.variant !== 'link') cls.push(sizes[props.size] || sizes.md)
-  if (tag.value !== 'button' && (props.disabled || props.loading)) cls.push('pointer-events-none opacity-50')
-  return cls
-})
+  ];
+  if (props.variant === "ghost") cls.push("rounded-xl p-2");
+  else if (props.variant !== "link") cls.push(sizes[props.size] || sizes.md);
+  if (tag.value !== "button" && (props.disabled || props.loading))
+    cls.push("pointer-events-none opacity-50");
+  return cls;
+});
 </script>

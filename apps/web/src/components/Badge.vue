@@ -3,8 +3,9 @@
   variant="pill" → pastilla tintada (ex: "En vivo" en Correos).
   `color`: blue|green|red|purple|orange|zinc. `hex`: color arbitrario del backend (etapas). -->
 <template>
-  <span v-if="variant === 'pill'" :class="pillClasses">
+  <span v-if="variant !== 'dot'" :class="boxedClasses">
     <span
+      v-if="dot"
       class="inline-block h-2 w-2 flex-shrink-0 rounded-full"
       :class="[dotClass, pulse ? 'animate-pulse' : '']"
       :style="dotStyle"
@@ -13,6 +14,7 @@
   </span>
   <span v-else class="inline-flex items-center gap-1.5">
     <span
+      v-if="dot"
       class="inline-block flex-shrink-0 rounded-full"
       :class="[dotSize, dotClass, pulse ? 'animate-pulse' : '']"
       :style="dotStyle"
@@ -29,6 +31,7 @@ const props = defineProps({
   hex: { type: String, default: "" },
   variant: { type: String, default: "dot" },
   pulse: { type: Boolean, default: false },
+  dot: { type: Boolean, default: true },
   dotSize: { type: String, default: "h-2 w-2" },
 });
 
@@ -38,6 +41,7 @@ const dots = {
   red: "bg-red-500",
   purple: "bg-purple-500",
   orange: "bg-orange-500",
+  yellow: "bg-yellow-500",
   zinc: "bg-zinc-400",
 };
 
@@ -49,6 +53,8 @@ const pills = {
     "bg-purple-100 text-purple-700 dark:bg-purple-400/15 dark:text-purple-300",
   orange:
     "bg-orange-100 text-orange-700 dark:bg-orange-400/15 dark:text-orange-300",
+  yellow:
+    "bg-yellow-100 text-yellow-700 dark:bg-yellow-400/15 dark:text-yellow-300",
   zinc: "bg-zinc-200/70 text-zinc-600 dark:bg-white/10 dark:text-zinc-300",
 };
 
@@ -58,8 +64,10 @@ const dotClass = computed(() =>
 const dotStyle = computed(() =>
   props.hex ? { backgroundColor: props.hex } : undefined,
 );
-const pillClasses = computed(() => [
-  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
+const boxedClasses = computed(() => [
+  props.variant === "chip"
+    ? "inline-flex items-center gap-1.5 rounded px-2 py-1 text-xs"
+    : "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
   pills[props.color] || pills.zinc,
 ]);
 </script>
