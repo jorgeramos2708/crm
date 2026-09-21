@@ -2,8 +2,9 @@
   Atributos extra (colspan...) se heredan a la celda. -->
 <template>
   <td
-    class="whitespace-nowrap px-6 py-4 text-sm"
+    class="whitespace-nowrap text-sm"
     :class="[
+      compact ? 'px-3 py-2' : 'px-6 py-4',
       primary ? 'font-medium' : '',
       primary || tone === 'strong'
         ? 'text-zinc-900 dark:text-zinc-100'
@@ -24,5 +25,6 @@ defineProps({
   primary: { type: Boolean, default: false },
   tone: { type: String, default: "muted" },
   align: { type: String, default: "left" },
+  compact: { type: Boolean, default: false },
 });
 </script>

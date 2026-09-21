@@ -10,6 +10,7 @@ import Pagination from "./Pagination.vue";
 import Icon from "./Icon.vue";
 import Th from "./Th.vue";
 import Td from "./Td.vue";
+import Field from "./Field.vue";
 
 describe("Btn", () => {
   it("renderiza el slot y variante primaria por defecto", () => {
@@ -191,5 +192,89 @@ describe("Th/Td", () => {
     });
     expect(w.classes()).toContain("text-zinc-900");
     expect(w.classes()).toContain("font-medium");
+  });
+
+  it("Td compact y tone strong", () => {
+    const w = mount(Td, {
+      props: { compact: true, tone: "strong", align: "right" },
+      slots: { default: "1" },
+    });
+    expect(w.classes()).toContain("px-3");
+    expect(w.classes()).toContain("text-right");
+  });
+
+  it("Th compact", () => {
+    const w = mount(Th, {
+      props: { compact: true },
+      slots: { default: "Cant." },
+    });
+    expect(w.classes()).toContain("px-3");
+  });
+});
+
+describe("Field", () => {
+  it("muestra etiqueta con asterisco si es requerido", () => {
+    const w = mount(Field, {
+      props: { label: "Nombre", required: true },
+      slots: { default: "<input />" },
+    });
+    expect(w.find("label").text()).toContain("Nombre");
+    expect(w.find("label").text()).toContain("*");
+  });
+
+  it("muestra el error sobre el hint", () => {
+    const w = mount(Field, {
+      props: { label: "Email", error: "Inválido", hint: "Ayuda" },
+      slots: { default: "<input />" },
+    });
+    expect(w.text()).toContain("Inválido");
+    expect(w.text()).not.toContain("Ayuda");
+  });
+});
+
+describe("Select", () => {
+  it("propaga disabled", () => {
+    const w = mount(Select, { props: { disabled: true } });
+    expect(w.attributes("disabled")).toBeDefined();
+  });
+});
+
+describe("Input", () => {
+  it("propaga placeholder y disabled", () => {
+    const w = mount(Input, {
+      props: { placeholder: "Buscar...", disabled: true },
+    });
+    expect(w.attributes("placeholder")).toBe("Buscar...");
+    expect(w.attributes("disabled")).toBeDefined();
+  });
+});
+
+describe("Modal", () => {
+  it("renderiza el slot de acciones", () => {
+    const w = mount(Modal, {
+      props: { open: true, title: "T" },
+      slots: { actions: "<button>Ok</button>" },
+    });
+    expect(w.text()).toContain("Ok");
+  });
+});
+
+describe("Pagination", () => {
+  it("deshabilita siguiente en la última página", () => {
+    const w = mount(Pagination, {
+      props: { page: 5, totalPages: 5, total: 100, pageSize: 20 },
+    });
+    const buttons = w.findAll("button");
+    expect(buttons[1].attributes("disabled")).toBeDefined();
+  });
+});
+
+describe("Icon", () => {
+  it("respeta size y strokeWidth", () => {
+    const w = mount(Icon, {
+      props: { name: "ajustes", size: 16, strokeWidth: 1.5 },
+    });
+    const svg = w.find("svg");
+    expect(svg.attributes("width")).toBe("16");
   });
 });

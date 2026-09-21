@@ -282,10 +282,10 @@
       <table class="w-full text-sm mb-4">
         <thead>
           <tr class="text-left text-zinc-500 text-xs uppercase">
-            <th class="py-2">Concepto</th>
-            <th class="text-right">Cant.</th>
-            <th class="text-right">Precio</th>
-            <th class="text-right">Importe</th>
+            <Th compact>Concepto</Th>
+            <Th compact align="right">Cant.</Th>
+            <Th compact align="right">Precio</Th>
+            <Th compact align="right">Importe</Th>
           </tr>
         </thead>
         <tbody>
@@ -294,14 +294,16 @@
             :key="i"
             class="border-t border-zinc-200 dark:border-zinc-700"
           >
-            <td class="py-2">{{ it.descripcion }}</td>
-            <td class="text-right tabular-nums">{{ it.cantidad }}</td>
-            <td class="text-right tabular-nums">
+            <Td compact tone="strong">{{ it.descripcion }}</Td>
+            <Td compact align="right" tone="strong" class="tabular-nums">{{
+              it.cantidad
+            }}</Td>
+            <Td compact align="right" tone="strong" class="tabular-nums">
               {{ formatCurrency(it.precio) }}
-            </td>
-            <td class="text-right tabular-nums">
+            </Td>
+            <Td compact align="right" tone="strong" class="tabular-nums">
               {{ formatCurrency(it.cantidad * it.precio) }}
-            </td>
+            </Td>
           </tr>
         </tbody>
       </table>

@@ -323,16 +323,15 @@
       </button>
       <div v-show="acordeon === 'marca'" class="px-5 pb-5">
         <form @submit.prevent="guardarMarca" class="space-y-4">
-          <div>
-            <label class="block text-sm mb-1">Nombre del espacio</label>
-            <input
+          <Field label="Nombre del espacio">
+            <Input
               v-model="marcaForm.nombre"
               type="text"
               maxlength="60"
               placeholder="CRM"
-              class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700"
+              class="w-full"
             />
-          </div>
+          </Field>
           <div>
             <label class="block text-sm mb-1">Tema general del CRM</label>
             <div class="flex flex-wrap gap-2 mb-2">
