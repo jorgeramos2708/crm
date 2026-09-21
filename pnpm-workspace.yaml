@@ -10,4 +10,5 @@ allowBuilds:
   "@swc/core": true
   unrs-resolver: true
   next: true
+  vue-demi: set this to true or false
   # vue-demi: set this to true or false

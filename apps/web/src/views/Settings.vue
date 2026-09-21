@@ -99,24 +99,13 @@
                     >
                   </div>
                   <div class="flex gap-2 text-xs">
-                    <button
-                      @click="editarPermisos(u)"
-                      class="text-blue-600 hover:underline"
+                    <Btn variant="link" @click="editarPermisos(u)"
+                      >Permisos</Btn
                     >
-                      Permisos
-                    </button>
-                    <button
-                      @click="openUserModal(u)"
-                      class="text-blue-600 hover:underline"
+                    <Btn variant="link" @click="openUserModal(u)">Editar</Btn>
+                    <Btn variant="link-danger" @click="borrarUsuario(u)"
+                      >Eliminar</Btn
                     >
-                      Editar
-                    </button>
-                    <button
-                      @click="borrarUsuario(u)"
-                      class="text-red-600 hover:underline"
-                    >
-                      Eliminar
-                    </button>
                   </div>
                 </div>
                 <div
@@ -164,18 +153,12 @@
                     </template>
                   </div>
                   <div class="flex gap-2 mt-3">
-                    <button
-                      @click="guardarPermisos"
-                      class="px-4 py-1.5 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-medium"
+                    <Btn variant="primary" size="sm" @click="guardarPermisos"
+                      >Guardar permisos</Btn
                     >
-                      Guardar permisos
-                    </button>
-                    <button
-                      @click="permUser = null"
-                      class="px-4 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-600 text-xs"
+                    <Btn variant="outline" size="sm" @click="permUser = null"
+                      >Cerrar</Btn
                     >
-                      Cerrar
-                    </button>
                   </div>
                 </div>
               </li>
@@ -225,12 +208,7 @@
                 placeholder="Nombre del equipo"
                 class="flex-1"
               />
-              <button
-                type="submit"
-                class="bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90"
-              >
-                Crear
-              </button>
+              <Btn type="submit">Crear</Btn>
             </form>
             <ul class="divide-y divide-zinc-200 dark:divide-zinc-700">
               <li v-for="eq in equipos" :key="eq.id" class="py-3">
@@ -241,12 +219,9 @@
                       >({{ (eq.miembros || []).length }})</span
                     ></span
                   >
-                  <button
-                    @click="borrarEquipo(eq)"
-                    class="text-red-600 hover:underline text-xs"
-                  >
+                  <Btn variant="link-danger" @click="borrarEquipo(eq)">
                     Eliminar
-                  </button>
+                  </Btn>
                 </div>
                 <div class="flex flex-wrap gap-1.5 mt-2">
                   <span
@@ -264,22 +239,19 @@
                   </span>
                 </div>
                 <div class="flex gap-2 mt-2">
-                  <select
-                    v-model="eqAdd[eq.id]"
-                    class="px-2 py-1 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-xs"
-                  >
+                  <Select v-model="eqAdd[eq.id]" size="sm">
                     <option value="">Añadir miembro...</option>
                     <option v-for="u in usuarios" :key="u.id" :value="u.id">
                       {{ u.name }} ({{ u.email }})
                     </option>
-                  </select>
-                  <button
+                  </Select>
+                  <Btn
+                    variant="outline"
+                    size="sm"
                     @click="agregarMiembro(eq)"
                     :disabled="!eqAdd[eq.id]"
-                    class="px-3 py-1 rounded-lg border border-zinc-300 dark:border-zinc-600 text-xs disabled:opacity-50"
+                    >Añadir</Btn
                   >
-                    Añadir
-                  </button>
                 </div>
               </li>
               <li v-if="!equipos.length" class="py-2 text-sm text-zinc-500">
@@ -495,20 +467,12 @@
             </div>
           </div>
           <div class="flex items-center gap-2">
-            <button
-              type="submit"
-              :disabled="saving"
-              class="bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50"
-            >
+            <Btn type="submit" :disabled="saving" :loading="saving">
               {{ saving ? "Guardando..." : "Guardar" }}
-            </button>
-            <button
-              type="button"
-              @click="showPreview = true"
-              class="px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-700"
-            >
+            </Btn>
+            <Btn type="button" variant="outline" @click="showPreview = true">
               Previsualización
-            </button>
+            </Btn>
             <span v-if="marcaMsg" class="text-sm text-zinc-500">{{
               marcaMsg
             }}</span>
@@ -622,13 +586,9 @@
               Token válido hasta
               {{ new Date(status.expiresAt).toLocaleString() }}
             </p>
-            <button
-              @click="desconectar"
-              :disabled="working"
-              class="px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-50"
+            <Btn variant="outline" @click="desconectar" :disabled="working"
+              >Desconectar</Btn
             >
-              Desconectar
-            </button>
           </div>
           <div v-else class="space-y-3">
             <div class="flex items-center gap-2 text-sm">
@@ -637,12 +597,7 @@
               ></span>
               <span>No conectado</span>
             </div>
-            <button
-              @click="conectar"
-              class="bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90"
-            >
-              Conectar Outlook
-            </button>
+            <Btn @click="conectar">Conectar Outlook</Btn>
           </div>
           <p v-if="statusError" class="text-xs text-red-600 mt-2">
             {{ statusError }}
@@ -663,13 +618,12 @@
                 }}</span
               >
             </div>
-            <button
+            <Btn
+              variant="outline"
               @click="desconectarGoogle"
               :disabled="working"
-              class="px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-50"
+              >Desconectar</Btn
             >
-              Desconectar
-            </button>
           </div>
           <div v-else class="space-y-3">
             <div class="flex items-center gap-2 text-sm">
@@ -678,12 +632,7 @@
               ></span>
               <span>No conectado</span>
             </div>
-            <button
-              @click="conectarGoogle"
-              class="bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90"
-            >
-              Conectar Gmail
-            </button>
+            <Btn @click="conectarGoogle">Conectar Gmail</Btn>
           </div>
           <p v-if="gError" class="text-xs text-red-600 mt-2">{{ gError }}</p>
         </div>
@@ -999,12 +948,7 @@
             />
             Requerido</label
           >
-          <button
-            type="submit"
-            class="bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90"
-          >
-            Añadir campo
-          </button>
+          <Btn type="submit">Añadir campo</Btn>
         </form>
         <p v-if="cfMsg" class="text-sm text-zinc-500 mt-2">{{ cfMsg }}</p>
       </div>
@@ -1139,12 +1083,13 @@
                   >{{ t.prefijo }}…</span
                 ></span
               >
-              <button
+              <Btn
+                variant="link-danger"
+                class="text-xs"
                 @click="borrarToken(t)"
-                class="text-red-600 hover:underline text-xs"
               >
                 Revocar
-              </button>
+              </Btn>
             </li>
             <li v-if="!tokens.length" class="py-2 text-sm text-zinc-500">
               Sin tokens.
@@ -1201,23 +1146,25 @@
             <li v-for="w in webhooks" :key="w.id" class="py-2 text-sm">
               <div class="flex items-center justify-between">
                 <span class="font-medium">{{ w.nombre }}</span>
-                <button
+                <Btn
+                  variant="link-danger"
+                  class="text-xs"
                   @click="borrarWebhook(w)"
-                  class="text-red-600 hover:underline text-xs"
                 >
                   Eliminar
-                </button>
+                </Btn>
               </div>
               <div class="text-zinc-500 text-xs break-all">{{ w.url }}</div>
               <div class="text-zinc-500 text-xs">
                 {{ (w.eventos || []).join(", ") }}
               </div>
-              <button
+              <Btn
+                variant="link"
+                class="text-xs mt-1"
                 @click="verDeliveries(w)"
-                class="text-blue-600 hover:underline text-xs mt-1"
               >
                 Ver últimos envíos
-              </button>
+              </Btn>
               <ul v-if="deliveries[w.id]" class="mt-1 space-y-1">
                 <li
                   v-for="d in deliveries[w.id]"
