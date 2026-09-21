@@ -218,12 +218,12 @@
           </button>
           <div v-show="acordeon === 'equipos'" class="px-5 pb-5">
             <form @submit.prevent="crearEquipo" class="flex gap-2 mb-4">
-              <input
+              <Input
                 v-model="eqNombre"
                 type="text"
                 required
                 placeholder="Nombre del equipo"
-                class="flex-1 px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm"
+                class="flex-1"
               />
               <button
                 type="submit"
@@ -1301,6 +1301,7 @@ import { toast } from "../utils/toast";
 import { confirmar } from "../utils/confirm";
 import { useAuthStore } from "../stores/auth";
 import Icon from "../components/Icon.vue";
+import Input from "../components/Input.vue";
 
 const authStore = useAuthStore();
 const route = useRoute();

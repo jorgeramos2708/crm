@@ -45,36 +45,12 @@
       <Table>
         <template #head>
           <tr>
-            <th
-              class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider"
-            >
-              Nombre
-            </th>
-            <th
-              class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider"
-            >
-              Email
-            </th>
-            <th
-              class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider"
-            >
-              Teléfono
-            </th>
-            <th
-              class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider"
-            >
-              Empresa
-            </th>
-            <th
-              class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider"
-            >
-              Cargo
-            </th>
-            <th
-              class="px-6 py-3 text-right text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider"
-            >
-              Acciones
-            </th>
+            <Th>Nombre</Th>
+            <Th>Email</Th>
+            <Th>Teléfono</Th>
+            <Th>Empresa</Th>
+            <Th>Cargo</Th>
+            <Th align="right">Acciones</Th>
           </tr>
         </template>
         <tr
@@ -82,34 +58,22 @@
           :key="contacto.id"
           class="hover:bg-zinc-50 dark:hover:bg-zinc-700/50"
         >
-          <td
-            class="px-6 py-4 whitespace-nowrap text-sm font-medium text-zinc-900 dark:text-zinc-100"
-          >
+          <Td primary>
             {{ contacto.nombre }}
-          </td>
-          <td
-            class="px-6 py-4 whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400"
-          >
+          </Td>
+          <Td>
             {{ contacto.email || "-" }}
-          </td>
-          <td
-            class="px-6 py-4 whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400"
-          >
+          </Td>
+          <Td>
             {{ contacto.telefono || "-" }}
-          </td>
-          <td
-            class="px-6 py-4 whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400"
-          >
+          </Td>
+          <Td>
             {{ contacto.empresa || "-" }}
-          </td>
-          <td
-            class="px-6 py-4 whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400"
-          >
+          </Td>
+          <Td>
             {{ contacto.cargo || "-" }}
-          </td>
-          <td
-            class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
-          >
+          </Td>
+          <Td align="right" class="font-medium">
             <button
               @click="openModal(contacto)"
               class="text-blue-600 hover:text-blue-900 dark:hover:text-blue-400 mr-3"
@@ -122,7 +86,7 @@
             >
               Eliminar
             </button>
-          </td>
+          </Td>
         </tr>
         <tr v-if="cargando && !contactos.length">
           <td colspan="6">
@@ -150,15 +114,11 @@
           {{ Math.min(currentPage * pageSize, total) }} de {{ total }} contactos
         </div>
         <div class="flex gap-2 items-center">
-          <select
-            v-model="sortBy"
-            @change="fetchContactos"
-            class="px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm"
-          >
+          <Select v-model="sortBy" @change="fetchContactos">
             <option value="createdAt">Recientes</option>
             <option value="nombre">Nombre</option>
             <option value="email">Email</option>
-          </select>
+          </Select>
           <Btn
             variant="outline"
             :disabled="currentPage === 1"
@@ -178,84 +138,60 @@
     </Card>
 
     <!-- Modal Contacto (Crear/Editar) -->
-    <div
-      v-if="showModal"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-    >
-      <div class="bg-white dark:bg-zinc-800 rounded-2xl p-6 w-full max-w-md">
+    <Modal :open="showModal" @close="closeModal">
+      <template #title>
         <h2 class="text-xl font-bold mb-4">
           {{ editingContacto ? "Editar Contacto" : "Nuevo Contacto" }}
         </h2>
-        <form @submit.prevent="guardarContacto" class="space-y-4">
-          <div>
-            <label class="block text-sm mb-1">Nombre *</label>
-            <input
-              v-model="formData.nombre"
-              type="text"
-              required
-              class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700"
-            />
-          </div>
-          <div>
-            <label class="block text-sm mb-1">Email</label>
-            <input
-              v-model="formData.email"
-              type="email"
-              class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700"
-            />
-          </div>
-          <div>
-            <label class="block text-sm mb-1">Teléfono</label>
-            <input
-              v-model="formData.telefono"
-              type="text"
-              class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700"
-            />
-          </div>
-          <div>
-            <label class="block text-sm mb-1">Empresa</label>
-            <input
-              v-model="formData.empresa"
-              type="text"
-              class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700"
-            />
-          </div>
-          <div>
-            <label class="block text-sm mb-1">Cargo</label>
-            <input
-              v-model="formData.cargo"
-              type="text"
-              class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700"
-            />
-          </div>
-          <CustomFields entidad="contacto" v-model="formData.custom" />
-          <div class="flex gap-2 pt-4">
-            <Btn
-              type="button"
-              variant="outline"
-              class="flex-1"
-              @click="closeModal"
-              >Cancelar</Btn
-            >
-            <Btn
-              type="submit"
-              class="flex-1"
-              :disabled="saving"
-              :loading="saving"
-              >{{
-                saving
-                  ? editingContacto
-                    ? "Guardando..."
-                    : "Creando..."
-                  : editingContacto
-                    ? "Guardar"
-                    : "Crear"
-              }}</Btn
-            >
-          </div>
-        </form>
-      </div>
-    </div>
+      </template>
+      <form @submit.prevent="guardarContacto" class="space-y-4">
+        <Field label="Nombre" required>
+          <Input
+            v-model="formData.nombre"
+            type="text"
+            required
+            class="w-full"
+          />
+        </Field>
+        <Field label="Email">
+          <Input v-model="formData.email" type="email" class="w-full" />
+        </Field>
+        <Field label="Teléfono">
+          <Input v-model="formData.telefono" type="text" class="w-full" />
+        </Field>
+        <Field label="Empresa">
+          <Input v-model="formData.empresa" type="text" class="w-full" />
+        </Field>
+        <Field label="Cargo">
+          <Input v-model="formData.cargo" type="text" class="w-full" />
+        </Field>
+        <CustomFields entidad="contacto" v-model="formData.custom" />
+        <div class="flex gap-2 pt-4">
+          <Btn
+            type="button"
+            variant="outline"
+            class="flex-1"
+            @click="closeModal"
+            >Cancelar</Btn
+          >
+          <Btn
+            type="submit"
+            class="flex-1"
+            :disabled="saving"
+            :loading="saving"
+            >{{
+              saving
+                ? editingContacto
+                  ? "Guardando..."
+                  : "Creando..."
+                : editingContacto
+                  ? "Guardar"
+                  : "Crear"
+            }}</Btn
+          >
+        </div>
+      </form>
+    </Modal>
   </div>
 </template>
 
@@ -270,6 +206,12 @@ import Skeleton from "../components/Skeleton.vue";
 import Btn from "../components/Btn.vue";
 import Card from "../components/Card.vue";
 import Table from "../components/Table.vue";
+import Field from "../components/Field.vue";
+import Input from "../components/Input.vue";
+import Select from "../components/Select.vue";
+import Modal from "../components/Modal.vue";
+import Th from "../components/Th.vue";
+import Td from "../components/Td.vue";
 
 const contactos = ref([]);
 const cargando = ref(true);

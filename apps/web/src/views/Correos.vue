@@ -83,46 +83,41 @@
         Nuevo correo (vía {{ provider === "microsoft" ? "Outlook" : "Gmail" }})
       </h2>
       <form @submit.prevent="enviar" class="space-y-3">
-        <input
+        <Input
           v-model="send.to"
           type="text"
           required
           placeholder="Para (separa con comas)"
-          class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm"
+          class="w-full"
         />
-        <input
+        <Input
           v-model="send.subject"
           type="text"
           required
           placeholder="Asunto"
-          class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm"
+          class="w-full"
         />
-        <textarea
+        <Input
           v-model="send.body"
-          rows="5"
+          multiline
+          :rows="5"
           required
           placeholder="Mensaje..."
-          class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm"
-        ></textarea>
+          class="w-full"
+        />
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <select
-            v-model="send.contactoId"
-            class="px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm"
-          >
+          <Select v-model="send.contactoId">
             <option value="">Vincular a contacto (opcional)...</option>
             <option v-for="c in contactos" :key="c.id" :value="c.id">
               {{ c.nombre }}
             </option>
-          </select>
-          <select
-            v-model="send.oportunidadId"
-            class="px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm"
-          >
+          </Select>
+          <Select v-model="send.oportunidadId">
             <option value="">Vincular a oportunidad (opcional)...</option>
             <option v-for="o in oportunidades" :key="o.id" :value="o.id">
               {{ o.nombre }}
             </option>
-          </select>
+          </Select>
         </div>
         <div class="flex items-center gap-2">
           <Btn type="submit" :disabled="sending" :loading="sending">{{
@@ -138,23 +133,22 @@
     <!-- Bandeja -->
     <Card variant="elevated" class="overflow-hidden">
       <div class="p-4 border-b border-zinc-200 dark:border-zinc-700 flex gap-2">
-        <select
+        <Select
           v-if="provider === 'microsoft'"
           v-model="folder"
           @change="fetchEmails"
-          class="px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm"
         >
           <option value="inbox">Recibidos</option>
           <option value="sentitems">Enviados</option>
           <option value="drafts">Borradores</option>
-        </select>
-        <input
+        </Select>
+        <Input
           v-else
           v-model="gQuery"
           @keyup.enter="fetchEmails"
           type="text"
           placeholder="Buscar en Gmail..."
-          class="px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm flex-1"
+          class="flex-1"
         />
         <Btn
           variant="outline"
@@ -200,10 +194,7 @@
             </div>
           </div>
           <div class="mt-2 flex flex-wrap items-center gap-2">
-            <select
-              v-model="linkSel[m.id]"
-              class="px-2 py-1 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-xs"
-            >
+            <Select v-model="linkSel[m.id]" size="sm">
               <option value="">Vincular a...</option>
               <optgroup label="Contactos">
                 <option
@@ -223,7 +214,7 @@
                   {{ o.nombre }}
                 </option>
               </optgroup>
-            </select>
+            </Select>
             <Btn
               variant="outline"
               size="sm"
@@ -254,6 +245,8 @@ import Btn from "../components/Btn.vue";
 import Badge from "../components/Badge.vue";
 import Card from "../components/Card.vue";
 import Icon from "../components/Icon.vue";
+import Input from "../components/Input.vue";
+import Select from "../components/Select.vue";
 
 const live = ref(false);
 let es = null;
