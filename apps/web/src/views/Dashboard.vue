@@ -1,30 +1,9 @@
 <template>
   <div class="min-h-screen bg-zinc-50 dark:bg-zinc-900">
     <main class="max-w-7xl mx-auto px-4 py-6">
-      <h2 class="text-3xl font-bold tracking-tight">
+<h2 class="text-3xl font-bold tracking-tight mb-6">
         Bienvenido, {{ authStore.user?.name || "Usuario" }}
       </h2>
-      <p class="text-sm text-zinc-500 mb-6">Así va tu negocio hoy.</p>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <StatCard
-          title="Oportunidades"
-          :value="stats.totalOportunidades"
-          icon="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2"
-          color="blue"
-        />
-        <StatCard
-          title="Valor total"
-          :value="formatCurrency(stats.valorTotal)"
-          icon="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-          color="green"
-        />
-        <StatCard
-          title="Etapas"
-          :value="stats.totalEtapas"
-          icon="M4 6h16M4 10h16M4 14h16M4 18h16"
-          color="purple"
-        />
-      </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card class="p-6">
@@ -106,7 +85,6 @@ import axios from "axios";
 import { toast } from "../utils/toast";
 import Skeleton from "../components/Skeleton.vue";
 import { formatCurrency, loadCurrency } from "../utils/currency";
-import StatCard from "../components/StatCard.vue";
 import Btn from "../components/Btn.vue";
 import Badge from "../components/Badge.vue";
 import Card from "../components/Card.vue";

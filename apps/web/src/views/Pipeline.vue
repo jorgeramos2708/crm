@@ -10,10 +10,10 @@
         </Select>
       </div>
       <div class="flex gap-2">
-        <Btn @click="showNewOportunidad = true">+ Nueva Oportunidad</Btn>
         <Btn href="/api/oportunidades/export" variant="outline"
           >Exportar CSV</Btn
         >
+        <Btn @click="showNewOportunidad = true">+ Nueva Oportunidad</Btn>
       </div>
     </header>
     <div class="flex gap-4 overflow-x-auto pb-8" style="min-width: 100%">

@@ -60,17 +60,15 @@
             <Btn variant="link-danger" @click="eliminar(o)">Eliminar</Btn>
           </td>
         </tr>
-        <tr v-if="cargando && !negocios.length">
-          <td colspan="5">
-            <div class="p-4"><Skeleton :filas="5" /></div>
-          </td>
-        </tr>
-        <tr v-if="!cargando && !negocios.length">
-          <td colspan="5" class="px-6 py-12 text-center text-sm text-zinc-500">
-            Sin negocios. Créalos desde el
-            <Btn variant="link" to="/pipeline">Pipeline</Btn>.
-          </td>
-        </tr>
+        <TableState
+          v-if="cargando && !negocios.length"
+          :colspan="5"
+          loading
+        />
+        <TableState v-if="!cargando && !negocios.length" :colspan="5"
+          >Sin negocios. Créalos desde el
+          <Btn variant="link" to="/pipeline">Pipeline</Btn>.</TableState
+        >
       </Table>
     </Card>
   </div>
@@ -82,7 +80,6 @@ import axios from "axios";
 import { toast } from "../utils/toast";
 import { confirmar } from "../utils/confirm";
 import { formatCurrency, loadCurrency } from "../utils/currency";
-import Skeleton from "../components/Skeleton.vue";
 import Input from "../components/Input.vue";
 import Select from "../components/Select.vue";
 import Btn from "../components/Btn.vue";
@@ -90,6 +87,7 @@ import Card from "../components/Card.vue";
 import Table from "../components/Table.vue";
 import Th from "../components/Th.vue";
 import Td from "../components/Td.vue";
+import TableState from "../components/TableState.vue";
 
 const negocios = ref([]);
 const stages = ref([]);

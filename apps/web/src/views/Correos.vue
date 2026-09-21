@@ -13,26 +13,21 @@
           fetchEmails();
         "
         title="Outlook"
-        class="flex flex-col items-center gap-1 rounded-2xl border-2 p-3 transition-colors"
+        class="flex flex-col items-center gap-1 rounded-2xl p-3 transition-colors"
         :class="
           provider === 'microsoft'
-            ? 'border-[#0F6CBD] bg-blue-50 dark:bg-blue-400/10'
-            : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300'
+            ? 'text-[#0078D4]'
+            : 'text-zinc-400 hover:text-[#0078D4]'
         "
       >
         <img
-          src="https://cdn.jsdelivr.net/npm/@mdi/svg@7.4.47/svg/microsoft-outlook.svg"
+          src="https://cdn.jsdelivr.net/gh/glincker/thesvg@main/public/icons/microsoft-outlook/default.svg"
           alt="Logo de Outlook"
           class="h-7 w-7"
           aria-label="Logo de Outlook"
           role="img"
-          @error="
-            this.onerror = null;
-            this.src =
-              'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMCIgd2lkdGg9IjEyIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxnIGZpbGw9Im5vbmUiIHN0eWxlPSJmaWxsOiNGRkY7IiBzdHJva2U9IiIgc3Ryb2tlLXdpZHRoPSIxMiIvPjwvc3ZnPg==';
-          "
         />
-        <span class="text-[11px] font-medium text-zinc-600 dark:text-zinc-400"
+        <span class="text-[11px] font-medium"
           >Outlook</span
         >
       </button>
@@ -42,26 +37,21 @@
           fetchEmails();
         "
         title="Gmail"
-        class="flex flex-col items-center gap-1 rounded-2xl border-2 p-3 transition-colors"
+        class="flex flex-col items-center gap-1 rounded-2xl p-3 transition-colors"
         :class="
           provider === 'google'
-            ? 'border-[#EA4335] bg-red-50 dark:bg-red-400/10'
-            : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300'
+            ? 'text-[#EA4335]'
+            : 'text-zinc-400 hover:text-[#EA4335]'
         "
       >
         <img
-          src="https://cdn.jsdelivr.net/npm/@mdi/svg@7.4.47/svg/gmail.svg"
+          src="https://cdn.jsdelivr.net/gh/glincker/thesvg@main/public/icons/gmail-2026/default.svg"
           alt="Logo de Gmail"
           class="h-7 w-7"
           aria-label="Logo de Gmail"
           role="img"
-          @error="
-            this.onerror = null;
-            this.src =
-              'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMCIgd2lkdGg9IjEyIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxnIGZpbGw9Im5vbmUiIHN0eWxlPSJmaWxsOiNGRkY7IiBzdHJva2U9IiIgc3Ryb2tlLXdpZHRoPSIxMiIvPjwvc3ZnPg==';
-          "
         />
-        <span class="text-[11px] font-medium text-zinc-600 dark:text-zinc-400"
+        <span class="text-[11px] font-medium"
           >Gmail</span
         >
       </button>

@@ -9,6 +9,7 @@ import Select from "./Select.vue";
 import Pagination from "./Pagination.vue";
 import Icon from "./Icon.vue";
 import Th from "./Th.vue";
+import TableState from "./TableState.vue";
 import Td from "./Td.vue";
 import Field from "./Field.vue";
 
@@ -300,5 +301,24 @@ describe("Btn link-danger", () => {
     expect(w.classes()).toContain("text-red-600");
     expect(w.classes()).not.toContain("px-4");
     expect(w.classes()).not.toContain("bg-red-600");
+  });
+});
+
+describe("TableState", () => {
+  it("muestra skeleton en modo loading", () => {
+    const w = mount(TableState, {
+      props: { loading: true, colspan: 6 },
+    });
+    expect(w.find("tr").exists()).toBe(true);
+    expect(w.find("td").attributes("colspan")).toBe("6");
+  });
+
+  it("muestra el mensaje de vacío con su slot", () => {
+    const w = mount(TableState, {
+      props: { colspan: 4 },
+      slots: { default: "Sin presupuestos." },
+    });
+    expect(w.text()).toContain("Sin presupuestos.");
+    expect(w.find("td").classes()).toContain("text-center");
   });
 });

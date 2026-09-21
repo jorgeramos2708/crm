@@ -57,16 +57,17 @@
             <Btn variant="link-danger" @click="eliminar(p)">Eliminar</Btn>
           </td>
         </tr>
-        <tr v-if="cargando && !productos.length">
-          <td colspan="5">
-            <div class="p-4"><Skeleton :filas="5" /></div>
-          </td>
-        </tr>
-        <tr v-if="!cargando && !productos.length">
-          <td colspan="5" class="px-6 py-12 text-center text-sm text-zinc-500">
-            Sin productos en el catálogo.
-          </td>
-        </tr>
+        <TableState
+          v-if="cargando && !productos.length"
+          :colspan="5"
+          loading
+        />
+        <TableState
+          v-if="!cargando && !productos.length"
+          :colspan="5"
+        >
+          Sin productos en el catálogo.
+        </TableState>
       </Table>
     </Card>
 
@@ -127,7 +128,6 @@ import axios from "axios";
 import { toast } from "../utils/toast";
 import { confirmar } from "../utils/confirm";
 import { formatCurrency, loadCurrency } from "../utils/currency";
-import Skeleton from "../components/Skeleton.vue";
 import Input from "../components/Input.vue";
 import Btn from "../components/Btn.vue";
 import Badge from "../components/Badge.vue";
@@ -137,6 +137,7 @@ import Modal from "../components/Modal.vue";
 import Field from "../components/Field.vue";
 import Th from "../components/Th.vue";
 import Td from "../components/Td.vue";
+import TableState from "../components/TableState.vue";
 
 const productos = ref([]);
 const q = ref("");

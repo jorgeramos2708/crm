@@ -80,19 +80,17 @@
                 {{ act.userId?.slice(0, 8) || "Sistema" }}
               </td>
             </tr>
-            <tr v-if="cargando && !actividades.length">
-              <td colspan="5">
-                <div class="p-4"><Skeleton :filas="5" /></div>
-              </td>
-            </tr>
-            <tr v-if="!cargando && actividades.length === 0">
-              <td
-                colspan="5"
-                class="px-6 py-12 text-center text-zinc-500 dark:text-zinc-400"
-              >
-                No hay actividades registradas
-              </td>
-            </tr>
+        <TableState
+          v-if="cargando && !actividades.length"
+          :colspan="5"
+          loading
+        />
+        <TableState
+          v-if="!cargando && actividades.length === 0"
+          :colspan="5"
+        >
+          No hay actividades registradas
+        </TableState>
           </tbody>
         </table>
       </div>
@@ -115,7 +113,6 @@
 import { ref, onMounted } from "vue";
 import axios from "axios";
 import { toast } from "../utils/toast";
-import Skeleton from "../components/Skeleton.vue";
 import Select from "../components/Select.vue";
 import Pagination from "../components/Pagination.vue";
 

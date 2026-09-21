@@ -1,24 +1,7 @@
 <template>
   <div class="p-6">
-    <div class="mb-4 flex flex-wrap items-center gap-2">
-      <Select v-model="filtros.alcance" @change="fetchTareas">
-        <option value="">Todas</option>
-        <option value="mio">Mías</option>
-        <option value="equipo">Mi equipo</option>
-      </Select>
-      <VistasGuardadas
-        entidad="tarea"
-        :capturar="() => ({ ...filtros.value })"
-        :aplicar="
-          (f) => {
-            filtros.value = { alcance: '', ...f };
-            fetchTareas();
-          }
-        "
-      />
-      <div class="ml-auto">
-        <Btn @click="openModal(null)">+ Nueva Tarea</Btn>
-      </div>
+    <div class="mb-4 flex flex-wrap items-center gap-2 justify-end">
+      <Btn @click="openModal(null)">+ Nueva Tarea</Btn>
     </div>
 
     <Card v-if="cargando && !tareas.length" class="p-6 mb-4"
@@ -175,7 +158,6 @@ import { ref, computed, onMounted, watch } from "vue";
 import axios from "axios";
 import { toast } from "../utils/toast";
 import { confirmar } from "../utils/confirm";
-import VistasGuardadas from "../components/VistasGuardadas.vue";
 import FechaInput from "../components/FechaInput.vue";
 import Skeleton from "../components/Skeleton.vue";
 import Btn from "../components/Btn.vue";

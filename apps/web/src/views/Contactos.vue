@@ -28,18 +28,7 @@
     >
       {{ importMsg }}
     </p>
-    <div class="mb-4">
-      <VistasGuardadas
-        entidad="contacto"
-        :capturar="() => ({ sortBy: sortBy.value })"
-        :aplicar="
-          (f) => {
-            if (f.sortBy) sortBy.value = f.sortBy;
-            fetchContactos();
-          }
-        "
-      />
-    </div>
+    
 
     <Card class="overflow-hidden">
       <Table>
@@ -82,20 +71,18 @@
             >
           </Td>
         </tr>
-        <tr v-if="cargando && !contactos.length">
-          <td colspan="6">
-            <div class="p-4"><Skeleton :filas="5" /></div>
-          </td>
-        </tr>
-        <tr v-if="!cargando && contactos.length === 0">
-          <td
-            colspan="6"
-            class="px-6 py-12 text-center text-zinc-500 dark:text-zinc-400"
-          >
-            No hay contactos.
-            <Btn variant="link" @click="openModal(null)">Crea el primero</Btn>
-          </td>
-        </tr>
+        <TableState
+          v-if="cargando && !contactos.length"
+          :colspan="6"
+          loading
+        />
+        <TableState
+          v-if="!cargando && contactos.length === 0"
+          :colspan="6"
+        >
+          No hay contactos.
+          <Btn variant="link" @click="openModal(null)">Crea el primero</Btn>
+        </TableState>
       </Table>
 
       <Pagination
@@ -182,8 +169,6 @@ import axios from "axios";
 import { toast } from "../utils/toast";
 import { confirmar } from "../utils/confirm";
 import CustomFields from "../components/CustomFields.vue";
-import VistasGuardadas from "../components/VistasGuardadas.vue";
-import Skeleton from "../components/Skeleton.vue";
 import Btn from "../components/Btn.vue";
 import Card from "../components/Card.vue";
 import Table from "../components/Table.vue";
@@ -193,6 +178,7 @@ import Select from "../components/Select.vue";
 import Modal from "../components/Modal.vue";
 import Th from "../components/Th.vue";
 import Td from "../components/Td.vue";
+import TableState from "../components/TableState.vue";
 import Pagination from "../components/Pagination.vue";
 
 const contactos = ref([]);

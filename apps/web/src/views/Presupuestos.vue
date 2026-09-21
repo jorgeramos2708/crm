@@ -45,16 +45,17 @@
             <Btn variant="link-danger" @click="eliminar(p)">Eliminar</Btn>
           </td>
         </tr>
-        <tr v-if="cargando && !presupuestos.length">
-          <td colspan="4">
-            <div class="p-4"><Skeleton :filas="5" /></div>
-          </td>
-        </tr>
-        <tr v-if="!cargando && !presupuestos.length">
-          <td colspan="4" class="px-6 py-12 text-center text-sm text-zinc-500">
-            Sin presupuestos.
-          </td>
-        </tr>
+        <TableState
+          v-if="cargando && !presupuestos.length"
+          :colspan="4"
+          loading
+        />
+        <TableState
+          v-if="!cargando && !presupuestos.length"
+          :colspan="4"
+        >
+          Sin presupuestos.
+        </TableState>
       </Table>
     </Card>
 
@@ -349,7 +350,6 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import axios from "axios";
-import Skeleton from "../components/Skeleton.vue";
 import { toast } from "../utils/toast";
 import { confirmar } from "../utils/confirm";
 import { formatCurrency, loadCurrency } from "../utils/currency";
@@ -363,6 +363,7 @@ import Input from "../components/Input.vue";
 import Select from "../components/Select.vue";
 import Th from "../components/Th.vue";
 import Td from "../components/Td.vue";
+import TableState from "../components/TableState.vue";
 
 const presupuestos = ref([]);
 const oportunidades = ref([]);

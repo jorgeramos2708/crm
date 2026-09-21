@@ -120,7 +120,7 @@
 
     <!-- Contenido -->
     <main class="min-w-0 flex-1">
-      <header v-if="authStore.isAuthenticated" class="sticky top-0 z-30 border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50/80 dark:bg-zinc-900/80 backdrop-blur">
+      <header v-if="authStore.isAuthenticated" class="sticky top-0 z-30 backdrop-blur" :style="headerStyle">
         <div class="mx-auto flex max-w-full items-center justify-between gap-4 px-4 py-3 pl-14 lg:pl-6">
           <div class="min-w-0">
             <h1 class="truncate text-lg font-semibold">{{ pageTitle }}</h1>
@@ -251,6 +251,13 @@ const puedeVer = (mod) => {
 const visGroups = computed(() => navGroups
   .map(g => ({ ...g, items: g.items.filter(i => puedeVer(i.mod)) }))
   .filter(g => g.items.length))
+
+const headerStyle = computed(() => {
+    return {
+      backgroundColor: 'var(--fondo, #fafafa)',
+      borderColor: 'var(--panel, #e5e5e5)',
+    }
+  })
 
 const initial = computed(() => (authStore.user?.name || 'U').trim().charAt(0).toUpperCase())
 
