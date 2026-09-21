@@ -299,7 +299,7 @@
         @click="acordeon = acordeon === 'marca' ? '' : 'marca'"
         class="flex w-full items-center gap-3 p-5 text-left"
       >
-        <span class="text-xl">🎨</span>
+        <Icon name="marca" class="h-5 w-5 text-zinc-500" />
         <span class="flex-1">
           <span class="block font-semibold">Personalización de CRM</span>
           <span class="block text-xs text-zinc-500"
@@ -580,7 +580,7 @@
         @click="acordeon = acordeon === 'conexiones' ? '' : 'conexiones'"
         class="flex w-full items-center gap-3 p-5 text-left"
       >
-        <span class="text-xl">🔌</span>
+        <Icon name="conexiones" class="h-5 w-5 text-zinc-500" />
         <span class="flex-1">
           <span class="block font-semibold">Conexiones</span>
           <span class="block text-xs text-zinc-500"
@@ -700,7 +700,7 @@
         @click="acordeon = acordeon === 'credenciales' ? '' : 'credenciales'"
         class="flex w-full items-center gap-3 p-5 text-left"
       >
-        <span class="text-xl">🔑</span>
+        <Icon name="tokens" class="h-5 w-5 text-zinc-500" />
         <span class="flex-1">
           <span class="block font-semibold">Credenciales</span>
           <span class="block text-xs text-zinc-500"
@@ -747,55 +747,48 @@
           </div>
 
           <form @submit.prevent="guardarGoogleConfig" class="space-y-4">
-            <div>
-              <label class="block text-sm mb-1">Client ID *</label>
-              <input
+            <Field label="Client ID" required>
+              <Input
                 v-model="gConfig.clientId"
                 type="text"
                 required
-                class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700"
+                class="w-full"
               />
-            </div>
-            <div>
-              <label class="block text-sm mb-1">Client Secret *</label>
-              <input
+            </Field>
+            <Field label="Client Secret" required>
+              <Input
                 v-model="gConfig.clientSecret"
                 type="password"
                 autocomplete="new-password"
-                class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700"
+                class="w-full"
               />
-            </div>
-            <div>
-              <label class="block text-sm mb-1">Redirect URI *</label>
-              <input
+            </Field>
+            <Field label="Redirect URI" required>
+              <Input
                 v-model="gConfig.redirectUri"
                 type="text"
                 required
                 placeholder="http://localhost:3001/api/auth/google/callback"
-                class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700"
+                class="w-full"
               />
-            </div>
-            <div>
-              <label class="block text-sm mb-1">Scopes (uno por línea)</label>
-              <textarea
+            </Field>
+            <Field label="Scopes (uno por línea)">
+              <Input
                 v-model="gScopesText"
-                rows="5"
+                multiline
+                :rows="5"
                 placeholder="https://www.googleapis.com/auth/gmail.readonly&#10;https://www.googleapis.com/auth/gmail.send&#10;https://www.googleapis.com/auth/calendar.readonly&#10;https://www.googleapis.com/auth/userinfo.email&#10;openid"
-                class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 font-mono text-sm"
-              ></textarea>
+                class="w-full font-mono"
+              />
               <p class="text-xs text-zinc-500 mt-1">
                 Si se dejan vacíos se usan los recomendados. Si agregas uno
                 nuevo, cada empleado debe reconectar su cuenta.
               </p>
-            </div>
+            </Field>
             <div class="flex items-center gap-2">
-              <button
-                type="submit"
-                :disabled="saving"
-                class="bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50"
-              >
+              <Btn type="submit" :disabled="saving" :loading="saving">
                 {{ saving ? "Guardando..." : "Guardar" }}
-              </button>
+              </Btn>
               <span v-if="gSaveMsg" class="text-sm text-zinc-500">{{
                 gSaveMsg
               }}</span>
@@ -831,64 +824,56 @@
           </div>
 
           <form @submit.prevent="guardarConfig" class="space-y-4">
-            <div>
-              <label class="block text-sm mb-1">Client ID *</label>
-              <input
+            <Field label="Client ID" required>
+              <Input
                 v-model="config.clientId"
                 type="text"
                 required
-                class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700"
+                class="w-full"
               />
-            </div>
-            <div>
-              <label class="block text-sm mb-1">Client Secret *</label>
-              <input
+            </Field>
+            <Field label="Client Secret" required>
+              <Input
                 v-model="config.clientSecret"
                 type="password"
                 autocomplete="new-password"
-                class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700"
+                class="w-full"
               />
-            </div>
-            <div>
-              <label class="block text-sm mb-1">Tenant ID</label>
-              <input
+            </Field>
+            <Field label="Tenant ID">
+              <Input
                 v-model="config.tenantId"
                 type="text"
                 placeholder="common"
-                class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700"
+                class="w-full"
               />
-            </div>
-            <div>
-              <label class="block text-sm mb-1">Redirect URI *</label>
-              <input
+            </Field>
+            <Field label="Redirect URI" required>
+              <Input
                 v-model="config.redirectUri"
                 type="text"
                 required
-                class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700"
+                class="w-full"
               />
-            </div>
-            <div>
-              <label class="block text-sm mb-1">Scopes (uno por línea)</label>
-              <textarea
+            </Field>
+            <Field label="Scopes (uno por línea)">
+              <Input
                 v-model="scopesText"
-                rows="5"
+                multiline
+                :rows="5"
                 placeholder="https://graph.microsoft.com/Mail.Read&#10;https://graph.microsoft.com/Mail.Send&#10;https://graph.microsoft.com/Calendars.Read&#10;https://graph.microsoft.com/User.Read&#10;offline_access"
-                class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 font-mono text-sm"
-              ></textarea>
+                class="w-full font-mono"
+              />
               <p class="text-xs text-zinc-500 mt-1">
                 Definen a qué puede acceder el CRM en cada buzón. Deben
                 coincidir con los permisos del App Registration; si agregas uno
                 nuevo, cada empleado debe reconectar su cuenta.
               </p>
-            </div>
+            </Field>
             <div class="flex items-center gap-2">
-              <button
-                type="submit"
-                :disabled="saving"
-                class="bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50"
-              >
+              <Btn type="submit" :disabled="saving" :loading="saving">
                 {{ saving ? "Guardando..." : "Guardar" }}
-              </button>
+              </Btn>
               <span v-if="saveMsg" class="text-sm text-zinc-500">{{
                 saveMsg
               }}</span>
@@ -907,7 +892,7 @@
         @click="acordeon = acordeon === 'campos' ? '' : 'campos'"
         class="flex w-full items-center gap-3 p-5 text-left"
       >
-        <span class="text-xl">📝</span>
+        <Icon name="campos" class="h-5 w-5 text-zinc-500" />
         <span class="flex-1">
           <span class="block font-semibold">Campos</span>
           <span class="block text-xs text-zinc-500"
@@ -1134,19 +1119,14 @@
             ><code class="font-mono">{{ newToken }}</code>
           </div>
           <form @submit.prevent="crearToken" class="flex gap-2 mb-4">
-            <input
+            <Input
               v-model="tokenName"
               type="text"
               required
               placeholder="Nombre del token"
-              class="flex-1 px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm"
+              class="flex-1"
             />
-            <button
-              type="submit"
-              class="bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90"
-            >
-              Crear
-            </button>
+            <Btn type="submit">Crear</Btn>
           </form>
           <ul class="divide-y divide-zinc-200 dark:divide-zinc-700">
             <li
@@ -1186,27 +1166,25 @@
           </p>
           <form @submit.prevent="crearWebhook" class="space-y-3 mb-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <input
+              <Input
                 v-model="whForm.nombre"
                 type="text"
                 required
                 placeholder="Nombre"
-                class="px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm"
               />
-              <input
+              <Input
                 v-model="whForm.url"
                 type="url"
                 required
                 placeholder="https://..."
-                class="px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm"
               />
             </div>
-            <input
+            <Input
               v-model="whForm.secret"
               type="text"
               required
               placeholder="Secreto para firmar (HMAC)"
-              class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm"
+              class="w-full"
             />
             <div class="flex flex-wrap gap-2">
               <label
@@ -1218,12 +1196,7 @@
                 {{ ev }}
               </label>
             </div>
-            <button
-              type="submit"
-              class="bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90"
-            >
-              Añadir webhook
-            </button>
+            <Btn type="submit">Añadir webhook</Btn>
           </form>
           <ul class="divide-y divide-zinc-200 dark:divide-zinc-700">
             <li v-for="w in webhooks" :key="w.id" class="py-2 text-sm">

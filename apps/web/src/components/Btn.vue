@@ -13,6 +13,7 @@
     :is="tag"
     :to="tag === RouterLink ? to : undefined"
     :href="tag === 'a' ? href : undefined"
+    :target="tag === 'a' && target ? target : undefined"
     :type="tag === 'button' ? type : undefined"
     :disabled="tag === 'button' ? disabled || loading : undefined"
     :aria-disabled="
@@ -55,6 +56,7 @@ const props = defineProps({
   size: { type: String, default: "md" },
   to: { type: [String, Object], default: null },
   href: { type: String, default: null },
+  target: { type: String, default: null },
   type: { type: String, default: "button" },
   disabled: { type: Boolean, default: false },
   loading: { type: Boolean, default: false },

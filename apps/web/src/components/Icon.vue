@@ -54,6 +54,10 @@ import {
   ShieldCheck,
   Puzzle,
   Link2,
+  ListPlus,
+  KeyRound,
+  Plug,
+  Palette,
 } from "@lucide/vue";
 
 const props = defineProps({
@@ -91,6 +95,10 @@ const icons = {
   equipo: Users,
   integraciones: Puzzle,
   vinculo: Link2,
+  campos: ListPlus,
+  tokens: KeyRound,
+  conexiones: Plug,
+  marca: Palette,
 };
 
 const icon = computed(() => icons[props.name] || House);

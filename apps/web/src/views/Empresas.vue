@@ -133,10 +133,11 @@
                 ></span
               >
               <span class="flex gap-2 text-xs">
-                <a
+                <Btn
                   :href="`/api/archivos/${a.id}/download`"
-                  class="text-blue-600 hover:underline"
-                  >Descargar</a
+                  target="_blank"
+                  variant="link"
+                  >Descargar</Btn
                 >
                 <button
                   @click="borrarArchivo(a)"
