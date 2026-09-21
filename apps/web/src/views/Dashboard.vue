@@ -103,6 +103,7 @@
 import { onMounted, ref } from "vue";
 import { useAuthStore } from "../stores/auth";
 import axios from "axios";
+import { toast } from "../utils/toast";
 import Skeleton from "../components/Skeleton.vue";
 import { formatCurrency, loadCurrency } from "../utils/currency";
 import StatCard from "../components/StatCard.vue";
@@ -145,6 +146,7 @@ const fetchDashboard = async () => {
     pipelineStages.value = stagesRes.data.data || stagesRes.data;
   } catch (e) {
     console.error("Error fetching dashboard:", e);
+    toast.error("Error al cargar el resumen");
   } finally {
     loading.value = false;
   }

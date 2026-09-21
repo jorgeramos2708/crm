@@ -1027,86 +1027,62 @@
     </div>
 
     <!-- Modal usuario -->
-    <div
-      v-if="showUserModal"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-    >
-      <div class="bg-white dark:bg-zinc-800 rounded-2xl p-6 w-full max-w-md">
+    <Modal :open="showUserModal" @close="showUserModal = false">
+      <template #title>
         <h2 class="text-xl font-bold mb-4">
           {{ editingUser ? "Editar Usuario" : "Nuevo Usuario" }}
         </h2>
-        <form @submit.prevent="guardarUsuario" class="space-y-4">
-          <div>
-            <label class="block text-sm mb-1">Nombre *</label>
-            <input
-              v-model="userForm.name"
-              type="text"
-              required
-              class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700"
-            />
-          </div>
-          <div>
-            <label class="block text-sm mb-1">Email *</label>
-            <input
-              v-model="userForm.email"
-              type="email"
-              required
-              :disabled="!!editingUser"
-              class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 disabled:opacity-50"
-            />
-          </div>
-          <div>
-            <label class="block text-sm mb-1">{{
-              editingUser
-                ? "Nueva contraseña (vacío = mantener)"
-                : "Contraseña *"
-            }}</label>
-            <input
-              v-model="userForm.password"
-              type="password"
-              :required="!editingUser"
-              autocomplete="new-password"
-              class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700"
-            />
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-sm mb-1">Rol</label>
-              <select
-                v-model="userForm.role"
-                class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700"
-              >
-                <option value="user">Usuario</option>
-                <option value="admin">Admin</option>
-              </select>
-            </div>
-            <label class="flex items-center gap-2 text-sm pt-6 cursor-pointer"
-              ><input
-                type="checkbox"
-                v-model="userForm.activo"
-                class="w-4 h-4"
-              />
-              Activo</label
-            >
-          </div>
-          <div class="flex gap-2 pt-2">
-            <button
-              type="button"
-              @click="showUserModal = false"
-              class="flex-1 px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              class="flex-1 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-4 py-2 rounded-lg hover:opacity-90"
-            >
-              Guardar
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+      </template>
+      <form @submit.prevent="guardarUsuario" class="space-y-4">
+        <Field label="Nombre" required>
+          <Input v-model="userForm.name" type="text" required class="w-full" />
+        </Field>
+        <Field label="Email" required>
+          <Input
+            v-model="userForm.email"
+            type="email"
+            required
+            :disabled="!!editingUser"
+            class="w-full"
+          />
+        </Field>
+        <Field>
+          <label class="block text-sm mb-1">{{
+            editingUser ? "Nueva contraseña (vacío = mantener)" : "Contraseña *"
+          }}</label>
+          <Input
+            v-model="userForm.password"
+            type="password"
+            :required="!editingUser"
+            autocomplete="new-password"
+            class="w-full"
+          />
+        </Field>
+        <div class="grid grid-cols-2 gap-3">
+          <Field label="Rol">
+            <Select v-model="userForm.role" class="w-full">
+              <option value="user">Usuario</option>
+              <option value="admin">Admin</option>
+            </Select>
+          </Field>
+          <label class="flex items-center gap-2 text-sm pt-6 cursor-pointer"
+            ><input type="checkbox" v-model="userForm.activo" class="w-4 h-4" />
+            Activo</label
+          >
+        </div>
+        <div class="flex gap-2 pt-2">
+          <Btn
+            type="button"
+            variant="outline"
+            class="flex-1"
+            @click="showUserModal = false"
+          >
+            Cancelar
+          </Btn>
+          <Btn type="submit" variant="primary" class="flex-1"> Guardar </Btn>
+        </div>
+      </form>
+    </Modal>
 
     <!-- Integraciones -->
     <div class="panel-flat mb-3 overflow-hidden">
@@ -1114,7 +1090,7 @@
         @click="acordeon = acordeon === 'integraciones' ? '' : 'integraciones'"
         class="flex w-full items-center gap-3 p-5 text-left"
       >
-        <span class="text-xl">🧩</span>
+        <Icon name="integraciones" class="h-5 w-5 text-zinc-500" />
         <span class="flex-1">
           <span class="block font-semibold">Integraciones</span>
           <span class="block text-xs text-zinc-500"
@@ -1301,7 +1277,11 @@ import { toast } from "../utils/toast";
 import { confirmar } from "../utils/confirm";
 import { useAuthStore } from "../stores/auth";
 import Icon from "../components/Icon.vue";
+import Btn from "../components/Btn.vue";
+import Field from "../components/Field.vue";
 import Input from "../components/Input.vue";
+import Select from "../components/Select.vue";
+import Modal from "../components/Modal.vue";
 
 const authStore = useAuthStore();
 const route = useRoute();

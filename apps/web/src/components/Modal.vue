@@ -10,7 +10,7 @@
   >
     <div
       class="w-full rounded-2xl bg-white p-6 shadow-xl dark:bg-zinc-800"
-      :class="maxWidth"
+      :class="[maxWidth, contentClass]"
     >
       <slot name="title">
         <h2 v-if="title" class="text-lg font-semibold">{{ title }}</h2>
@@ -28,6 +28,7 @@ defineProps({
   open: { type: Boolean, default: false },
   title: { type: String, default: "" },
   maxWidth: { type: String, default: "max-w-md" },
+  contentClass: { type: String, default: "" },
   z: { type: String, default: "z-50" },
 });
 

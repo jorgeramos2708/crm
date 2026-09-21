@@ -104,37 +104,24 @@
         </tr>
       </Table>
 
-      <!-- Pagination -->
-      <div
+      <Pagination
         v-if="totalPages > 1"
-        class="px-6 py-4 border-t border-zinc-200 dark:border-zinc-700 flex items-center justify-between"
+        :page="currentPage"
+        :total-pages="totalPages"
+        :total="total"
+        :page-size="pageSize"
+        item-label="contactos"
+        @prev="prevPage"
+        @next="nextPage"
       >
-        <div class="text-sm text-zinc-500 dark:text-zinc-400">
-          Mostrando {{ (currentPage - 1) * pageSize + 1 }} a
-          {{ Math.min(currentPage * pageSize, total) }} de {{ total }} contactos
-        </div>
-        <div class="flex gap-2 items-center">
+        <template #controls>
           <Select v-model="sortBy" @change="fetchContactos">
             <option value="createdAt">Recientes</option>
             <option value="nombre">Nombre</option>
             <option value="email">Email</option>
           </Select>
-          <Btn
-            variant="outline"
-            :disabled="currentPage === 1"
-            class="text-zinc-600 dark:text-zinc-400 disabled:cursor-not-allowed"
-            @click="prevPage"
-            >Anterior</Btn
-          >
-          <Btn
-            variant="outline"
-            :disabled="currentPage === totalPages"
-            class="text-zinc-600 dark:text-zinc-400 disabled:cursor-not-allowed"
-            @click="nextPage"
-            >Siguiente</Btn
-          >
-        </div>
-      </div>
+        </template>
+      </Pagination>
     </Card>
 
     <!-- Modal Contacto (Crear/Editar) -->
@@ -212,6 +199,7 @@ import Select from "../components/Select.vue";
 import Modal from "../components/Modal.vue";
 import Th from "../components/Th.vue";
 import Td from "../components/Td.vue";
+import Pagination from "../components/Pagination.vue";
 
 const contactos = ref([]);
 const cargando = ref(true);
@@ -251,6 +239,7 @@ const fetchContactos = async () => {
     totalPages.value = Math.ceil(total.value / pageSize);
   } catch (e) {
     console.error("Error fetching contactos:", e);
+    toast.error("Error al cargar contactos");
   } finally {
     cargando.value = false;
   }

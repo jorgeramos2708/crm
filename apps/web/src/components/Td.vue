@@ -4,8 +4,9 @@
   <td
     class="whitespace-nowrap px-6 py-4 text-sm"
     :class="[
-      primary
-        ? 'font-medium text-zinc-900 dark:text-zinc-100'
+      primary ? 'font-medium' : '',
+      primary || tone === 'strong'
+        ? 'text-zinc-900 dark:text-zinc-100'
         : 'text-zinc-500 dark:text-zinc-400',
       align === 'right'
         ? 'text-right'
@@ -21,6 +22,7 @@
 <script setup>
 defineProps({
   primary: { type: Boolean, default: false },
+  tone: { type: String, default: "muted" },
   align: { type: String, default: "left" },
 });
 </script>
