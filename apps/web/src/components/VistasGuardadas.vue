@@ -6,13 +6,9 @@
         {{ v.nombre }}
       </option>
     </Select>
-    <button
-      v-if="sel"
-      @click="borrarSel"
-      class="text-red-600 hover:underline text-xs"
+    <Btn v-if="sel" variant="link-danger" class="text-xs" @click="borrarSel"
+      >Eliminar vista</Btn
     >
-      Eliminar vista
-    </button>
     <div class="flex gap-1">
       <Input
         v-model="nombre"

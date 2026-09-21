@@ -53,12 +53,9 @@
               @click="openModal(auto)"
               >Editar</Btn
             >
-            <button
-              @click="eliminarAuto(auto)"
-              class="px-4 py-2 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:opacity-90 text-sm"
+            <Btn variant="danger-soft" @click="eliminarAuto(auto)"
+              >Eliminar</Btn
             >
-              Eliminar
-            </button>
           </div>
         </div>
       </Card>

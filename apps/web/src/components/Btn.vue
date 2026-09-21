@@ -77,6 +77,10 @@ const variants = {
   link: "text-blue-600 hover:underline",
   "link-danger": "text-red-600 hover:underline",
   danger: "bg-red-600 text-white font-medium hover:bg-red-700",
+  "success-soft":
+    "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:opacity-90",
+  "danger-soft":
+    "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 hover:opacity-90",
 };
 
 const sizes = {

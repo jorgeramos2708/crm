@@ -35,25 +35,21 @@
             </div>
           </div>
           <div class="flex flex-col gap-2">
-            <button
+            <Btn
               v-if="campaign.estado === 'borrador'"
+              variant="success-soft"
               @click="enviarCampana(campaign.id)"
-              class="px-4 py-2 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-lg hover:opacity-90 text-sm"
+              >Enviar</Btn
             >
-              Enviar
-            </button>
             <Btn
               variant="outline"
               class="text-zinc-600 dark:text-zinc-400"
               @click="openModal(campaign)"
               >Editar</Btn
             >
-            <button
-              @click="eliminarCampana(campaign)"
-              class="px-4 py-2 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-lg hover:opacity-90 text-sm"
+            <Btn variant="danger-soft" @click="eliminarCampana(campaign)"
+              >Eliminar</Btn
             >
-              Eliminar
-            </button>
           </div>
         </div>
       </Card>
