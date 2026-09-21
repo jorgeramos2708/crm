@@ -7,7 +7,7 @@
       </div>
     </div>
 
-    <div class="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+    <div class="panel-flat overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full">
           <thead class="bg-zinc-50 dark:bg-zinc-700/50">
@@ -30,7 +30,10 @@
                 <button @click="eliminar(p)" class="text-red-600 hover:underline">Eliminar</button>
               </td>
             </tr>
-            <tr v-if="!productos.length">
+            <tr v-if="cargando && !productos.length">
+              <td colspan="5"><div class="p-4"><Skeleton :filas="5" /></div></td>
+            </tr>
+            <tr v-if="!cargando && !productos.length">
               <td colspan="5" class="px-6 py-12 text-center text-sm text-zinc-500">Sin productos en el catálogo.</td>
             </tr>
           </tbody>
@@ -74,19 +77,24 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import { toast } from '../utils/toast'
+import { confirmar } from '../utils/confirm'
 import { formatCurrency, loadCurrency } from '../utils/currency'
+import Skeleton from '../components/Skeleton.vue'
 
 const productos = ref([])
 const q = ref('')
+const cargando = ref(true)
 const showModal = ref(false)
 const editing = ref(null)
 const form = ref({ nombre: '', sku: '', descripcion: '', precio: 0, activo: true })
 
 const fetchProductos = async () => {
+  cargando.value = true
   try {
     const { data } = await axios.get('/api/productos', { params: { q: q.value || undefined, limit: 200 } })
     productos.value = data || []
-  } catch (e) { console.error(e) }
+  } catch (e) { console.error(e) } finally { cargando.value = false }
 }
 
 const openModal = (p) => {
@@ -103,15 +111,15 @@ const guardar = async () => {
     else await axios.post('/api/productos', form.value)
     showModal.value = false
     await fetchProductos()
-  } catch (e) { alert(e.response?.data?.error || 'Error guardando (¿eres admin?)') }
+  } catch (e) { toast.error(e.response?.data?.error || 'Error guardando (¿eres admin?)') }
 }
 
 const eliminar = async (p) => {
-  if (!confirm(`¿Eliminar "${p.nombre}"?`)) return
+  if (!await confirmar(`¿Eliminar "${p.nombre}"?`)) return
   try {
     await axios.delete(`/api/productos/${p.id}`)
     await fetchProductos()
-  } catch (e) { alert(e.response?.data?.error || 'Error eliminando (¿eres admin?)') }
+  } catch (e) { toast.error(e.response?.data?.error || 'Error eliminando (¿eres admin?)') }
 }
 
 onMounted(async () => { await loadCurrency(); await fetchProductos() })

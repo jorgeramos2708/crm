@@ -5,7 +5,7 @@
     </header>
 
     <div class="space-y-4">
-      <div v-for="campaign in campanas" :key="campaign.id" class="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">
+      <div v-for="campaign in campanas" :key="campaign.id" class="panel-flat p-6">
         <div class="flex items-start justify-between">
           <div class="flex-1">
             <div class="flex items-center gap-3 mb-2">
@@ -28,7 +28,8 @@
         </div>
       </div>
 
-      <div v-if="campanas.length === 0" class="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-12 text-center">
+      <div v-if="cargando && !campanas.length" class="panel-flat p-6"><Skeleton :filas="3" /></div>
+      <div v-if="!cargando && campanas.length === 0" class="panel-flat p-12 text-center">
         <p class="text-zinc-500 dark:text-zinc-400 mb-4">No hay campañas creadas</p>
         <button @click="openModal(null)" class="bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-6 py-3 rounded-lg hover:opacity-90">Crear primera campaña</button>
       </div>
@@ -77,6 +78,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import Skeleton from '../components/Skeleton.vue'
+import { toast } from '../utils/toast'
+import { confirmar } from '../utils/confirm'
 
 const campanas = ref([])
 const plantillas = ref([])
@@ -137,7 +141,7 @@ const closeModal = () => {
 
 const guardarCampana = async () => {
   if (!formData.value.nombre || !formData.value.templateId || !formData.value.remitenteNombre || !formData.value.remitenteEmail || !formData.value.asunto) {
-    alert('Todos los campos son obligatorios')
+    toast.error('Todos los campos son obligatorios')
     return
   }
   saving.value = true
@@ -153,33 +157,33 @@ const guardarCampana = async () => {
     closeModal()
   } catch (e) {
     console.error('Error saving campaign:', e)
-    alert('Error al guardar campaña')
+    toast.error('Error al guardar campaña')
   } finally {
     saving.value = false
   }
 }
 
 const eliminarCampana = async (campaign) => {
-  if (!confirm(`¿Eliminar la campaña "${campaign.nombre}"?`)) return
+  if (!await confirmar(`¿Eliminar la campaña "${campaign.nombre}"?`)) return
   try {
     await axios.delete(`/api/email-campaigns/${campaign.id}`)
     campanas.value = campanas.value.filter(c => c.id !== campaign.id)
   } catch (e) {
     console.error('Error deleting campaign:', e)
-    alert('Error al eliminar campaña')
+    toast.error('Error al eliminar campaña')
   }
 }
 
 const enviarCampana = async (id) => {
-  if (!confirm('¿Enviar esta campaña a todos los contactos?')) return
+  if (!await confirmar('¿Enviar esta campaña a todos los contactos?')) return
   try {
     await axios.post(`/api/email-campaigns/${id}/send`)
     const campana = campanas.value.find(c => c.id === id)
     if (campana) campana.estado = 'enviada'
-    alert('Campaña enviada')
+    toast.exito('Campaña enviada')
   } catch (e) {
     console.error('Error sending campaign:', e)
-    alert('Error al enviar campaña')
+    toast.error('Error al enviar campaña')
   }
 }
 

@@ -5,7 +5,7 @@
     </header>
 
     <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      <div v-for="lista in listas" :key="lista.id" class="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">
+      <div v-for="lista in listas" :key="lista.id" class="panel-flat p-6">
         <div class="flex items-start justify-between mb-4">
           <div>
             <h3 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{{ lista.nombre }}</h3>
@@ -22,7 +22,8 @@
         </div>
       </div>
 
-      <div v-if="listas.length === 0" class="col-span-full bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-12 text-center">
+      <div v-if="cargando && !listas.length" class="col-span-full panel-flat p-6"><Skeleton :filas="3" /></div>
+      <div v-if="!cargando && listas.length === 0" class="col-span-full panel-flat p-12 text-center">
         <p class="text-zinc-500 dark:text-zinc-400 mb-4">No hay listas creadas</p>
         <button @click="openModal(null)" class="bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-6 py-3 rounded-lg hover:opacity-90">Crear primera lista</button>
       </div>
@@ -54,6 +55,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import Skeleton from '../components/Skeleton.vue'
+import { toast } from '../utils/toast'
+import { confirmar } from '../utils/confirm'
 
 const listas = ref([])
 const cargando = ref(true)
@@ -92,7 +96,7 @@ const closeModal = () => {
 
 const guardarLista = async () => {
   if (!formData.value.nombre) {
-    alert('El nombre es obligatorio')
+    toast.error('El nombre es obligatorio')
     return
   }
   saving.value = true
@@ -108,20 +112,20 @@ const guardarLista = async () => {
     closeModal()
   } catch (e) {
     console.error('Error saving lista:', e)
-    alert('Error al guardar lista')
+    toast.error('Error al guardar lista')
   } finally {
     saving.value = false
   }
 }
 
 const eliminarLista = async (lista) => {
-  if (!confirm(`¿Eliminar la lista "${lista.nombre}"?`)) return
+  if (!await confirmar(`¿Eliminar la lista "${lista.nombre}"?`)) return
   try {
     await axios.delete(`/api/contact-lists/${lista.id}`)
     listas.value = listas.value.filter(l => l.id !== lista.id)
   } catch (e) {
     console.error('Error deleting lista:', e)
-    alert('Error al eliminar lista')
+    toast.error('Error al eliminar lista')
   }
 }
 

@@ -15,7 +15,7 @@
       <router-link to="/settings" class="underline text-zinc-500 ml-auto">Configurar conexiones</router-link>
     </div>
 
-    <div class="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+    <div class="panel-flat overflow-hidden">
       <ul class="divide-y divide-zinc-200 dark:divide-zinc-700">
         <li v-for="e in eventos" :key="e.provider + e.id" class="px-6 py-4 flex items-start gap-3">
           <span class="mt-1 w-2.5 h-2.5 rounded-full flex-shrink-0" :class="e.provider === 'outlook' ? 'bg-blue-500' : 'bg-red-500'"></span>
@@ -25,6 +25,7 @@
           </div>
           <a v-if="e.link" :href="e.link" target="_blank" class="ml-auto text-xs text-blue-600 hover:underline flex-shrink-0">Abrir</a>
         </li>
+        <li v-if="loading && !eventos.length" class="px-6 py-4"><Skeleton :filas="4" /></li>
         <li v-if="!eventos.length && !loading" class="px-6 py-12 text-center text-zinc-500 text-sm">Sin eventos en el rango.</li>
         <li v-if="loading" class="px-6 py-12 text-center text-zinc-500 text-sm">Cargando...</li>
       </ul>
@@ -35,6 +36,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import Skeleton from '../components/Skeleton.vue'
 
 const eventos = ref([])
 const fuentes = ref({ outlook: {}, google: {} })

@@ -14,7 +14,7 @@
       <a href="/api/oportunidades/export" class="px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 text-sm">Exportar CSV</a>
     </div>
 
-    <div class="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+    <div class="panel-flat overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full">
           <thead class="bg-zinc-50 dark:bg-zinc-700/50">
@@ -40,7 +40,10 @@
                 <button @click="eliminar(o)" class="text-red-600 hover:underline">Eliminar</button>
               </td>
             </tr>
-            <tr v-if="!negocios.length">
+            <tr v-if="cargando && !negocios.length">
+              <td colspan="5"><div class="p-4"><Skeleton :filas="5" /></div></td>
+            </tr>
+            <tr v-if="!cargando && !negocios.length">
               <td colspan="5" class="px-6 py-12 text-center text-sm text-zinc-500">Sin negocios. Créalos desde el <router-link to="/pipeline" class="text-blue-600 hover:underline">Pipeline</router-link>.</td>
             </tr>
           </tbody>
@@ -53,15 +56,20 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import { toast } from '../utils/toast'
+import { confirmar } from '../utils/confirm'
 import { formatCurrency, loadCurrency } from '../utils/currency'
+import Skeleton from '../components/Skeleton.vue'
 
 const negocios = ref([])
 const stages = ref([])
 const q = ref('')
 const stageId = ref('')
 const alcance = ref('')
+const cargando = ref(true)
 
 const fetchNegocios = async () => {
+  cargando.value = true
   try {
     const params = { limit: 100 }
     if (q.value) params.q = q.value
@@ -69,18 +77,18 @@ const fetchNegocios = async () => {
     if (alcance.value) params.alcance = alcance.value
     const { data } = await axios.get('/api/oportunidades', { params })
     negocios.value = data.data || []
-  } catch (e) { console.error(e) }
+  } catch (e) { console.error(e) } finally { cargando.value = false }
 }
 
 const cambiarEtapa = async (o, stage) => {
   try {
     await axios.put(`/api/oportunidades/${o.id}`, { stageId: stage })
     await fetchNegocios()
-  } catch (e) { alert(e.response?.data?.error || 'Error cambiando etapa') }
+  } catch (e) { toast.error(e.response?.data?.error || 'Error cambiando etapa') }
 }
 
 const eliminar = async (o) => {
-  if (!confirm(`¿Eliminar "${o.nombre}"?`)) return
+  if (!await confirmar(`¿Eliminar "${o.nombre}"?`)) return
   await axios.delete(`/api/oportunidades/${o.id}`)
   await fetchNegocios()
 }

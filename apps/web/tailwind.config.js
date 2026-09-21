@@ -25,6 +25,9 @@ export default {
           900: '#1c1917',
           950: '#0c0a09',
         },
+        // Lienzo y paneles del diseño flat
+        canvas: '#faf9f7',
+        panel: '#f1eee7',
       },
     },
   },

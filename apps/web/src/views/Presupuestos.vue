@@ -14,7 +14,7 @@
       </div>
     </div>
 
-    <div class="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+    <div class="panel-flat overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full">
           <thead class="bg-zinc-50 dark:bg-zinc-700/50">
@@ -35,7 +35,10 @@
                 <button @click="eliminar(p)" class="text-red-600 hover:underline">Eliminar</button>
               </td>
             </tr>
-            <tr v-if="!presupuestos.length">
+            <tr v-if="cargando && !presupuestos.length">
+              <td colspan="4"><div class="p-4"><Skeleton :filas="5" /></div></td>
+            </tr>
+            <tr v-if="!cargando && !presupuestos.length">
               <td colspan="4" class="px-6 py-12 text-center text-sm text-zinc-500">Sin presupuestos.</td>
             </tr>
           </tbody>
@@ -95,11 +98,14 @@
           <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div>
               <label class="block text-sm mb-1">Descuento</label>
-              <input v-model.number="form.descuento" type="number" min="0" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm" />
+              <div class="relative">
+                <input v-model.number="form.descuento" type="number" min="0" max="100" class="w-full pl-3 pr-8 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm" />
+                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-zinc-500">%</span>
+              </div>
             </div>
             <div>
-              <label class="block text-sm mb-1">Impuestos</label>
-              <input v-model.number="form.impuestos" type="number" min="0" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm" />
+              <label class="block text-sm mb-1">Impuestos (16% fijo)</label>
+              <input :value="16" type="number" disabled class="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-900/50 text-sm text-zinc-500" />
             </div>
             <div>
               <label class="block text-sm mb-1">Estado</label>
@@ -113,7 +119,7 @@
             </div>
             <div>
               <label class="block text-sm mb-1">Válido hasta</label>
-              <input v-model="form.validez" type="date" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm" />
+              <FechaInput v-model="form.validez" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm" />
             </div>
           </div>
 
@@ -124,6 +130,8 @@
 
           <div class="text-right text-sm space-y-1">
             <div class="text-zinc-500">Subtotal: {{ formatCurrency(subtotalCalc) }}</div>
+            <div v-if="descPct" class="text-zinc-500">Descuento ({{ descPct }}%): −{{ formatCurrency(descMonto) }}</div>
+            <div class="text-zinc-500">IVA (16%): {{ formatCurrency(ivaMonto) }}</div>
             <div class="text-lg font-bold">Total: {{ formatCurrency(totalCalc) }}</div>
           </div>
 
@@ -159,7 +167,7 @@
         <div class="text-right text-sm space-y-1">
           <div class="text-zinc-500">Subtotal: {{ formatCurrency(detalle.subtotal) }}</div>
           <div v-if="detalle.descuento" class="text-zinc-500">Descuento: −{{ formatCurrency(detalle.descuento) }}</div>
-          <div v-if="detalle.impuestos" class="text-zinc-500">Impuestos: {{ formatCurrency(detalle.impuestos) }}</div>
+          <div v-if="detalle.impuestos" class="text-zinc-500">IVA (16%): {{ formatCurrency(detalle.impuestos) }}</div>
           <div class="text-lg font-bold">Total: {{ formatCurrency(detalle.total) }}</div>
         </div>
         <p v-if="detalle.notas" class="text-sm text-zinc-500 mt-4">{{ detalle.notas }}</p>
@@ -182,7 +190,11 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
+import Skeleton from '../components/Skeleton.vue'
+import { toast } from '../utils/toast'
+import { confirmar } from '../utils/confirm'
 import { formatCurrency, loadCurrency } from '../utils/currency'
+import FechaInput from '../components/FechaInput.vue'
 
 const presupuestos = ref([])
 const oportunidades = ref([])
@@ -197,7 +209,10 @@ const prodSel = ref('')
 const form = ref({ oportunidadId: '', contactoId: '', empresaId: '', items: [], descuento: 0, impuestos: 0, estado: 'borrador', validez: '', notas: '' })
 
 const subtotalCalc = computed(() => form.value.items.reduce((a, it) => a + (Number(it.cantidad) || 0) * (Number(it.precio) || 0), 0))
-const totalCalc = computed(() => Math.max(0, Math.round(subtotalCalc.value - (Number(form.value.descuento) || 0) + (Number(form.value.impuestos) || 0))))
+const descPct = computed(() => Math.min(100, Math.max(0, Number(form.value.descuento) || 0)))
+const descMonto = computed(() => subtotalCalc.value * descPct.value / 100)
+const ivaMonto = computed(() => Math.round((subtotalCalc.value - descMonto.value) * 0.16))
+const totalCalc = computed(() => Math.max(0, Math.round(subtotalCalc.value - descMonto.value + ivaMonto.value)))
 
 const estadoClass = (e) => ({
   borrador: 'bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300',
@@ -207,11 +222,13 @@ const estadoClass = (e) => ({
   vencido: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300',
 }[e] || '')
 
+const cargando = ref(true)
 const fetchPresupuestos = async () => {
+  cargando.value = true
   try {
     const { data } = await axios.get('/api/presupuestos', { params: { estado: fEstado.value || undefined } })
     presupuestos.value = data || []
-  } catch (e) { console.error(e) }
+  } catch (e) { console.error(e) } finally { cargando.value = false }
 }
 
 const agregarProducto = () => {
@@ -236,7 +253,7 @@ const guardar = async () => {
     else await axios.post('/api/presupuestos', payload)
     showModal.value = false
     await fetchPresupuestos()
-  } catch (e) { alert(e.response?.data?.error || 'Error guardando') }
+  } catch (e) { toast.error(e.response?.data?.error || 'Error guardando') }
 }
 
 const verDetalle = async (p) => {
@@ -251,7 +268,7 @@ const cambiarEstado = async (p, estado) => {
 }
 
 const eliminar = async (p) => {
-  if (!confirm(`¿Eliminar ${p.folio}?`)) return
+  if (!await confirmar(`¿Eliminar ${p.folio}?`)) return
   await axios.delete(`/api/presupuestos/${p.id}`)
   await fetchPresupuestos()
 }

@@ -4,9 +4,15 @@
       <button @click="showSend = !showSend" class="bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90">✉️ Redactar</button>
     </header>
 
-    <div class="flex gap-2 mb-4">
-      <button @click="provider = 'microsoft'; fetchEmails()" class="px-4 py-2 rounded-full text-sm border" :class="provider === 'microsoft' ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-zinc-900' : 'border-zinc-300 dark:border-zinc-600'">Outlook</button>
-      <button @click="provider = 'google'; fetchEmails()" class="px-4 py-2 rounded-full text-sm border" :class="provider === 'google' ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-zinc-900' : 'border-zinc-300 dark:border-zinc-600'">Gmail</button>
+    <div class="flex gap-3 mb-4">
+      <button @click="provider = 'microsoft'; fetchEmails()" title="Outlook" class="flex flex-col items-center gap-1 rounded-2xl border-2 p-3 transition-colors" :class="provider === 'microsoft' ? 'border-[#0F6CBD] bg-blue-50 dark:bg-blue-400/10' : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300'">
+        <img src="https://cdn.jsdelivr.net/npm/@mdi/svg@7.4.47/svg/microsoft-outlook.svg" alt="Logo de Outlook" class="h-7 w-7" aria-label="Logo de Outlook" role="img" @error="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMCIgd2lkdGg9IjEyIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxnIGZpbGw9Im5vbmUiIHN0eWxlPSJmaWxsOiNGRkY7IiBzdHJva2U9IiIgc3Ryb2tlLXdpZHRoPSIxMiIvPjwvc3ZnPg=='" />
+        <span class="text-[11px] font-medium text-zinc-600 dark:text-zinc-400">Outlook</span>
+      </button>
+      <button @click="provider = 'google'; fetchEmails()" title="Gmail" class="flex flex-col items-center gap-1 rounded-2xl border-2 p-3 transition-colors" :class="provider === 'google' ? 'border-[#EA4335] bg-red-50 dark:bg-red-400/10' : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300'">
+        <img src="https://cdn.jsdelivr.net/npm/@mdi/svg@7.4.47/svg/gmail.svg" alt="Logo de Gmail" class="h-7 w-7" aria-label="Logo de Gmail" role="img" @error="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMCIgd2lkdGg9IjEyIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxnIGZpbGw9Im5vbmUiIHN0eWxlPSJmaWxsOiNGRkY7IiBzdHJva2U9IiIgc3Ryb2tlLXdpZHRoPSIxMiIvPjwvc3ZnPg=='" />
+        <span class="text-[11px] font-medium text-zinc-600 dark:text-zinc-400">Gmail</span>
+      </button>
     </div>
 
     <div v-if="!curStatus?.connected" class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-200 px-4 py-3 rounded-lg text-sm mb-4">

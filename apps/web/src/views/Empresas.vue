@@ -9,7 +9,7 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <!-- Lista -->
-      <div class="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+      <div class="panel-flat overflow-hidden">
         <div class="p-4 border-b border-zinc-200 dark:border-zinc-700">
           <input v-model="q" @input="fetchEmpresas" type="text" placeholder="Buscar por nombre o dominio..." class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm" />
         </div>
@@ -18,12 +18,13 @@
             <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ e.nombre }}</div>
             <div class="text-sm text-zinc-500">{{ e.dominio || 'Sin dominio' }}</div>
           </li>
-          <li v-if="empresas.length === 0" class="px-6 py-12 text-center text-zinc-500 text-sm">No hay empresas.</li>
+          <li v-if="cargando && !empresas.length" class="px-6 py-4"><Skeleton :filas="4" /></li>
+          <li v-if="!cargando && empresas.length === 0" class="px-6 py-12 text-center text-zinc-500 text-sm">No hay empresas.</li>
         </ul>
       </div>
 
       <!-- Detalle -->
-      <div class="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">
+      <div class="panel-flat p-6">
         <div v-if="!selected" class="text-zinc-500 text-sm">Selecciona una empresa para ver sus contactos.</div>
         <div v-else>
           <div class="flex items-center justify-between mb-4">
@@ -112,9 +113,13 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import { toast } from '../utils/toast'
+import { confirmar } from '../utils/confirm'
 import CustomFields from '../components/CustomFields.vue'
+import Skeleton from '../components/Skeleton.vue'
 
 const empresas = ref([])
+const cargando = ref(true)
 const contactos = ref([])
 const selected = ref(null)
 const q = ref('')
@@ -125,10 +130,11 @@ const form = ref({ nombre: '', dominio: '' })
 const linkId = ref('')
 
 const fetchEmpresas = async () => {
+  cargando.value = true
   try {
     const { data } = await axios.get('/api/companies', { params: { limit: 50, q: q.value || undefined } })
     empresas.value = data.data || []
-  } catch (e) { console.error(e) }
+  } catch (e) { console.error(e) } finally { cargando.value = false }
 }
 
 const fetchContactos = async () => {
@@ -164,11 +170,11 @@ const subirArchivo = async (ev) => {
   try {
     await axios.post('/api/archivos', form)
     await seleccionar(selected.value)
-  } catch (e) { alert(e.response?.data?.error || 'Error subiendo archivo') } finally { ev.target.value = '' }
+  } catch (e) { toast.error(e.response?.data?.error || 'Error subiendo archivo') } finally { ev.target.value = '' }
 }
 
 const borrarArchivo = async (a) => {
-  if (!confirm(`¿Eliminar ${a.nombre}?`)) return
+  if (!await confirmar(`¿Eliminar ${a.nombre}?`)) return
   await axios.delete(`/api/archivos/${a.id}`)
   await seleccionar(selected.value)
 }
@@ -194,7 +200,7 @@ const guardar = async () => {
 }
 
 const eliminar = async () => {
-  if (!confirm(`¿Eliminar ${selected.value.nombre}?`)) return
+  if (!await confirmar(`¿Eliminar ${selected.value.nombre}?`)) return
   await axios.delete(`/api/companies/${selected.value.id}`)
   selected.value = null
   await fetchEmpresas()

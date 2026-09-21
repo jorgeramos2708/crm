@@ -1,6 +1,6 @@
 <template>
   <div class="p-6">
-    <div class="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+    <div class="panel-flat overflow-hidden">
       <div class="p-4 border-b border-zinc-200 dark:border-zinc-700 flex flex-wrap gap-4">
         <select v-model="filtroTipo" @change="resetAndFetch" class="px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-sm">
           <option value="">Todos los tipos</option>
@@ -38,7 +38,10 @@
               <td class="px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400">{{ act.entityType }}:{{ act.entityId?.slice(0,8) }}</td>
               <td class="px-6 py-4 text-sm text-zinc-500 dark:text-zinc-400">{{ act.userId?.slice(0,8) || 'Sistema' }}</td>
             </tr>
-            <tr v-if="actividades.length === 0">
+            <tr v-if="cargando && !actividades.length">
+              <td colspan="5"><div class="p-4"><Skeleton :filas="5" /></div></td>
+            </tr>
+            <tr v-if="!cargando && actividades.length === 0">
               <td colspan="5" class="px-6 py-12 text-center text-zinc-500 dark:text-zinc-400">No hay actividades registradas</td>
             </tr>
           </tbody>
@@ -62,6 +65,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import Skeleton from '../components/Skeleton.vue'
 
 const actividades = ref([])
 const cargando = ref(false)

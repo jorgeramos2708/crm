@@ -5,7 +5,7 @@
     </header>
 
     <div class="space-y-4">
-      <div v-for="tpl in plantillas" :key="tpl.id" class="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">
+      <div v-for="tpl in plantillas" :key="tpl.id" class="panel-flat p-6">
         <div class="flex items-start justify-between">
           <div class="flex-1">
             <h3 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{{ tpl.nombre }}</h3>
@@ -21,7 +21,8 @@
         </div>
       </div>
 
-      <div v-if="plantillas.length === 0" class="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-12 text-center">
+      <div v-if="cargando && !plantillas.length" class="panel-flat p-6"><Skeleton :filas="3" /></div>
+      <div v-if="!cargando && plantillas.length === 0" class="panel-flat p-12 text-center">
         <p class="text-zinc-500 dark:text-zinc-400 mb-4">No hay plantillas creadas</p>
         <button @click="openModal(null)" class="bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-6 py-3 rounded-lg hover:opacity-90">Crear primera plantilla</button>
       </div>
@@ -41,13 +42,9 @@
             <input v-model="formData.asunto" type="text" required class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700" />
           </div>
           <div>
-            <label class="block text-sm mb-1">Contenido HTML *</label>
-            <textarea v-model="formData.contenidoHtml" class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 font-mono text-sm" rows="8" required></textarea>
-            <p class="text-xs text-zinc-500 mt-1">Usa {{ variable }} para variables dinámicas</p>
-          </div>
-          <div>
-            <label class="block text-sm mb-1">Contenido Texto (opcional)</label>
-            <textarea v-model="formData.contenidoTexto" class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700" rows="4"></textarea>
+            <label class="block text-sm mb-1">Contenido *</label>
+            <textarea v-model="formData.contenidoTexto" required class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700" rows="8"></textarea>
+            <p class="text-xs text-zinc-500 mt-1">Usa {{ variable }} para variables dinámicas. Se convierte a email con formato automáticamente.</p>
           </div>
           <div>
             <label class="block text-sm mb-1">Variables (separadas por coma)</label>
@@ -66,6 +63,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import Skeleton from '../components/Skeleton.vue'
+import { toast } from '../utils/toast'
+import { confirmar } from '../utils/confirm'
 
 const plantillas = ref([])
 const cargando = ref(true)
@@ -113,15 +113,21 @@ const closeModal = () => {
   variablesInput.value = ''
 }
 
+const textoAHtml = (texto) => {
+  const esc = String(texto || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  return `<div>${esc.split('\n').join('<br>')}</div>`
+}
+
 const guardarTemplate = async () => {
-  if (!formData.value.nombre || !formData.value.asunto || !formData.value.contenidoHtml) {
-    alert('Nombre, asunto y contenido HTML son obligatorios')
+  if (!formData.value.nombre || !formData.value.asunto || !formData.value.contenidoTexto) {
+    toast.error('Nombre, asunto y contenido son obligatorios')
     return
   }
   saving.value = true
   try {
     const payload = {
       ...formData.value,
+      contenidoHtml: textoAHtml(formData.value.contenidoTexto),
       variables: variablesInput.value.split(',').map(v => v.trim()).filter(Boolean)
     }
     if (editingTemplate.value) {
@@ -135,20 +141,20 @@ const guardarTemplate = async () => {
     closeModal()
   } catch (e) {
     console.error('Error saving template:', e)
-    alert('Error al guardar plantilla')
+    toast.error('Error al guardar plantilla')
   } finally {
     saving.value = false
   }
 }
 
 const eliminarTemplate = async (tpl) => {
-  if (!confirm(`¿Eliminar la plantilla "${tpl.nombre}"?`)) return
+  if (!await confirmar(`¿Eliminar la plantilla "${tpl.nombre}"?`)) return
   try {
     await axios.delete(`/api/email-templates/${tpl.id}`)
     plantillas.value = plantillas.value.filter(t => t.id !== tpl.id)
   } catch (e) {
     console.error('Error deleting template:', e)
-    alert('Error al eliminar plantilla')
+    toast.error('Error al eliminar plantilla')
   }
 }
 

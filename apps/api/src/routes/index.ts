@@ -2,7 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../db/index.js';
 import { redis } from '../services/redis.js';
 import { env } from '../config.js';
-import { users, pipelines, pipelineStages, oportunidades, contactos, companies, contactCompanies, automatizaciones, emailTemplates, emailCampaigns, activities, contactLists, contactListMembers, emailTracking, emailSubscriptions, microsoftGraphTokens, microsoftGraphSubscriptions, microsoftConfig, apiTokens, webhookEndpoints, webhookDeliveries, customFields, tareas, archivos, googleConfig, googleTokens, equipos, equipoMiembros, vistasGuardadas, productos, presupuestos } from '../db/schema.js';
+import { users, pipelines, pipelineStages, oportunidades, contactos, companies, contactCompanies, automatizaciones, emailTemplates, emailCampaigns, activities, contactLists, contactListMembers, emailTracking, emailSubscriptions, microsoftGraphTokens, microsoftGraphSubscriptions, microsoftConfig, apiTokens, webhookEndpoints, webhookDeliveries, customFields, tareas, archivos, googleConfig, googleTokens, equipos, equipoMiembros, vistasGuardadas, productos, presupuestos, permisos, ajustes } from '../db/schema.js';
 import { eq, desc, asc, and, or, ilike, count, sql, inArray } from 'drizzle-orm';
 import { hashPassword, verifyPassword, generateToken, setAuthCookie, clearAuthCookie } from '../services/auth.js';
 import { authMiddleware, requireRole } from '../middleware/auth.js';
@@ -11,6 +11,8 @@ import { encrypt } from '../services/crypto.js';
 import { parseCsv, toCsv } from '../services/csv.js';
 import { WEBHOOK_EVENTS, createApiToken, emitEvent } from '../services/webhooks.js';
 import { ENTIDADES, TIPOS, getActiveFields, sanitizeCustom } from '../services/customFields.js';
+import { MODULOS, getPermisosMap, tienePermiso } from '../services/permisos.js';
+import type { Accion } from '../services/permisos.js';
 import { storage, bucketName } from '../services/storage.js';
 import {
   GOOGLE_SCOPES, getGoogleConfig, buildGoogleState, parseGoogleState, getGoogleAuthUrl,
@@ -199,11 +201,141 @@ interface CreateEmailCampaignBody {
   programadaPara?: string;
 }
 
+const TEMA_DEFAULT = { fondo: '#faf9f7', panel: '#f1eee7' };
+
 export async function registerAuthRoutes(app: FastifyInstance) {
   app.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
 
   // Config pública del despliegue (sin secretos): moneda USD/MXN
   app.get('/api/config', async () => ({ currency: env.CURRENCY }));
+
+  // Marca del despliegue (personalización): pública en lectura, solo admin escribe
+  const MARCA_CLAVES = ['marca_nombre', 'marca_color', 'marca_logo', 'marca_fondo', 'marca_tema'] as const;
+  app.get('/api/ajustes/marca', async () => {
+    const rows = await db.select().from(ajustes).where(
+      or(...MARCA_CLAVES.map(c => eq(ajustes.clave, c)))
+    );
+    const map: Record<string, any> = {};
+    for (const r of rows) map[r.clave] = r.valor;
+    const tema = (map.marca_tema && typeof map.marca_tema === 'object' ? map.marca_tema : {}) as Record<string, string>;
+    return {
+      nombre: typeof map.marca_nombre === 'string' ? map.marca_nombre : 'CRM',
+      color: typeof map.marca_color === 'string' ? map.marca_color : '',
+      logo: typeof map.marca_logo === 'string' ? map.marca_logo : '',
+      fondo: typeof map.marca_fondo === 'string' ? map.marca_fondo : '',
+      tema: {
+        fondo: /^#[0-9a-fA-F]{6}$/.test(tema.fondo || '') ? tema.fondo : TEMA_DEFAULT.fondo,
+        panel: /^#[0-9a-fA-F]{6}$/.test(tema.panel || '') ? tema.panel : TEMA_DEFAULT.panel,
+      },
+    };
+  });
+
+  app.put('/api/ajustes/marca', { preHandler: requireRole('admin') }, async (req, res) => {
+    const body = req.body as { nombre?: string; color?: string; logo?: string | null; fondo?: string | null; tema?: { fondo?: string; panel?: string } };
+    const out: Record<string, string> = {};
+    if (body.nombre !== undefined) {
+      const nombre = String(body.nombre).slice(0, 60).trim() || 'CRM';
+      await db.insert(ajustes).values({ clave: 'marca_nombre', valor: nombre, updatedAt: new Date() })
+        .onConflictDoUpdate({ target: [ajustes.clave], set: { valor: nombre, updatedAt: new Date() } });
+      out.nombre = nombre;
+    }
+    if (body.color !== undefined) {
+      const color = /^#[0-9a-fA-F]{6}$/.test(String(body.color)) ? String(body.color) : '';
+      await db.insert(ajustes).values({ clave: 'marca_color', valor: color, updatedAt: new Date() })
+        .onConflictDoUpdate({ target: [ajustes.clave], set: { valor: color, updatedAt: new Date() } });
+      out.color = color;
+    }
+    if (body.logo !== undefined) {
+      const logo = body.logo && String(body.logo).startsWith('data:image/') && String(body.logo).length <= 500000
+        ? String(body.logo) : '';
+      await db.insert(ajustes).values({ clave: 'marca_logo', valor: logo, updatedAt: new Date() })
+        .onConflictDoUpdate({ target: [ajustes.clave], set: { valor: logo, updatedAt: new Date() } });
+      out.logo = logo ? 'ok' : '';
+    }
+    if (body.fondo !== undefined) {
+      const f = String(body.fondo || '');
+      const fondo = f === '' || /^#[0-9a-fA-F]{6}$/.test(f) || (f.startsWith('data:image/') && f.length <= 1000000)
+        ? f : '';
+      await db.insert(ajustes).values({ clave: 'marca_fondo', valor: fondo, updatedAt: new Date() })
+        .onConflictDoUpdate({ target: [ajustes.clave], set: { valor: fondo, updatedAt: new Date() } });
+      out.fondo = fondo ? 'ok' : '';
+    }
+    if (body.tema !== undefined && typeof body.tema === 'object') {
+      const esHex = (v: unknown) => /^#[0-9a-fA-F]{6}$/.test(String(v || ''));
+      const tema = {
+        fondo: esHex(body.tema?.fondo) ? String(body.tema.fondo) : TEMA_DEFAULT.fondo,
+        panel: esHex(body.tema?.panel) ? String(body.tema.panel) : TEMA_DEFAULT.panel,
+      };
+      await db.insert(ajustes).values({ clave: 'marca_tema', valor: tema as any, updatedAt: new Date() })
+        .onConflictDoUpdate({ target: [ajustes.clave], set: { valor: tema as any, updatedAt: new Date() } });
+      out.tema = 'ok';
+    }
+    return out;
+  });
+
+  // RBAC por módulo (rwx): una sola tabla de reglas. Admin pasa siempre.
+  // Mapea método+ruta -> (modulo, accion). Las rutas no listadas conservan su auth previa.
+  const PERM_RULES: Array<{ method: string; re: RegExp; modulo: string; accion: Accion }> = [
+    { method: 'GET', re: /^\/api\/contactos(\/|$)/, modulo: 'contactos', accion: 'r' },
+    { method: 'POST', re: /^\/api\/contactos(\/|$)/, modulo: 'contactos', accion: 'w' },
+    { method: 'PUT', re: /^\/api\/contactos\//, modulo: 'contactos', accion: 'w' },
+    { method: 'DELETE', re: /^\/api\/contactos\//, modulo: 'contactos', accion: 'x' },
+    { method: 'GET', re: /^\/api\/companies(\/|$)/, modulo: 'empresas', accion: 'r' },
+    { method: 'POST', re: /^\/api\/companies(\/|$)/, modulo: 'empresas', accion: 'w' },
+    { method: 'PUT', re: /^\/api\/companies\//, modulo: 'empresas', accion: 'w' },
+    { method: 'DELETE', re: /^\/api\/companies\/[^/]+\/contacts\//, modulo: 'empresas', accion: 'w' },
+    { method: 'DELETE', re: /^\/api\/companies\//, modulo: 'empresas', accion: 'x' },
+    { method: 'GET', re: /^\/api\/oportunidades(\/|$)/, modulo: 'oportunidades', accion: 'r' },
+    { method: 'POST', re: /^\/api\/oportunidades(\/|$)/, modulo: 'oportunidades', accion: 'w' },
+    { method: 'PUT', re: /^\/api\/oportunidades\//, modulo: 'oportunidades', accion: 'w' },
+    { method: 'DELETE', re: /^\/api\/oportunidades\//, modulo: 'oportunidades', accion: 'x' },
+    { method: 'GET', re: /^\/api\/productos(\/|$)/, modulo: 'productos', accion: 'r' },
+    { method: 'POST', re: /^\/api\/productos(\/|$)/, modulo: 'productos', accion: 'w' },
+    { method: 'PUT', re: /^\/api\/productos\//, modulo: 'productos', accion: 'w' },
+    { method: 'DELETE', re: /^\/api\/productos\//, modulo: 'productos', accion: 'x' },
+    { method: 'GET', re: /^\/api\/presupuestos(\/|$)/, modulo: 'presupuestos', accion: 'r' },
+    { method: 'POST', re: /^\/api\/presupuestos(\/|$)/, modulo: 'presupuestos', accion: 'w' },
+    { method: 'PUT', re: /^\/api\/presupuestos\//, modulo: 'presupuestos', accion: 'w' },
+    { method: 'DELETE', re: /^\/api\/presupuestos\//, modulo: 'presupuestos', accion: 'x' },
+    { method: 'GET', re: /^\/api\/tareas(\/|$)/, modulo: 'tareas', accion: 'r' },
+    { method: 'POST', re: /^\/api\/tareas(\/|$)/, modulo: 'tareas', accion: 'w' },
+    { method: 'PUT', re: /^\/api\/tareas\//, modulo: 'tareas', accion: 'w' },
+    { method: 'DELETE', re: /^\/api\/tareas\//, modulo: 'tareas', accion: 'x' },
+    { method: 'GET', re: /^\/api\/reportes\//, modulo: 'reportes', accion: 'r' },
+    { method: 'GET', re: /^\/api\/email-campaigns(\/|$)/, modulo: 'campañas', accion: 'r' },
+    { method: 'POST', re: /^\/api\/email-campaigns(\/|$)/, modulo: 'campañas', accion: 'w' },
+    { method: 'PUT', re: /^\/api\/email-campaigns\//, modulo: 'campañas', accion: 'w' },
+    { method: 'DELETE', re: /^\/api\/email-campaigns\//, modulo: 'campañas', accion: 'x' },
+    { method: 'GET', re: /^\/api\/email-templates(\/|$)/, modulo: 'plantillas', accion: 'r' },
+    { method: 'POST', re: /^\/api\/email-templates(\/|$)/, modulo: 'plantillas', accion: 'w' },
+    { method: 'PUT', re: /^\/api\/email-templates\//, modulo: 'plantillas', accion: 'w' },
+    { method: 'DELETE', re: /^\/api\/email-templates\//, modulo: 'plantillas', accion: 'x' },
+    { method: 'GET', re: /^\/api\/contact-lists(\/|$)/, modulo: 'listas', accion: 'r' },
+    { method: 'POST', re: /^\/api\/contact-lists(\/|$)/, modulo: 'listas', accion: 'w' },
+    { method: 'DELETE', re: /^\/api\/contact-lists\//, modulo: 'listas', accion: 'x' },
+    { method: 'GET', re: /^\/api\/automatizaciones(\/|$)/, modulo: 'automatizaciones', accion: 'r' },
+    { method: 'POST', re: /^\/api\/automatizaciones(\/|$)/, modulo: 'automatizaciones', accion: 'w' },
+    { method: 'PUT', re: /^\/api\/automatizaciones\//, modulo: 'automatizaciones', accion: 'w' },
+    { method: 'DELETE', re: /^\/api\/automatizaciones\//, modulo: 'automatizaciones', accion: 'x' },
+    { method: 'GET', re: /^\/api\/activities(\/|$)/, modulo: 'actividades', accion: 'r' },
+    { method: 'GET', re: /^\/api\/(microsoft|google)\/(emails|profile|subscriptions|status)(\/|$)/, modulo: 'correos', accion: 'r' },
+    { method: 'POST', re: /^\/api\/(microsoft|google)\/send(\/|$)/, modulo: 'correos', accion: 'w' },
+    { method: 'POST', re: /^\/api\/microsoft\/vincular(\/|$)/, modulo: 'correos', accion: 'w' },
+    { method: 'GET', re: /^\/api\/calendario(\/|$)/, modulo: 'calendario', accion: 'r' },
+  ];
+
+  app.addHook('preHandler', async (req, reply) => {
+    const path = req.url.split('?')[0];
+    const rule = PERM_RULES.find(r => r.method === req.method && r.re.test(path));
+    if (!rule) return;
+    await authMiddleware(req as any, reply as any);
+    if (reply.sent) return;
+    const u = (req as any).user;
+    const ok = await tienePermiso(u.id, u.role, rule.modulo, rule.accion);
+    if (!ok) {
+      return reply.code(403).send({ error: 'Sin permiso para este módulo', code: 'FORBIDDEN' });
+    }
+  });
 
   app.post('/api/auth/login', {
     // Anti fuerza bruta (además del límite estricto en nginx)
@@ -237,9 +369,10 @@ export async function registerAuthRoutes(app: FastifyInstance) {
     });
     
     setAuthCookie(res, token);
-    
+
     const { passwordHash, ...userSafe } = user;
-    return { user: userSafe };
+    const permisosMap = await getPermisosMap(user.id, user.role);
+    return { user: { ...userSafe, permisos: permisosMap } };
   });
 
   app.post('/api/auth/logout', async (req, res) => {
@@ -248,7 +381,8 @@ export async function registerAuthRoutes(app: FastifyInstance) {
   });
 
   app.get('/api/auth/me', { preHandler: authMiddleware }, async (req) => {
-    return { user: req.user };
+    const permisosMap = await getPermisosMap(req.user!.id, req.user!.role);
+    return { user: { ...req.user, permisos: permisosMap } };
   });
 
   // Public tracking endpoints (no auth required)
@@ -341,6 +475,88 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         'clientState', n.clientState || '');
     }
     return res.code(202).send({ ok: true });
+  });
+
+  // Login SSO (sin sesión previa): el state lleva un nonce guardado 10 min en Redis.
+  // Solo entran usuarios ya creados por el admin y activos (match por email).
+  app.get('/api/auth/:proveedor/login', async (req, res) => {
+    const proveedor = (req.params as any).proveedor as string;
+    if (proveedor !== 'google' && proveedor !== 'microsoft') {
+      return res.code(404).send({ error: 'Proveedor no soportado' });
+    }
+    const { randomUUID: uuid } = await import('crypto');
+    const nonce = uuid();
+    try {
+      await redis.set(`sso:login:${nonce}`, proveedor, 'EX', 600);
+    } catch {
+      return res.code(500).send({ error: 'No se pudo iniciar el login' });
+    }
+    const state = Buffer.from(JSON.stringify({ purpose: 'login', nonce })).toString('base64url');
+    const url = proveedor === 'google' ? await getGoogleAuthUrl(state) : await getAuthUrl(state);
+    const FE = process.env.FRONTEND_URL || 'http://localhost:8081';
+    if (!url) return res.redirect(`${FE}/login?error=sso_no_configurado`);
+    res.redirect(url);
+  });
+
+  app.get('/api/auth/:proveedor/login/callback', async (req: FastifyRequest<{ Querystring: { code?: string; state?: string; error?: string } }>, res) => {
+    const FE = process.env.FRONTEND_URL || 'http://localhost:8081';
+    const proveedor = (req.params as any).proveedor as string;
+    const { code, state, error } = req.query;
+    const fail = (code: string) => res.redirect(`${FE}/login?error=${code}`);
+    if (proveedor !== 'google' && proveedor !== 'microsoft') return res.code(404).send({ error: 'Proveedor no soportado' });
+    if (error) return fail('sso_cancelado');
+    if (!code || !state) return fail('sso_invalido');
+    let parsed: any = null;
+    try {
+      parsed = JSON.parse(Buffer.from(state, 'base64url').toString());
+    } catch { return fail('sso_invalido'); }
+    if (parsed?.purpose !== 'login' || !parsed?.nonce) return fail('sso_invalido');
+    let saved: string | null = null;
+    try {
+      saved = await redis.get(`sso:login:${parsed.nonce}`);
+      if (saved) await redis.del(`sso:login:${parsed.nonce}`);
+    } catch { /* sin Redis no hay login SSO */ }
+    if (saved !== proveedor) return fail('sso_expirado');
+    try {
+      let email = '';
+      if (proveedor === 'google') {
+        const cfg = await getGoogleConfig();
+        if (!cfg) return fail('sso_no_configurado');
+        const tokens = await exchangeGoogleCode(cfg, code);
+        // token temporal solo para identificar al usuario (no se guarda)
+        const me: any = await (async () => {
+          const r = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+            headers: { Authorization: `Bearer ${tokens.accessToken}` },
+          });
+          if (!r.ok) throw new Error('userinfo');
+          return r.json();
+        })();
+        email = me.email || '';
+      } else {
+        const cfg = await getGlobalConfig();
+        if (!cfg) return fail('sso_no_configurado');
+        const tokens = await exchangeCodeForTokens(cfg, code);
+        const me: any = await (async () => {
+          const r = await fetch('https://graph.microsoft.com/v1.0/me?$select=mail,userPrincipalName', {
+            headers: { Authorization: `Bearer ${tokens.accessToken}` },
+          });
+          if (!r.ok) throw new Error('graph me');
+          return r.json();
+        })();
+        email = me.mail || me.userPrincipalName || '';
+      }
+      if (!email) return fail('sso_sin_email');
+      const [user] = await db.select().from(users)
+        .where(sql`lower(${users.email}) = lower(${email})`).limit(1);
+      if (!user) return fail('sso_sin_cuenta');
+      if (!user.activo) return fail('sso_inactivo');
+      const token = generateToken({ id: user.id, email: user.email, role: user.role, name: user.name });
+      setAuthCookie(res, token);
+      return res.redirect(`${FE}/`);
+    } catch (err) {
+      console.error('SSO login error:', err);
+      return fail('sso_error');
+    }
   });
 
   // Microsoft Graph OAuth endpoints
@@ -786,10 +1002,64 @@ export async function registerAuthRoutes(app: FastifyInstance) {
 
     app.post('/api/users', { preHandler: requireRole('admin') }, async (req, res) => {
       const { email, password, name, role } = req.body as { email: string; password: string; name: string; role?: string };
+      if (!email || !password || !name) return res.code(400).send({ error: 'email, password y name requeridos' });
       const hash = await hashPassword(password);
-      const [user] = await db.insert(users).values({ email, passwordHash: hash, name, role: role || 'user' }).returning();
-      const { passwordHash, ...safe } = user;
-      return res.code(201).send(safe);
+      try {
+        const [user] = await db.insert(users).values({ email, passwordHash: hash, name, role: role || 'user' }).returning();
+        const { passwordHash, ...safe } = user;
+        return res.code(201).send(safe);
+      } catch {
+        return res.code(409).send({ error: 'El email ya está registrado' });
+      }
+    });
+
+    app.put('/api/users/:id', { preHandler: requireRole('admin') }, async (req, res) => {
+      const body = stripReadonly(req.body as Record<string, any>);
+      delete body.email;
+      delete body.passwordHash;
+      if (body.password) {
+        body.passwordHash = await hashPassword(String(body.password));
+        delete body.password;
+      }
+      if (body.role && !['admin', 'user'].includes(body.role)) {
+        return res.code(400).send({ error: 'role inválido' });
+      }
+      const [u] = await db.update(users).set({ ...body, updatedAt: new Date() })
+        .where(eq(users.id, (req as any).params.id)).returning();
+      if (!u) return res.code(404).send({ error: 'No encontrado' });
+      const { passwordHash, ...safe } = u;
+      return safe;
+    });
+
+    app.delete('/api/users/:id', { preHandler: requireRole('admin') }, async (req, res) => {
+      if ((req as any).params.id === req.user!.id) {
+        return res.code(400).send({ error: 'No puedes eliminar tu propio usuario' });
+      }
+      await db.delete(permisos).where(eq(permisos.userId, (req as any).params.id));
+      await db.delete(users).where(eq(users.id, (req as any).params.id));
+      return { ok: true };
+    });
+
+    // Matriz de permisos rwx por usuario (solo admin). Admin siempre tiene todo.
+    app.get('/api/users/:id/permisos', { preHandler: requireRole('admin') }, async (req) => {
+      const [u] = await db.select().from(users).where(eq(users.id, (req as any).params.id)).limit(1);
+      if (!u) return { error: 'No encontrado' };
+      return getPermisosMap(u.id, u.role);
+    });
+
+    app.put('/api/users/:id/permisos', { preHandler: requireRole('admin') }, async (req, res) => {
+      const { permisos: lista } = req.body as { permisos?: Array<{ modulo: string; r?: boolean; w?: boolean; x?: boolean }> };
+      if (!Array.isArray(lista)) return res.code(400).send({ error: 'permisos debe ser un arreglo' });
+      const validos = (MODULOS as readonly string[]);
+      const userId = (req as any).params.id as string;
+      const [u] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (!u) return res.code(404).send({ error: 'No encontrado' });
+      await db.delete(permisos).where(eq(permisos.userId, userId));
+      const filas = lista
+        .filter(p => validos.includes(p.modulo) && (p.r || p.w || p.x))
+        .map(p => ({ userId, modulo: p.modulo, r: !!p.r, w: !!p.w, x: !!p.x }));
+      if (filas.length) await db.insert(permisos).values(filas);
+      return getPermisosMap(userId, u.role);
     });
 
     // Pipelines
@@ -895,8 +1165,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       return opp;
     });
 
-    app.delete('/api/oportunidades/:id', { 
-      preHandler: requireRole('admin'),
+    app.delete('/api/oportunidades/:id', {
       schema: { params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] } }
     }, async (req, res) => {
       await db.delete(oportunidades).where(eq(oportunidades.id, (req as any).params.id));
@@ -1003,11 +1272,16 @@ export async function registerAuthRoutes(app: FastifyInstance) {
     });
 
     // Presupuestos / cotizaciones
+    // Descuento = % (0-100) fijo en UI; impuestos = 16% fijo no modificable.
     const PRESUPUESTO_ESTADOS = ['borrador', 'enviado', 'aceptado', 'rechazado', 'vencido'];
-    function totalesPresupuesto(items: any[], descuento = 0, impuestos = 0) {
+    const IVA = 0.16;
+    function totalesPresupuesto(items: any[], descuentoPct = 0) {
       const subtotal = (items || []).reduce((a, it) => a + Math.max(0, Number(it.cantidad) || 0) * Math.max(0, Number(it.precio) || 0), 0);
-      const total = Math.max(0, Math.round(subtotal - (Number(descuento) || 0) + (Number(impuestos) || 0)));
-      return { subtotal: Math.round(subtotal), total };
+      const pct = Math.min(100, Math.max(0, Number(descuentoPct) || 0));
+      const descMonto = subtotal * pct / 100;
+      const impuestos = Math.round((subtotal - descMonto) * IVA);
+      const total = Math.max(0, Math.round(subtotal - descMonto + impuestos));
+      return { subtotal: Math.round(subtotal), descuentoPct: pct, impuestos, total };
     }
 
     app.get('/api/presupuestos', async (req: FastifyRequest<{ Querystring: { oportunidadId?: string; estado?: string; limit?: string } }>) => {
@@ -1042,15 +1316,15 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       if (body.estado && !PRESUPUESTO_ESTADOS.includes(body.estado)) {
         return res.code(400).send({ error: `estado debe ser uno de: ${PRESUPUESTO_ESTADOS.join(', ')}` });
       }
-      const { subtotal, total } = totalesPresupuesto(items, body.descuento, body.impuestos);
+      const calc = totalesPresupuesto(items, body.descuento);
       const year = new Date().getFullYear();
       const [{ total: existentes }] = await db.select({ total: count() }).from(presupuestos);
       const folio = `COT-${year}-${String(Number(existentes) + 1).padStart(4, '0')}`;
       const [p] = await db.insert(presupuestos).values({
         folio,
         oportunidadId: body.oportunidadId || null, contactoId: body.contactoId || null, empresaId: body.empresaId || null,
-        items, subtotal, descuento: Math.max(0, Math.round(Number(body.descuento) || 0)),
-        impuestos: Math.max(0, Math.round(Number(body.impuestos) || 0)), total,
+        items, subtotal: calc.subtotal, descuento: calc.descuentoPct,
+        impuestos: calc.impuestos, total: calc.total,
         estado: body.estado || 'borrador',
         validez: body.validez ? new Date(body.validez) : null,
         notas: body.notas || null,
@@ -1074,16 +1348,15 @@ export async function registerAuthRoutes(app: FastifyInstance) {
             productoId: it.productoId || null,
           }))
         : (current.items as any[]);
-      const { subtotal, total } = totalesPresupuesto(
+      const calc = totalesPresupuesto(
         items,
-        raw.descuento !== undefined ? raw.descuento : current.descuento,
-        raw.impuestos !== undefined ? raw.impuestos : current.impuestos
+        raw.descuento !== undefined ? raw.descuento : current.descuento
       );
       const [p] = await db.update(presupuestos).set({
         ...raw,
-        items, subtotal, total,
-        descuento: raw.descuento !== undefined ? Math.max(0, Math.round(Number(raw.descuento) || 0)) : current.descuento,
-        impuestos: raw.impuestos !== undefined ? Math.max(0, Math.round(Number(raw.impuestos) || 0)) : current.impuestos,
+        items, subtotal: calc.subtotal, total: calc.total,
+        descuento: calc.descuentoPct,
+        impuestos: calc.impuestos,
         validez: raw.validez !== undefined ? (raw.validez ? new Date(raw.validez) : null) : current.validez,
         updatedAt: new Date(),
       }).where(eq(presupuestos.id, (req as any).params.id)).returning();
@@ -1153,7 +1426,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       return db.select().from(productos).where(and(...conditions)).orderBy(productos.nombre).limit(parseInt(limit));
     });
 
-    app.post('/api/productos', { preHandler: requireRole('admin') }, async (req, res) => {
+    app.post('/api/productos', async (req, res) => {
       const body = req.body as { nombre?: string; sku?: string; descripcion?: string; precio?: number; activo?: boolean };
       if (!body.nombre) return res.code(400).send({ error: 'nombre requerido' });
       const [p] = await db.insert(productos).values({
@@ -1163,7 +1436,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       return res.code(201).send(p);
     });
 
-    app.put('/api/productos/:id', { preHandler: requireRole('admin') }, async (req, res) => {
+    app.put('/api/productos/:id', async (req, res) => {
       const body = stripReadonly(req.body as Record<string, any>);
       if (body.precio !== undefined) body.precio = Math.max(0, Math.round(Number(body.precio) || 0));
       const [p] = await db.update(productos).set({ ...body, updatedAt: new Date() })
@@ -1172,7 +1445,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       return p;
     });
 
-    app.delete('/api/productos/:id', { preHandler: requireRole('admin') }, async (req, res) => {
+    app.delete('/api/productos/:id', async (req, res) => {
       await db.delete(productos).where(eq(productos.id, (req as any).params.id));
       return { ok: true };
     });
@@ -1498,14 +1771,38 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       };
     });
 
+    // Serie mensual: oportunidades e importe por mes de creación (últimos N meses)
+    app.get('/api/reportes/mensual', async (req: FastifyRequest<{ Querystring: { meses?: string; pipelineId?: string } }>) => {
+      const meses = Math.min(24, Math.max(3, parseInt(req.query.meses || '12')));
+      const { pipelineId } = req.query;
+      const conds = [sql`${oportunidades.createdAt} >= date_trunc('month', now()) - (${meses} - 1) * interval '1 month'`];
+      if (pipelineId) conds.push(eq(oportunidades.pipelineId, pipelineId));
+      const rows = await db.select({
+        mes: sql<string>`to_char(date_trunc('month', ${oportunidades.createdAt}), 'YYYY-MM')`,
+        count: count(),
+        importe: sql<number>`coalesce(sum(${oportunidades.importe}), 0)`,
+      }).from(oportunidades).where(and(...conds))
+        .groupBy(sql`date_trunc('month', ${oportunidades.createdAt})`)
+        .orderBy(sql`date_trunc('month', ${oportunidades.createdAt})`);
+      const map = new Map(rows.map(r => [r.mes, { count: Number(r.count), importe: Number(r.importe) }]));
+      const serie = [];
+      const now = new Date();
+      for (let i = meses - 1; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const nombre = d.toLocaleDateString('es-MX', { month: 'short' }).replace('.', '');
+        serie.push({ mes: key, nombre, ...(map.get(key) || { count: 0, importe: 0 }) });
+      }
+      return { currency: env.CURRENCY, serie };
+    });
+
     // Automatizaciones
     app.get('/api/automatizaciones', async () => db.select().from(automatizaciones).orderBy(desc(automatizaciones.createdAt)));
-    app.post('/api/automatizaciones', { preHandler: requireRole('admin') }, async (req, res) => {
+    app.post('/api/automatizaciones', async (req, res) => {
       const [auto] = await db.insert(automatizaciones).values(req.body as any).returning();
       return res.code(201).send(auto);
     });
-    app.put('/api/automatizaciones/:id', { 
-      preHandler: requireRole('admin'),
+    app.put('/api/automatizaciones/:id', {
       schema: { params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] } }
     }, async (req, res) => {
       const body = stripReadonly(req.body as Record<string, any>);
@@ -1513,8 +1810,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       return auto;
     });
 
-    app.delete('/api/automatizaciones/:id', { 
-      preHandler: requireRole('admin'),
+    app.delete('/api/automatizaciones/:id', {
       schema: { params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] } }
     }, async (req, res) => {
       await db.delete(automatizaciones).where(eq(automatizaciones.id, (req as any).params.id));

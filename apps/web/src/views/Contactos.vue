@@ -15,7 +15,7 @@
       <VistasGuardadas entidad="contacto" :capturar="() => ({ sortBy: sortBy.value })" :aplicar="(f) => { if (f.sortBy) sortBy.value = f.sortBy; fetchContactos() }" />
     </div>
 
-    <div class="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+    <div class="panel-flat overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full">
           <thead class="bg-zinc-50 dark:bg-zinc-700/50">
@@ -40,7 +40,10 @@
                 <button @click="eliminarContacto(contacto)" class="text-red-600 hover:text-red-900 dark:hover:text-red-400">Eliminar</button>
               </td>
             </tr>
-            <tr v-if="contactos.length === 0">
+            <tr v-if="cargando && !contactos.length">
+              <td colspan="6"><div class="p-4"><Skeleton :filas="5" /></div></td>
+            </tr>
+            <tr v-if="!cargando && contactos.length === 0">
               <td colspan="6" class="px-6 py-12 text-center text-zinc-500 dark:text-zinc-400">No hay contactos. <button @click="openModal(null)" class="text-blue-600 hover:underline">Crea el primero</button></td>
             </tr>
           </tbody>
@@ -103,8 +106,11 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import { toast } from '../utils/toast'
+import { confirmar } from '../utils/confirm'
 import CustomFields from '../components/CustomFields.vue'
 import VistasGuardadas from '../components/VistasGuardadas.vue'
+import Skeleton from '../components/Skeleton.vue'
 
 const contactos = ref([])
 const cargando = ref(true)
@@ -170,7 +176,7 @@ const closeModal = () => {
 
 const guardarContacto = async () => {
   if (!formData.value.nombre) {
-    alert('El nombre es obligatorio')
+    toast.error('El nombre es obligatorio')
     return
   }
   saving.value = true
@@ -187,7 +193,7 @@ const guardarContacto = async () => {
     fetchContactos() // Refresh to get correct pagination
   } catch (e) {
     console.error('Error saving contacto:', e)
-    alert('Error al guardar contacto')
+    toast.error('Error al guardar contacto')
   } finally {
     saving.value = false
   }
@@ -217,16 +223,16 @@ const importarCsv = async (ev) => {
 }
 
 const eliminarContacto = async (contacto) => {
-  if (!confirm(`¿Eliminar a ${contacto.nombre}?`)) return
+  if (!await confirmar(`¿Eliminar a ${contacto.nombre}?`)) return
   try {
     await axios.delete(`/api/contactos/${contacto.id}`)
     fetchContactos() // Refresh to get correct pagination
   } catch (e) {
     console.error('Error deleting contacto:', e)
     if (!e.response) {
-      alert('Sin conexión con el servidor (revisa que el API esté arriba) e inténtalo de nuevo')
+      toast.error('Sin conexión con el servidor (revisa que el API esté arriba) e inténtalo de nuevo')
     } else {
-      alert(e.response?.data?.error || 'Error al eliminar contacto')
+      toast.error(e.response?.data?.error || 'Error al eliminar contacto')
     }
   }
 }

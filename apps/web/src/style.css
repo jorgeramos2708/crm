@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Diseño flat: paneles sin sombra ni borde, métricas flotantes */
+@layer components {
+  .panel-flat {
+    @apply bg-panel dark:bg-white/[0.04] rounded-xl;
+  }
+  .metric-float {
+    @apply py-1;
+  }
+}
+
 /* Tipografía global: Plus Jakarta Sans (auto-alojada, OFL)
    Títulos y métricas: 600-700 (clases font-semibold/font-bold)
    Textos, formularios y etiquetas: 400 (base)
@@ -60,4 +70,25 @@
   main {
     margin: 0 !important;
   }
+}
+
+/* Marca personalizada: tiñe fondos primarios (botones, item activo, logo).
+   Solo cuando hay color configurado (body.tema-marca). */
+body.tema-marca .bg-zinc-900 {
+  background-color: var(--marca);
+}
+html.dark body.tema-marca .dark\:bg-zinc-100 {
+  background-color: var(--marca);
+  color: #fff;
+}
+
+/* Tema general (solo modo claro; el oscuro se queda como está) */
+html:not(.dark) body.tema-marca .bg-zinc-50 {
+  background-color: var(--fondo);
+}
+html:not(.dark) body.tema-marca .bg-zinc-100 {
+  background-color: var(--panel);
+}
+html:not(.dark) body.tema-marca .panel-flat {
+  background-color: var(--panel);
 }

@@ -9,6 +9,7 @@ import {
   jsonb,
   index,
   uniqueIndex,
+  primaryKey,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
@@ -382,6 +383,22 @@ export const presupuestos = pgTable('presupuestos', {
   estadoIdx: index('presupuestos_estado_idx').on(table.estado),
 }));
 
+export const permisos = pgTable('permisos', {
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  modulo: varchar('modulo', { length: 30 }).notNull(),
+  r: boolean('r').notNull().default(false),
+  w: boolean('w').notNull().default(false),
+  x: boolean('x').notNull().default(false),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.userId, table.modulo] }),
+}));
+
+export const ajustes = pgTable('ajustes', {
+  clave: text('clave').primaryKey(),
+  valor: jsonb('valor').notNull().default({}),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const usersRelations = relations(users, ({ many }) => ({
   oportunidades: many(oportunidades, { relationName: 'propietario' }),
   activities: many(activities),
@@ -438,5 +455,7 @@ export type GoogleConfig = typeof googleConfig.$inferSelect;
 export type GoogleTokens = typeof googleTokens.$inferSelect;
 export type Equipo = typeof equipos.$inferSelect;
 export type VistaGuardada = typeof vistasGuardadas.$inferSelect;
+export type Permiso = typeof permisos.$inferSelect;
+export type Ajuste = typeof ajustes.$inferSelect;
 export type Producto = typeof productos.$inferSelect;
 export type Presupuesto = typeof presupuestos.$inferSelect;

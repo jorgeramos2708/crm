@@ -3,7 +3,7 @@
     <div v-for="f in fields" :key="f.id">
       <label class="block text-sm mb-1">{{ f.etiqueta }}{{ f.requerido ? ' *' : '' }}</label>
       <input v-if="f.tipo === 'texto' || f.tipo === 'numero'" v-model="model[f.clave]" :type="f.tipo === 'numero' ? 'number' : 'text'" :required="f.requerido" class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700" />
-      <input v-else-if="f.tipo === 'fecha'" v-model="model[f.clave]" type="date" :required="f.requerido" class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700" />
+      <FechaInput v-else-if="f.tipo === 'fecha'" v-model="model[f.clave]" :required="f.requerido" />
       <label v-else-if="f.tipo === 'booleano'" class="flex items-center gap-2 cursor-pointer text-sm">
         <input v-model="model[f.clave]" type="checkbox" class="w-4 h-4" /> {{ f.etiqueta }}
       </label>
@@ -18,6 +18,7 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import axios from 'axios'
+import FechaInput from './FechaInput.vue'
 
 const props = defineProps({
   entidad: { type: String, required: true },

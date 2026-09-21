@@ -15,12 +15,11 @@
       </div>
     </header>
     <div class="flex gap-4 overflow-x-auto pb-8" style="min-width: 100%">
-      <div v-for="stage in stages" :key="stage.id" class="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-4 min-w-[280px] flex-shrink-0 flex flex-col" :style="{ borderTopColor: stage.color || '#3b82f6', minHeight: '500px' }">
+      <div v-for="stage in stages" :key="stage.id" class="panel-flat p-4 min-w-[280px] flex-shrink-0 flex flex-col" :style="{ borderTop: '3px solid ' + (stage.color || '#3b82f6'), minHeight: '500px' }">
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full" :style="{ backgroundColor: stage.color || '#3b82f6' }"></div><h3 class="text-lg font-medium text-zinc-900 dark:text-zinc-400">{{ stage.nombre }}</h3></div>
-          <span class="text-sm text-zinc-500">{{ (oportunidadesPorStage[stage.id] || []).length }} oportunidades</span>
         </div>
-        <div class="space-y-2 flex-1 overflow-y-auto" @dragover.prevent="onDragOver(stage.id)" @drop="onDrop(stage.id)">
+         <div class="space-y-2 flex-1 overflow-y-auto" @dragover.prevent @drop="onDrop(stage.id)">
           <div v-for="opp in oportunidadesPorStage[stage.id] || []" :key="opp.id" 
                class="p-3 rounded-md bg-zinc-50 dark:bg-zinc-700 border border-zinc-200 dark:border-zinc-600 mb-2 cursor-grab"
                draggable="true"
@@ -81,6 +80,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import axios from 'axios'
+import { toast } from '../utils/toast'
 import { formatCurrency, loadCurrency } from '../utils/currency'
 import CustomFields from '../components/CustomFields.vue'
 
@@ -130,7 +130,7 @@ const fetchData = async () => {
 
 const crearOportunidad = async () => {
   if (!nuevaOportunidad.value.nombre || !nuevaOportunidad.value.pipelineId || !nuevaOportunidad.value.stageId) {
-    alert('Complete los campos obligatorios')
+    toast.error('Complete los campos obligatorios')
     return
   }
   creando.value = true
@@ -141,7 +141,7 @@ const crearOportunidad = async () => {
     nuevaOportunidad.value = { nombre: '', pipelineId: '', stageId: '', importe: 0, descripcion: '', custom: {} }
   } catch (e) {
     console.error('Error creating oportunidad:', e)
-    alert('Error al crear oportunidad')
+    toast.error('Error al crear oportunidad')
   } finally {
     creando.value = false
   }
@@ -155,22 +155,17 @@ const onDragEnd = () => {
   draggedOportunidad.value = null
 }
 
-const onDragOver = (e) => {
-  e.preventDefault()
-}
-
 const onDrop = async (stageId) => {
-  if (!draggedOportunidad.value || draggedOportunidad.value.stageId === stageId) {
-    draggedOportunidad.value = null
-    return
-  }
+  const opp = draggedOportunidad.value
+  draggedOportunidad.value = null
+  if (!opp || opp.stageId === stageId) return
   try {
-    await axios.put(`/api/oportunidades/${draggedOportunidad.value.id}`, { stageId })
-    draggedOportunidad.value.stageId = stageId
-    draggedOportunidad.value = null
+    await axios.put(`/api/oportunidades/${opp.id}`, { stageId })
+    opp.stageId = stageId
   } catch (e) {
     console.error('Error moving oportunidad:', e)
-    alert('Error al mover la oportunidad')
+    toast.error(e.response?.data?.error || 'Error al mover la oportunidad')
+    await fetchData()
   }
 }
 

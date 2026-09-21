@@ -26,6 +26,24 @@ import './style.css'
 
 const pinia = createPinia()
 
+// Validación nativa en español: "Campo obligatorio" en vez del inglés del navegador
+document.addEventListener('invalid', (e) => {
+  const t = e.target
+  if (t && typeof t.setCustomValidity === 'function') {
+    if (t.validity.valueMissing) t.setCustomValidity('Campo obligatorio')
+    else if (t.validity.typeMismatch) t.setCustomValidity('Revisa el formato de este campo')
+    else if (t.validity.patternMismatch) t.setCustomValidity('El formato no es válido')
+  }
+}, true)
+document.addEventListener('input', (e) => {
+  const t = e.target
+  if (t && typeof t.setCustomValidity === 'function') t.setCustomValidity('')
+}, true)
+document.addEventListener('change', (e) => {
+  const t = e.target
+  if (t && typeof t.setCustomValidity === 'function') t.setCustomValidity('')
+}, true)
+
 const routes = [
   { path: '/login', component: Login, meta: { guest: true } },
   { path: '/', component: Dashboard, meta: { requiresAuth: true } },

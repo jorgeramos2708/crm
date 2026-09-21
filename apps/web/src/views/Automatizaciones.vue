@@ -5,7 +5,7 @@
     </header>
 
     <div class="space-y-4">
-      <div v-for="auto in automatizaciones" :key="auto.id" class="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">
+      <div v-for="auto in automatizaciones" :key="auto.id" class="panel-flat p-6">
         <div class="flex items-start justify-between">
           <div class="flex-1">
             <div class="flex items-center gap-3 mb-2">
@@ -26,7 +26,8 @@
         </div>
       </div>
 
-      <div v-if="automatizaciones.length === 0" class="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-12 text-center">
+      <div v-if="cargando && !automatizaciones.length" class="panel-flat p-6"><Skeleton :filas="3" /></div>
+      <div v-if="!cargando && automatizaciones.length === 0" class="panel-flat p-12 text-center">
         <p class="text-zinc-500 dark:text-zinc-400 mb-4">No hay automatizaciones configuradas</p>
         <button @click="openModal(null)" class="bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-6 py-3 rounded-lg hover:opacity-90">Crear primera regla</button>
       </div>
@@ -111,6 +112,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import Skeleton from '../components/Skeleton.vue'
+import { toast } from '../utils/toast'
+import { confirmar } from '../utils/confirm'
 
 const automatizaciones = ref([])
 const cargando = ref(true)
@@ -156,7 +160,7 @@ const closeModal = () => {
 
 const guardarAuto = async () => {
   if (!formData.value.nombre || !formData.value.evento) {
-    alert('Nombre y evento son obligatorios')
+    toast.error('Nombre y evento son obligatorios')
     return
   }
   saving.value = true
@@ -172,20 +176,20 @@ const guardarAuto = async () => {
     closeModal()
   } catch (e) {
     console.error('Error saving automatizacion:', e)
-    alert('Error al guardar automatización')
+    toast.error('Error al guardar automatización')
   } finally {
     saving.value = false
   }
 }
 
 const eliminarAuto = async (auto) => {
-  if (!confirm(`¿Eliminar la regla "${auto.nombre}"?`)) return
+  if (!await confirmar(`¿Eliminar la regla "${auto.nombre}"?`)) return
   try {
     await axios.delete(`/api/automatizaciones/${auto.id}`)
     automatizaciones.value = automatizaciones.value.filter(a => a.id !== auto.id)
   } catch (e) {
     console.error('Error deleting automatizacion:', e)
-    alert('Error al eliminar automatización')
+    toast.error('Error al eliminar automatización')
   }
 }
 
