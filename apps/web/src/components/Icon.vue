@@ -17,11 +17,17 @@
   >
     <path :d="path" />
   </svg>
-  <component v-else :is="icon" :size="size" :stroke-width="strokeWidth" aria-hidden="true" />
+  <component
+    v-else
+    :is="icon"
+    :size="size"
+    :stroke-width="strokeWidth"
+    aria-hidden="true"
+  />
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed } from "vue";
 import {
   House,
   Handshake,
@@ -44,14 +50,16 @@ import {
   ChartColumn,
   Zap,
   Settings,
-} from '@lucide/vue'
+  SquarePen,
+  ShieldCheck,
+} from "@lucide/vue";
 
 const props = defineProps({
-  name: { type: String, default: 'resumen' },
-  path: { type: String, default: '' },
+  name: { type: String, default: "resumen" },
+  path: { type: String, default: "" },
   size: { type: [Number, String], default: 20 },
   strokeWidth: { type: [Number, String], default: 2 },
-})
+});
 
 const icons = {
   resumen: House,
@@ -75,7 +83,11 @@ const icons = {
   automatizaciones: Zap,
   reportes: ChartColumn,
   ajustes: Settings,
-}
+  redactar: SquarePen,
+  admin: ShieldCheck,
+  usuarios: Users,
+  equipo: Users,
+};
 
-const icon = computed(() => icons[props.name] || House)
+const icon = computed(() => icons[props.name] || House);
 </script>
