@@ -2,7 +2,7 @@
   <div class="metric-float">
     <div class="flex items-center gap-2">
       <span class="inline-flex h-6 w-6 items-center justify-center rounded-lg" :class="chip">
-        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" :d="icon" /></svg>
+        <Icon :path="icon" class="h-3.5 w-3.5" :stroke-width="2.2" />
       </span>
       <span class="text-[11px] font-medium uppercase tracking-widest text-zinc-500 dark:text-zinc-400">{{ title }}</span>
     </div>
@@ -11,6 +11,8 @@
 </template>
 
 <script setup>
+import Icon from './Icon.vue'
+
 const props = defineProps({
   title: { type: String, required: true },
   value: { type: [String, Number], default: '—' },

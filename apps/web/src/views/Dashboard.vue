@@ -14,7 +14,7 @@
           <h2 class="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-4">Oportunidades recientes</h2>
           <div v-if="loading && !oportunidades.length" class="py-2"><Skeleton :filas="3" /></div>
           <div v-if="!loading && oportunidades.length === 0" class="text-center py-8 text-zinc-500">
-            No hay oportunidades aún. <router-link to="/pipeline" class="text-blue-600 hover:underline">Crea la primera</router-link>
+            No hay oportunidades aún. <Btn to="/pipeline" variant="link">Crea la primera</Btn>
           </div>
           <div class="space-y-3" v-else>
             <div v-for="opp in oportunidades" :key="opp.id" class="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-700 rounded-lg">
@@ -51,6 +51,7 @@ import axios from 'axios'
 import Skeleton from '../components/Skeleton.vue'
 import { formatCurrency, loadCurrency } from '../utils/currency'
 import StatCard from '../components/StatCard.vue'
+import Btn from '../components/Btn.vue'
 
 const authStore = useAuthStore()
 

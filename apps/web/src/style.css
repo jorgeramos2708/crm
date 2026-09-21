@@ -92,3 +92,39 @@ html:not(.dark) body.tema-marca .bg-zinc-100 {
 html:not(.dark) body.tema-marca .panel-flat {
   background-color: var(--panel);
 }
+
+/* Design tokens Fase 1: solo declaración, sin cambios visuales.
+   Mapeo 1:1 con tailwind.config.js (rampa alabastro) y nomenclatura shadcn.
+   Los componentes nuevos (Btn, Icon, Badge...) consumen estas variables. */
+:root {
+  --crm-bg: #faf9f7;
+  --crm-fg: #1c1917;
+  --crm-card: #ffffff;
+  --crm-panel: #f1eee7;
+  --crm-muted: #f4f2ed;
+  --crm-muted-fg: #78716c;
+  --crm-border: #e8e3d9;
+  --crm-input: #d7d0c2;
+  --crm-primary: #1c1917;
+  --crm-primary-fg: #faf9f7;
+  --crm-ring: #a8a094;
+  --crm-destructive: #dc2626;
+  --crm-radius-sm: 0.5rem;
+  --crm-radius-md: 0.75rem;
+  --crm-radius-lg: 1rem;
+  --crm-font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+}
+html.dark {
+  --crm-bg: #1c1917;
+  --crm-fg: #faf9f7;
+  --crm-card: #292524;
+  --crm-panel: rgba(255, 255, 255, 0.04);
+  --crm-muted: rgba(255, 255, 255, 0.1);
+  --crm-muted-fg: #a8a094;
+  --crm-border: #44403c;
+  --crm-input: #57534e;
+  --crm-primary: #f4f2ed;
+  --crm-primary-fg: #1c1917;
+  --crm-ring: #a8a094;
+  --crm-destructive: #ef4444;
+}

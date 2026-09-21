@@ -28,7 +28,7 @@
             collapsed ? 'justify-center px-0' : ''
           ]"
         >
-          <span class="text-lg leading-none">🏠</span>
+          <Icon name="resumen" class="h-5 w-5" />
           <span v-if="!collapsed">Resumen</span>
         </router-link>
 
@@ -39,7 +39,7 @@
             class="mt-2 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors"
             :class="groupActive(group) ? 'text-zinc-900 dark:text-zinc-100 font-medium' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700'"
           >
-            <span class="text-lg leading-none">{{ group.icon }}</span>
+            <Icon :name="group.icon" class="h-5 w-5" />
             <span class="flex-1 text-left">{{ group.label }}</span>
             <svg class="h-4 w-4 transition-transform" :class="openGroups.includes(group.label) ? '' : '-rotate-90'" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
           </button>
@@ -58,7 +58,7 @@
                 collapsed ? 'justify-center px-0' : 'ml-4'
               ]"
             >
-              <span class="text-lg leading-none">{{ item.icon }}</span>
+              <Icon :name="item.icon" class="h-5 w-5" />
               <span v-if="!collapsed">{{ item.name }}</span>
             </router-link>
           </div>
@@ -76,7 +76,7 @@
             collapsed ? 'justify-center px-0' : ''
           ]"
         >
-          <span class="text-lg leading-none">⚙️</span>
+          <Icon name="ajustes" class="h-5 w-5" />
           <span v-if="!collapsed">Configuración</span>
         </router-link>
       </nav>
@@ -99,19 +99,19 @@
         </button>
       </div>
       <nav class="flex-1 overflow-y-auto p-3">
-        <router-link to="/" @click="mobileMenuOpen = false" class="mb-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700"><span class="text-lg">🏠</span> Resumen</router-link>
+        <router-link to="/" @click="mobileMenuOpen = false" class="mb-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700"><Icon name="resumen" class="h-5 w-5" /> Resumen</router-link>
         <template v-for="group in visGroups" :key="group.label">
           <button @click="toggleGroup(group.label)" class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-zinc-600 dark:text-zinc-400">
-            <span class="text-lg">{{ group.icon }}</span>
+            <Icon :name="group.icon" class="h-5 w-5" />
             <span class="flex-1 text-left font-medium">{{ group.label }}</span>
             <svg class="h-4 w-4 transition-transform" :class="openGroups.includes(group.label) ? '' : '-rotate-90'" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
           </button>
           <div v-show="openGroups.includes(group.label)">
-            <router-link v-for="item in group.items" :key="item.to" :to="item.to" :title="item.desc || item.name" @click="mobileMenuOpen = false" class="ml-4 mb-0.5 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700"><span class="text-lg">{{ item.icon }}</span> {{ item.name }}</router-link>
+            <router-link v-for="item in group.items" :key="item.to" :to="item.to" :title="item.desc || item.name" @click="mobileMenuOpen = false" class="ml-4 mb-0.5 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700"><Icon :name="item.icon" class="h-5 w-5" /> {{ item.name }}</router-link>
           </div>
         </template>
         <div class="mx-3 mb-1 mt-2 border-t border-zinc-200 dark:border-zinc-700"></div>
-        <router-link to="/settings" @click="mobileMenuOpen = false" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700"><span class="text-lg">⚙️</span> Configuración</router-link>
+        <router-link to="/settings" @click="mobileMenuOpen = false" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700"><Icon name="ajustes" class="h-5 w-5" />Configuración</router-link>
       </nav>
       <div class="border-t border-zinc-200 dark:border-zinc-700 p-3">
         <button @click="logout" class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">Cerrar sesión</button>
@@ -160,6 +160,7 @@ import { useAuthStore } from './stores/auth'
 import { marca, loadMarca } from './utils/marca'
 import ConfirmDialog from './components/ConfirmDialog.vue'
 import Toasts from './components/Toasts.vue'
+import Icon from './components/Icon.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -185,41 +186,41 @@ const toggleTheme = () => {
 const navGroups = [
   {
     label: 'Ventas',
-    icon: '🤝',
+    icon: 'ventas',
     items: [
-      { mod: 'contactos', to: '/contactos', name: 'Contactos', desc: 'Personas y sus datos', icon: '👥' },
-      { mod: 'empresas', to: '/empresas', name: 'Empresas', desc: 'Cuentas y contactos vinculados', icon: '🏢' },
-      { mod: 'oportunidades', to: '/pipeline', name: 'Pipeline', desc: 'El flujo visual de tus ventas', icon: '📊' },
-      { mod: 'oportunidades', to: '/negocios', name: 'Negocios', desc: 'El listado de transacciones', icon: '💼' },
-      { mod: 'presupuestos', to: '/presupuestos', name: 'Presupuestos', desc: 'Cotizaciones con folio y totales', icon: '📄' },
-      { mod: 'productos', to: '/productos', name: 'Productos', desc: 'Catálogo con precios', icon: '📦' },
+      { mod: 'contactos', to: '/contactos', name: 'Contactos', desc: 'Personas y sus datos', icon: 'contactos' },
+      { mod: 'empresas', to: '/empresas', name: 'Empresas', desc: 'Cuentas y contactos vinculados', icon: 'empresas' },
+      { mod: 'oportunidades', to: '/pipeline', name: 'Pipeline', desc: 'El flujo visual de tus ventas', icon: 'pipeline' },
+      { mod: 'oportunidades', to: '/negocios', name: 'Negocios', desc: 'El listado de transacciones', icon: 'negocios' },
+      { mod: 'presupuestos', to: '/presupuestos', name: 'Presupuestos', desc: 'Cotizaciones con folio y totales', icon: 'presupuestos' },
+      { mod: 'productos', to: '/productos', name: 'Productos', desc: 'Catálogo con precios', icon: 'productos' },
     ],
   },
   {
     label: 'Marketing y Mensajería',
-    icon: '📣',
+    icon: 'marketing',
     items: [
-      { mod: 'correos', to: '/correos', name: 'Correos', desc: 'Bandeja de Outlook y Gmail', icon: '📬' },
-      { mod: 'campañas', to: '/campañas', name: 'Campañas', desc: 'Email masivo segmentado', icon: '🎯' },
-      { mod: 'plantillas', to: '/plantillas', name: 'Plantillas', desc: 'Plantillas reutilizables', icon: '📄' },
-      { mod: 'listas', to: '/listas', name: 'Listas', desc: 'Segmentos de contactos', icon: '📋' },
+      { mod: 'correos', to: '/correos', name: 'Correos', desc: 'Bandeja de Outlook y Gmail', icon: 'correos' },
+      { mod: 'campañas', to: '/campañas', name: 'Campañas', desc: 'Email masivo segmentado', icon: 'campanas' },
+      { mod: 'plantillas', to: '/plantillas', name: 'Plantillas', desc: 'Plantillas reutilizables', icon: 'plantillas' },
+      { mod: 'listas', to: '/listas', name: 'Listas', desc: 'Segmentos de contactos', icon: 'listas' },
     ],
   },
   {
     label: 'Agenda y Tareas',
-    icon: '📅',
+    icon: 'agenda',
     items: [
-      { mod: 'calendario', to: '/calendario', name: 'Calendario', desc: 'Eventos de Outlook y Google', icon: '🗓️' },
-      { mod: 'tareas', to: '/tareas', name: 'Tareas', desc: 'Pendientes vinculados', icon: '✅' },
-      { mod: 'actividades', to: '/actividades', name: 'Actividades', desc: 'Historial de acciones', icon: '🔄' },
+      { mod: 'calendario', to: '/calendario', name: 'Calendario', desc: 'Eventos de Outlook y Google', icon: 'calendario' },
+      { mod: 'tareas', to: '/tareas', name: 'Tareas', desc: 'Pendientes vinculados', icon: 'tareas' },
+      { mod: 'actividades', to: '/actividades', name: 'Actividades', desc: 'Historial de acciones', icon: 'actividades' },
     ],
   },
   {
     label: 'Operaciones y Reportes',
-    icon: '📈',
+    icon: 'operaciones',
     items: [
-      { mod: 'automatizaciones', to: '/automatizaciones', name: 'Automatizaciones', desc: 'Reglas automáticas', icon: '⚡' },
-      { mod: 'reportes', to: '/reportes', name: 'Reportes', desc: 'Embudo y métricas', icon: '📊' },
+      { mod: 'automatizaciones', to: '/automatizaciones', name: 'Automatizaciones', desc: 'Reglas automáticas', icon: 'automatizaciones' },
+      { mod: 'reportes', to: '/reportes', name: 'Reportes', desc: 'Embudo y métricas', icon: 'reportes' },
     ],
   },
 ]
