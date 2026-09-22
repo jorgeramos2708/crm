@@ -5,10 +5,55 @@
         Bienvenido, {{ authStore.user?.name || "Usuario" }}
       </h2>
 
-      <!-- Valor total del pipeline -->
-      <div class="mb-6 p-6 rounded-2xl bg-zinc-100 dark:bg-zinc-800">
-        <p class="text-sm font-medium text-zinc-500 mb-1">Valor total del pipeline</p>
-        <p class="text-4xl font-bold text-zinc-900 dark:text-zinc-100">{{ formatCurrency(stats.valorTotal) }}</p>
+      <!-- Valor total + Eventos (misma fila, compactos) -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <Card class="flex items-center justify-between px-5 py-4">
+          <div>
+            <p class="text-sm font-medium text-zinc-500">Valor total del pipeline</p>
+            <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">
+              {{ formatCurrency(stats.valorTotal) }}
+            </p>
+          </div>
+          <router-link
+            to="/negocios"
+            class="text-sm font-medium hover:underline"
+            style="color: var(--marca, #2563eb)"
+          >
+            Ver negocios
+          </router-link>
+        </Card>
+
+        <Card class="px-5 py-4">
+          <div class="mb-2 flex items-center justify-between">
+            <p class="text-sm font-medium text-zinc-500">Eventos próximos</p>
+            <router-link to="/calendario" class="text-xs hover:underline" style="color: var(--marca, #2563eb)">
+              Calendario
+            </router-link>
+          </div>
+          <div v-if="loadingCalendario" class="py-1">
+            <Skeleton :filas="2" />
+          </div>
+          <div v-else-if="errorCalendario" class="text-sm text-zinc-500">
+            Calendario no conectado ·
+            <router-link to="/settings" class="underline" style="color: var(--marca, #2563eb)">Configurar</router-link>
+          </div>
+          <div v-else-if="eventos.length === 0" class="text-sm text-zinc-500">
+            No hay eventos esta semana.
+          </div>
+          <ul v-else class="space-y-1.5">
+            <li v-for="(ev, i) in eventos.slice(0, 3)" :key="i">
+              <component
+                :is="ev.webLink || ev.htmlLink ? 'a' : 'div'"
+                :href="ev.webLink || ev.htmlLink || undefined"
+                :target="(ev.webLink || ev.htmlLink) ? '_blank' : undefined"
+                class="flex items-baseline justify-between gap-3 rounded-lg px-2 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors"
+              >
+                <span class="truncate text-sm text-zinc-900 dark:text-zinc-100">{{ ev.subject || ev.title }}</span>
+                <span class="flex-shrink-0 text-xs text-zinc-500 tabular-nums">{{ formatFechaEvento(ev.start) }}</span>
+              </component>
+            </li>
+          </ul>
+        </Card>
       </div>
 
       <!-- Tareas pendientes + Actividad reciente -->
@@ -86,46 +131,6 @@
                 </p>
               </div>
             </router-link>
-          </div>
-        </Card>
-      </div>
-
-      <!-- Eventos del calendario -->
-      <div class="mb-6">
-        <Card class="p-6">
-          <h2 class="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
-            Eventos próximos
-          </h2>
-          <div v-if="loadingCalendario" class="py-2">
-            <Skeleton :filas="2" />
-          </div>
-          <div
-            v-else-if="errorCalendario"
-            class="text-center py-6 text-zinc-500"
-          >
-            <p class="mb-1">📅 Calendario no conectado</p>
-            <p class="text-xs">Conecta Outlook o Google en Correos para ver eventos.</p>
-          </div>
-          <div
-            v-else-if="eventos.length === 0"
-            class="text-center py-6 text-zinc-500"
-          >
-            No hay eventos próximos esta semana.
-          </div>
-          <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <component
-              v-for="(ev, i) in eventos"
-              :key="i"
-              :is="ev.webLink || ev.htmlLink ? 'a' : 'div'"
-              :href="ev.webLink || ev.htmlLink || undefined"
-              :target="(ev.webLink || ev.htmlLink) ? '_blank' : undefined"
-              class="p-3 rounded-lg bg-zinc-50 dark:bg-zinc-700 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-600 transition-colors block"
-            >
-              <p class="font-medium text-sm text-zinc-900 dark:text-zinc-100 truncate">{{ ev.subject || ev.title }}</p>
-              <p class="text-xs text-zinc-500 mt-1">
-                {{ formatFechaEvento(ev.start) }}
-              </p>
-            </component>
           </div>
         </Card>
       </div>
