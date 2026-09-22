@@ -90,13 +90,38 @@
             class="w-full"
           />
         </Field>
-        <Field label="Importe">
-          <input
-            v-model.number="nuevaOportunidad.importe"
-            type="number"
-            class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700"
-          />
-        </Field>
+        <div>
+          <label class="block text-sm mb-1">Importe</label>
+          <div class="flex gap-2">
+            <input
+              v-model.number="nuevaOportunidad.importe"
+              type="number"
+              min="0"
+              class="flex-1 min-w-0 px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm focus-ring"
+              @focus="onImporteFocus"
+            />
+            <button
+              type="button"
+              class="shrink-0 px-3 py-2 rounded-lg border text-sm font-medium transition-colors"
+              :class="
+                nuevaOportunidad.ivaIncluido
+                  ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300'
+                  : 'border-zinc-300 text-zinc-500 hover:bg-zinc-50 dark:border-zinc-600 dark:hover:bg-zinc-700'
+              "
+              :aria-pressed="nuevaOportunidad.ivaIncluido"
+              @click="nuevaOportunidad.ivaIncluido = !nuevaOportunidad.ivaIncluido"
+            >
+              IVA 16%
+            </button>
+          </div>
+          <p class="mt-1 text-xs text-zinc-500">
+            {{
+              nuevaOportunidad.ivaIncluido
+                ? "IVA 16% incluido en el importe"
+                : "IVA no incluido"
+            }}
+          </p>
+        </div>
         <Field label="Descripción">
           <Input
             v-model="nuevaOportunidad.descripcion"
@@ -159,9 +184,16 @@ const nuevaOportunidad = ref({
   pipelineId: "",
   stageId: "",
   importe: 0,
+  ivaIncluido: false,
   descripcion: "",
   custom: {},
 });
+
+const onImporteFocus = () => {
+  if (nuevaOportunidad.value.importe === 0) {
+    nuevaOportunidad.value.importe = "";
+  }
+};
 
 const oportunidadesPorStage = computed(() => {
   const grouped = {};
@@ -248,10 +280,14 @@ const crearOportunidad = async () => {
   }
   creando.value = true;
   try {
-    const response = await axios.post(
-      "/api/oportunidades",
-      nuevaOportunidad.value,
-    );
+    const payload = {
+      ...nuevaOportunidad.value,
+      importe: Math.max(
+        0,
+        Math.round(Number(nuevaOportunidad.value.importe) || 0),
+      ),
+    };
+    const response = await axios.post("/api/oportunidades", payload);
     oportunidades.value.push(response.data.data || response.data);
     showNewOportunidad.value = false;
     nuevaOportunidad.value = {
@@ -259,6 +295,7 @@ const crearOportunidad = async () => {
       pipelineId: "",
       stageId: "",
       importe: 0,
+      ivaIncluido: false,
       descripcion: "",
       custom: {},
     };

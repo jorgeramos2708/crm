@@ -213,6 +213,7 @@ interface CreateOportunidadBody {
   contactoId?: string;
   importe?: number;
   probabilidad?: number;
+  ivaIncluido?: boolean;
   fechaCierreEstimada?: string;
   propietarioId?: string;
 }
@@ -225,6 +226,7 @@ interface UpdateOportunidadBody {
   contactoId?: string;
   importe?: number;
   probabilidad?: number;
+  ivaIncluido?: boolean;
   fechaCierreEstimada?: string;
   propietarioId?: string;
 }
@@ -744,12 +746,10 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         .where(eq(users.email, email))
         .limit(1);
       if (!user || !(await verifyPassword(password, user.passwordHash))) {
-        return res
-          .code(401)
-          .send({
-            error: "Credenciales inválidas",
-            code: "INVALID_CREDENTIALS",
-          });
+        return res.code(401).send({
+          error: "Credenciales inválidas",
+          code: "INVALID_CREDENTIALS",
+        });
       }
       if (!user.activo) {
         return res
@@ -1442,11 +1442,9 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         const [existing] = await db.select().from(microsoftConfig).limit(1);
         if (!existing) {
           if (!body.clientSecret) {
-            return res
-              .code(400)
-              .send({
-                error: "clientSecret es requerido en la configuración inicial",
-              });
+            return res.code(400).send({
+              error: "clientSecret es requerido en la configuración inicial",
+            });
           }
           const [created] = await db
             .insert(microsoftConfig)
@@ -1655,11 +1653,9 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         const [existing] = await db.select().from(googleConfig).limit(1);
         if (!existing) {
           if (!body.clientSecret)
-            return res
-              .code(400)
-              .send({
-                error: "clientSecret requerido en configuración inicial",
-              });
+            return res.code(400).send({
+              error: "clientSecret requerido en configuración inicial",
+            });
           const [created] = await db
             .insert(googleConfig)
             .values({
@@ -2614,11 +2610,9 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         productoId: it.productoId || null,
       }));
       if (body.estado && !PRESUPUESTO_ESTADOS.includes(body.estado)) {
-        return res
-          .code(400)
-          .send({
-            error: `estado debe ser uno de: ${PRESUPUESTO_ESTADOS.join(", ")}`,
-          });
+        return res.code(400).send({
+          error: `estado debe ser uno de: ${PRESUPUESTO_ESTADOS.join(", ")}`,
+        });
       }
       const calc = totalesPresupuesto(items, body.descuento);
       const year = new Date().getFullYear();
@@ -2650,11 +2644,9 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       const raw = stripReadonly(req.body as Record<string, any>);
       delete raw.folio;
       if (raw.estado && !PRESUPUESTO_ESTADOS.includes(raw.estado)) {
-        return res
-          .code(400)
-          .send({
-            error: `estado debe ser uno de: ${PRESUPUESTO_ESTADOS.join(", ")}`,
-          });
+        return res.code(400).send({
+          error: `estado debe ser uno de: ${PRESUPUESTO_ESTADOS.join(", ")}`,
+        });
       }
       const [current] = await db
         .select()
@@ -2848,6 +2840,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         sku?: string;
         descripcion?: string;
         precio?: number;
+        cobraIva?: boolean;
         activo?: boolean;
       };
       if (!body.nombre)
@@ -2859,6 +2852,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
           sku: body.sku || null,
           descripcion: body.descripcion || null,
           precio: Math.max(0, Math.round(Number(body.precio) || 0)),
+          cobraIva: body.cobraIva ?? false,
           activo: body.activo ?? true,
         })
         .returning();
@@ -2928,18 +2922,14 @@ export async function registerAuthRoutes(app: FastifyInstance) {
           !body.entidad ||
           !(ENTIDADES as readonly string[]).includes(body.entidad)
         ) {
-          return res
-            .code(400)
-            .send({
-              error: `entidad debe ser una de: ${ENTIDADES.join(", ")}`,
-            });
+          return res.code(400).send({
+            error: `entidad debe ser una de: ${ENTIDADES.join(", ")}`,
+          });
         }
         if (!body.clave || !/^[a-z][a-z0-9_]{1,49}$/.test(body.clave)) {
-          return res
-            .code(400)
-            .send({
-              error: "clave inválida (minúsculas, números, guion bajo)",
-            });
+          return res.code(400).send({
+            error: "clave inválida (minúsculas, números, guion bajo)",
+          });
         }
         if (!body.etiqueta)
           return res.code(400).send({ error: "etiqueta requerida" });
@@ -3212,12 +3202,10 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       const entityType = fields.entityType?.value;
       const entityId = fields.entityId?.value;
       if (!ARCHIVO_ENTIDADES.includes(entityType) || !entityId) {
-        return res
-          .code(400)
-          .send({
-            error:
-              "entityType (contacto|empresa|oportunidad) y entityId requeridos",
-          });
+        return res.code(400).send({
+          error:
+            "entityType (contacto|empresa|oportunidad) y entityId requeridos",
+        });
       }
       const buf = await file.toBuffer();
       const safeName = `${Date.now()}-${(file.filename || "archivo").replace(/[^a-zA-Z0-9._-]/g, "_")}`;
@@ -3227,11 +3215,9 @@ export async function registerAuthRoutes(app: FastifyInstance) {
           "Content-Type": file.mimetype || "application/octet-stream",
         });
       } catch (e: any) {
-        return res
-          .code(500)
-          .send({
-            error: `Error subiendo a almacenamiento: ${e?.message || e}`,
-          });
+        return res.code(500).send({
+          error: `Error subiendo a almacenamiento: ${e?.message || e}`,
+        });
       }
       const [row] = await db
         .insert(archivos)

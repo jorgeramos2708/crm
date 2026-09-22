@@ -107,6 +107,10 @@
           ><input type="checkbox" v-model="form.activo" class="w-4 h-4" />
           Activo</label
         >
+        <label class="flex items-center gap-2 text-sm cursor-pointer"
+          ><input type="checkbox" v-model="form.cobraIva" class="w-4 h-4" />
+          Cobrar IVA (16%)</label
+        >
         <div class="flex gap-2 pt-2">
           <Btn
             type="button"
@@ -149,6 +153,7 @@ const form = ref({
   sku: "",
   descripcion: "",
   precio: 0,
+  cobraIva: false,
   activo: true,
 });
 
@@ -175,9 +180,17 @@ const openModal = (p) => {
         sku: p.sku || "",
         descripcion: p.descripcion || "",
         precio: p.precio,
+        cobraIva: p.cobraIva ?? false,
         activo: p.activo,
       }
-    : { nombre: "", sku: "", descripcion: "", precio: 0, activo: true };
+    : {
+        nombre: "",
+        sku: "",
+        descripcion: "",
+        precio: 0,
+        cobraIva: false,
+        activo: true,
+      };
   showModal.value = true;
 };
 
