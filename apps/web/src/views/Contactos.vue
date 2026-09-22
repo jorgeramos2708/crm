@@ -31,7 +31,7 @@
     
 
     <Card class="overflow-hidden">
-      <Table>
+      <Table :cols="['20%', '20%', '15%', '20%', '15%', '10%']">
         <template #head>
           <tr>
             <Th>Nombre</Th>
@@ -39,7 +39,7 @@
             <Th>Teléfono</Th>
             <Th>Empresa</Th>
             <Th>Cargo</Th>
-            <Th align="right">Acciones</Th>
+            <Th></Th>
           </tr>
         </template>
         <tr

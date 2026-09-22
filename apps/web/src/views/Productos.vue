@@ -14,14 +14,14 @@
     </div>
 
     <Card class="overflow-hidden">
-      <Table>
+      <Table :cols="['35%', '20%', '15%', '15%', '15%']">
         <template #head>
           <tr>
             <Th>Producto</Th>
             <Th>SKU</Th>
             <Th align="right">Precio</Th>
             <Th>Estado</Th>
-            <Th align="right">Acciones</Th>
+            <Th></Th>
           </tr>
         </template>
         <tr

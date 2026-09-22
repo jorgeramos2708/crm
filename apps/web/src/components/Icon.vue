@@ -1,4 +1,4 @@
-<!-- Icon (Fase 1): envoltorio del set Lucide (@lucide/vue).
+<!-- Icon: envoltorio del set Lucide (@lucide/vue).
   Uso: <Icon name="contactos" class="h-5 w-5" />
   `path` permite reutilizar paths inline legacy (ex: StatCard) sin cambiar su API.
   Los iconos son decorativos junto a etiquetas de texto → aria-hidden. -->
@@ -14,6 +14,9 @@
     stroke-linecap="round"
     stroke-linejoin="round"
     aria-hidden="true"
+    :class="{ 'icon-hover': hoverable }"
+    @mouseenter="hovered = true"
+    @mouseleave="hovered = false"
   >
     <path :d="path" />
   </svg>
@@ -23,11 +26,14 @@
     :size="size"
     :stroke-width="strokeWidth"
     aria-hidden="true"
+    :class="{ 'icon-hover': hoverable }"
+    @mouseenter="hovered = true"
+    @mouseleave="hovered = false"
   />
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import {
   House,
   Handshake,
@@ -65,6 +71,7 @@ const props = defineProps({
   path: { type: String, default: "" },
   size: { type: [Number, String], default: 20 },
   strokeWidth: { type: [Number, String], default: 2 },
+  hoverable: { type: Boolean, default: false },
 });
 
 const icons = {
@@ -102,4 +109,24 @@ const icons = {
 };
 
 const icon = computed(() => icons[props.name] || House);
+const hovered = ref(false)
+
+const hoverable = computed(() => props.hoverable && !hovered.value)
 </script>
+
+<style scoped>
+.icon-hover {
+  transition: transform 0.2s ease;
+}
+.icon-hover:hover {
+  transform: scale(1.15) rotate(3deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .icon-hover {
+    transition: none !important;
+  }
+  .icon-hover:hover {
+    transform: none;
+  }
+}
+</style>

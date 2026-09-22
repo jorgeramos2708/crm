@@ -17,7 +17,8 @@ describe("Btn", () => {
   it("renderiza el slot y variante primaria por defecto", () => {
     const w = mount(Btn, { slots: { default: "Guardar" } });
     expect(w.text()).toBe("Guardar");
-    expect(w.classes()).toContain("bg-zinc-900");
+    expect(w.classes()).toContain("btn-primary");
+    expect(w.attributes("style")).toContain("background-color");
   });
 
   it("aplica la variante outline", () => {
@@ -32,7 +33,7 @@ describe("Btn", () => {
 
   it("muestra spinner en loading", () => {
     const w = mount(Btn, { props: { loading: true } });
-    expect(w.find("svg.animate-spin").exists()).toBe(true);
+    expect(w.find("svg.animate-spin-fast").exists()).toBe(true);
   });
 
   it("renderiza un <a> con href", () => {
@@ -101,10 +102,14 @@ describe("Modal", () => {
     const w = mount(Modal, {
       props: { open: true, title: "Confirmar" },
       slots: { default: "<p>Cuerpo</p>" },
+      attachTo: document.body,
     });
     expect(w.text()).toContain("Confirmar");
-    await w.trigger("click");
+    const overlay = document.querySelector(".fixed.inset-0");
+    overlay!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await w.vm.$nextTick();
     expect(w.emitted("close")).toBeTruthy();
+    w.unmount();
   });
 });
 
@@ -236,7 +241,7 @@ describe("Field", () => {
 describe("Select", () => {
   it("propaga disabled", () => {
     const w = mount(Select, { props: { disabled: true } });
-    expect(w.attributes("disabled")).toBeDefined();
+    expect(w.find("select").attributes("disabled")).toBeDefined();
   });
 });
 

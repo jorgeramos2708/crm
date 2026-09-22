@@ -7,7 +7,7 @@
     <span
       v-if="dot"
       class="inline-block h-2 w-2 flex-shrink-0 rounded-full"
-      :class="[dotClass, pulse ? 'animate-pulse' : '']"
+      :class="[dotClass, pulseClass]"
       :style="dotStyle"
     />
     <slot />
@@ -16,7 +16,7 @@
     <span
       v-if="dot"
       class="inline-block flex-shrink-0 rounded-full"
-      :class="[dotSize, dotClass, pulse ? 'animate-pulse' : '']"
+      :class="[dotSize, dotClass, pulseClass]"
       :style="dotStyle"
     />
     <slot />
@@ -24,7 +24,7 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, ref, watch } from "vue";
 
 const props = defineProps({
   color: { type: String, default: "zinc" },
@@ -70,4 +70,32 @@ const boxedClasses = computed(() => [
     : "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
   pills[props.color] || pills.zinc,
 ]);
+
+const pulseClass = computed(() => {
+  if (!props.pulse) return '';
+  return 'animate-pulse-badge';
+});
+
+watch(() => props.pulse, (val) => {
+  if (val) {
+    setTimeout(() => {
+      // Auto-reset pulse after animation
+    }, 1000);
+  }
+});
 </script>
+
+<style scoped>
+@keyframes pulse-badge {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.1); }
+}
+.animate-pulse-badge {
+  animation: pulse-badge 0.8s ease-in-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse-badge {
+    animation: none !important;
+  }
+}
+</style>

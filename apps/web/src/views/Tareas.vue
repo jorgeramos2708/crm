@@ -7,20 +7,21 @@
     <Card v-if="cargando && !tareas.length" class="p-6 mb-4"
       ><Skeleton :filas="4"
     /></Card>
-    <div class="flex gap-4 overflow-x-auto pb-8">
-      <Card
+    <div class="grid grid-cols-5 gap-3">
+      <div
         v-for="col in columnas"
         :key="col.estado"
-        class="p-4 min-w-[280px] flex-shrink-0 flex flex-col"
+        class="p-3 rounded-xl flex flex-col"
+        :class="COLOR_COLUMNA[col.estado]"
         style="min-height: 400px"
       >
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="font-medium">{{ col.titulo }}</h3>
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-medium text-sm" :class="COLOR_TEXTO[col.estado]">{{ col.titulo }}</h3>
           <Badge
-            color="zinc"
+            :color="COLOR_BADGE[col.estado]"
             variant="pill"
             :dot="false"
-            class="tabular-nums"
+            class="tabular-nums text-xs"
             >{{ (tareasPorEstado[col.estado] || []).length }}</Badge
           >
         </div>
@@ -32,48 +33,49 @@
           <div
             v-for="t in tareasPorEstado[col.estado] || []"
             :key="t.id"
-            class="p-3 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 cursor-grab"
+            class="p-2.5 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 cursor-grab"
             draggable="true"
             @dragstart="onDragStart(t)"
             @dragend="onDragEnd"
           >
-            <div class="font-medium text-sm">{{ t.titulo }}</div>
+            <div class="font-medium text-xs">{{ t.titulo }}</div>
             <div
               v-if="t.descripcion"
-              class="text-xs text-zinc-500 mt-1 line-clamp-2"
+              class="text-[11px] text-zinc-500 mt-0.5 line-clamp-2"
             >
               {{ t.descripcion }}
             </div>
-            <div class="flex items-center justify-between mt-2">
+            <div class="flex items-center justify-between mt-1.5">
               <Badge
                 :color="colorPrioridad[t.prioridad] || 'zinc'"
                 variant="pill"
                 :dot="false"
+                class="text-[10px]"
                 >{{ t.prioridad }}</Badge
               >
-              <span v-if="t.vencimiento" class="text-[11px] text-zinc-500">{{
+              <span v-if="t.vencimiento" class="text-[10px] text-zinc-500">{{
                 formatFecha(t.vencimiento)
               }}</span>
             </div>
             <div
               v-if="t._vinculo"
-              class="text-[11px] text-zinc-500 mt-1 truncate flex items-center gap-1"
+              class="text-[10px] text-zinc-500 mt-0.5 truncate flex items-center gap-1"
             >
-              <Icon name="vinculo" class="h-3 w-3" /> {{ t._vinculo }}
+              <Icon name="vinculo" class="h-2.5 w-2.5" /> {{ t._vinculo }}
             </div>
-            <div class="flex gap-3 mt-2 text-xs">
-              <Btn variant="link" @click="openModal(t)">Editar</Btn>
-              <Btn variant="link-danger" @click="eliminar(t)">Eliminar</Btn>
+            <div class="flex gap-2 mt-1.5 text-[11px]">
+              <Btn variant="link" size="sm" @click="openModal(t)">Editar</Btn>
+              <Btn variant="link-danger" size="sm" @click="eliminar(t)">Eliminar</Btn>
             </div>
           </div>
           <div
             v-if="!(tareasPorEstado[col.estado] || []).length"
-            class="p-4 text-center text-sm text-zinc-400"
+            class="p-3 text-center text-xs text-zinc-400"
           >
             Arrastra tareas aquí
           </div>
         </div>
-      </Card>
+      </div>
     </div>
 
     <Modal
@@ -104,6 +106,7 @@
             <Select v-model="form.estado" class="w-full">
               <option value="pendiente">Pendiente</option>
               <option value="en_progreso">En progreso</option>
+              <option value="detenida">Detenida</option>
               <option value="completada">Completada</option>
               <option value="cancelada">Cancelada</option>
             </Select>
@@ -169,12 +172,34 @@ import Input from "../components/Input.vue";
 import Select from "../components/Select.vue";
 import Icon from "../components/Icon.vue";
 
-const ESTADOS = ["pendiente", "en_progreso", "completada", "cancelada"];
+const ESTADOS = ["pendiente", "en_progreso", "detenida", "completada", "cancelada"];
 const TITULOS = {
   pendiente: "Pendiente",
   en_progreso: "En progreso",
+  detenida: "Detenida",
   completada: "Completada",
   cancelada: "Cancelada",
+};
+const COLOR_COLUMNA = {
+  pendiente: "bg-amber-50 dark:bg-amber-900/15",
+  en_progreso: "bg-blue-50 dark:bg-blue-900/15",
+  detenida: "bg-red-50 dark:bg-red-900/15",
+  completada: "bg-green-50 dark:bg-green-900/15",
+  cancelada: "bg-zinc-100 dark:bg-zinc-800",
+};
+const COLOR_TEXTO = {
+  pendiente: "text-amber-700 dark:text-amber-300",
+  en_progreso: "text-blue-700 dark:text-blue-300",
+  detenida: "text-red-700 dark:text-red-300",
+  completada: "text-green-700 dark:text-green-300",
+  cancelada: "text-zinc-500 dark:text-zinc-400",
+};
+const COLOR_BADGE = {
+  pendiente: "amber",
+  en_progreso: "blue",
+  detenida: "red",
+  completada: "green",
+  cancelada: "zinc",
 };
 
 const tareas = ref([]);

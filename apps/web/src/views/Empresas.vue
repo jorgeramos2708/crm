@@ -271,22 +271,31 @@ const fetchContactos = async () => {
     toast.error("Error al cargar contactos");
   }
 };
+const adjuntos = ref([]);
 const timeline = ref([]);
 
 const seleccionar = async (e) => {
+  if (selected.value?.id === e.id) {
+    selected.value = null;
+    adjuntos.value = [];
+    timeline.value = [];
+    return;
+  }
   try {
     const { data } = await axios.get(`/api/companies/${e.id}`);
     selected.value = data;
-    const [adj, tl] = await Promise.all([
-      axios.get("/api/archivos", {
+    try {
+      const adj = await axios.get("/api/archivos", {
         params: { entityType: "empresa", entityId: e.id },
-      }),
-      axios.get("/api/timeline", {
+      });
+      adjuntos.value = adj.data || [];
+    } catch { adjuntos.value = []; }
+    try {
+      const tl = await axios.get("/api/timeline", {
         params: { entityType: "empresa", entityId: e.id },
-      }),
-    ]);
-    adjuntos.value = adj.data || [];
-    timeline.value = tl.data || [];
+      });
+      timeline.value = tl.data || [];
+    } catch { timeline.value = []; }
   } catch (e2) {
     console.error(e2);
     toast.error("Error al cargar el detalle");

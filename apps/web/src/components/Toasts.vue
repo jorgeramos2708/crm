@@ -1,13 +1,15 @@
 <template>
-  <div
-    class="pointer-events-none fixed bottom-5 right-5 z-[80] flex w-80 max-w-[calc(100vw-2.5rem)] flex-col gap-2"
-  >
+  <TransitionGroup name="toast" tag="div" class="pointer-events-none fixed bottom-5 right-5 z-[80] flex w-80 max-w-[calc(100vw-2.5rem)] flex-col gap-2">
     <div
       v-for="t in estadoToasts.items.value"
       :key="t.id"
-      class="pointer-events-auto flex items-start gap-2.5 rounded-xl border bg-white px-4 py-3 text-sm shadow-lg dark:bg-zinc-800"
+      class="pointer-events-auto flex items-start gap-2.5 rounded-xl border bg-white px-4 py-3 text-sm shadow-lg dark:bg-zinc-800 relative overflow-hidden"
       :class="borde[t.tipo]"
     >
+      <div
+        class="absolute bottom-0 left-0 h-0.5 bg-current opacity-70"
+        :style="{ width: t.progreso + '%', transition: 'width 0.1s linear' }"
+      />
       <Badge
         :color="colorPorTipo[t.tipo]"
         dot-size="h-2.5 w-2.5"
@@ -15,7 +17,7 @@
       />
       <span class="text-zinc-700 dark:text-zinc-200">{{ t.texto }}</span>
     </div>
-  </div>
+  </TransitionGroup>
 </template>
 
 <script setup>
@@ -33,3 +35,18 @@ const colorPorTipo = {
   info: "zinc",
 };
 </script>
+
+<style scoped>
+.toast-enter-active,
+.toast-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  transform: translateX(120%);
+}
+.toast-move {
+  transition: transform 0.3s ease;
+}
+</style>

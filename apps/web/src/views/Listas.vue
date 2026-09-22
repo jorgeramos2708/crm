@@ -22,11 +22,11 @@
           <span>{{ (lista.members || []).length }} contactos</span>
         </div>
         <div class="flex gap-2">
-          <Btn variant="secondary" class="flex-1" :to="`/listas/${lista.id}`"
+          <Btn variant="secondary" class="flex-1" to="/contactos"
             >Ver contactos</Btn
           >
           <Btn
-            variant="outline"
+            variant="link"
             class="text-zinc-600 dark:text-zinc-400"
             @click="openModal(lista)"
             >Editar</Btn

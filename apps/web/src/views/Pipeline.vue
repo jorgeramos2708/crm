@@ -16,54 +16,48 @@
         <Btn @click="showNewOportunidad = true">+ Nueva Oportunidad</Btn>
       </div>
     </header>
-    <div class="flex gap-4 overflow-x-auto pb-8" style="min-width: 100%">
-      <Card
+    <div class="grid grid-cols-5 gap-3">
+      <div
         v-for="stage in stages"
         :key="stage.id"
-        class="p-4 min-w-[280px] flex-shrink-0 flex flex-col"
+        class="p-3 rounded-xl flex flex-col text-white"
         :style="{
-          borderTop: '3px solid ' + (stage.color || '#3b82f6'),
-          minHeight: '500px',
+          backgroundColor: getStageColor(stage),
+          minHeight: '400px',
         }"
       >
-        <div class="flex items-center justify-between mb-4">
-          <div class="flex items-center gap-2">
-            <Badge :hex="stage.color || '#3b82f6'" dot-size="h-3 w-3" />
-            <h3 class="text-lg font-medium text-zinc-900 dark:text-zinc-400">
-              {{ stage.nombre }}
-            </h3>
-          </div>
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-medium text-sm">{{ stage.nombre }}</h3>
+          <span class="text-xs font-bold">{{ oportunidadesPorStage[stage.id]?.length || 0 }}</span>
         </div>
         <div
-          class="space-y-2 flex-1 overflow-y-auto"
+          class="space-y-1.5 flex-1 overflow-y-auto"
           @dragover.prevent
           @drop="onDrop(stage.id)"
         >
           <div
             v-for="opp in oportunidadesPorStage[stage.id] || []"
             :key="opp.id"
-            class="p-3 rounded-md bg-zinc-50 dark:bg-zinc-700 border border-zinc-200 dark:border-zinc-600 mb-2 cursor-grab"
+            class="p-2 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 cursor-grab text-zinc-900 dark:text-zinc-100 group relative"
             draggable="true"
             @dragstart="onDragStart(opp)"
             @dragend="onDragEnd"
           >
-            <div
-              class="font-medium text-zinc-900 dark:text-zinc-300 truncate max-w-xs"
-            >
-              {{ opp.nombre }}
-            </div>
-            <div class="text-xs text-zinc-500 dark:text-zinc-400">
-              {{ formatCurrency(opp.importe) }}
+            <div class="font-medium text-xs truncate max-w-xs">{{ opp.nombre }}</div>
+            <div class="text-[10px] text-zinc-500">{{ formatCurrency(opp.importe) }}</div>
+            <div v-if="opp.descripcion" class="absolute z-10 bottom-full left-0 mb-2 w-56 p-3 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity pointer-events-none">
+              <p class="font-medium mb-1">{{ opp.nombre }}</p>
+              <p class="opacity-80 text-[11px]">{{ opp.descripcion }}</p>
             </div>
           </div>
           <div
             v-if="(oportunidadesPorStage[stage.id] || []).length === 0"
-            class="p-4 text-center text-zinc-400 dark:text-zinc-600"
+            class="p-3 text-center text-xs text-white/70"
           >
-            <p>No hay oportunidades</p>
+            Sin oportunidades
           </div>
         </div>
-      </Card>
+      </div>
     </div>
 
     <!-- Modal Nueva Oportunidad -->
@@ -156,6 +150,7 @@ const stages = ref([]);
 const oportunidades = ref([]);
 const pipelines = ref([]);
 const cargando = ref(true);
+const alcance = ref("");
 const showNewOportunidad = ref(false);
 const creando = ref(false);
 
@@ -181,7 +176,44 @@ const total = computed(() => oportunidades.value.length);
 
 const draggedOportunidad = ref(null);
 
-const alcance = ref("");
+const stageColorMap = {
+  nuevo: '#3b82f6',
+  calificado: '#f59e0b',
+  propuesta: '#a855f7',
+  negociación: '#ec4899',
+  negociacion: '#ec4899',
+  ganado: '#22c55e',
+  won: '#22c55e',
+  closed: '#22c55e',
+  lost: '#ef4444',
+}
+
+const getStageColor = (stage) => {
+  const name = stage.nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  return stage.color || stageColorMap[name] || '#3b82f6'
+}
+
+const hexToRgb = (hex) => {
+  const h = hex.replace('#', '')
+  return {
+    r: parseInt(h.substring(0, 2), 16),
+    g: parseInt(h.substring(2, 4), 16),
+    b: parseInt(h.substring(4, 6), 16),
+  }
+}
+
+const getStagePastelColor = (stage) => {
+  const hex = getStageColor(stage)
+  const { r, g, b } = hexToRgb(hex)
+  return `rgb(${Math.round(r + (255 - r) * 0.7)}, ${Math.round(g + (255 - g) * 0.7)}, ${Math.round(b + (255 - b) * 0.7)})`
+}
+
+const getStageTextColor = (stage) => {
+  const hex = getStageColor(stage)
+  const { r, g, b } = hexToRgb(hex)
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+  return luminance > 0.6 ? '#374151' : '#ffffff'
+}
 
 const fetchData = async () => {
   try {

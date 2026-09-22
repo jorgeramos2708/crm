@@ -19,11 +19,15 @@
     :aria-disabled="
       tag !== 'button' && (disabled || loading) ? 'true' : undefined
     "
-    :class="classes"
+    :class="[classes, { 'btn-press': !disabled && !loading }]"
+    :style="btnStyle"
+    @mousedown.prevent="pressed = true"
+    @mouseup="pressed = false"
+    @mouseleave="pressed = false"
   >
     <svg
       v-if="loading"
-      class="h-4 w-4 animate-spin"
+      class="h-4 w-4 animate-spin-fast"
       viewBox="0 0 24 24"
       fill="none"
       aria-hidden="true"
@@ -48,7 +52,7 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { RouterLink } from "vue-router";
 
 const props = defineProps({
@@ -66,15 +70,17 @@ const tag = computed(() =>
   props.to ? RouterLink : props.href ? "a" : "button",
 );
 
+const pressed = ref(false);
+
 const variants = {
   primary:
-    "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium hover:opacity-90",
+    "text-white font-medium",
   secondary:
     "bg-zinc-100 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 hover:opacity-90",
   outline:
     "border border-zinc-300 dark:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-700",
   ghost: "hover:bg-zinc-100 dark:hover:bg-zinc-700",
-  link: "text-blue-600 hover:underline",
+  link: "hover:underline",
   "link-danger": "text-red-600 hover:underline",
   danger: "bg-red-600 text-white font-medium hover:bg-red-700",
   "success-soft":
@@ -91,9 +97,10 @@ const sizes = {
 
 const classes = computed(() => {
   const cls = [
-    "inline-flex items-center justify-center gap-2 transition-colors disabled:opacity-50",
+    "inline-flex items-center justify-center gap-2 transition-colors transition-transform disabled:opacity-50",
     variants[props.variant] || variants.primary,
   ];
+  if (props.variant === "primary") cls.push("btn-primary");
   if (props.variant === "ghost") cls.push("rounded-xl p-2");
   else if (!["link", "link-danger"].includes(props.variant))
     cls.push(sizes[props.size] || sizes.md);
@@ -101,4 +108,40 @@ const classes = computed(() => {
     cls.push("pointer-events-none opacity-50");
   return cls;
 });
+
+const btnStyle = computed(() => {
+  if (props.variant === "primary") {
+    return { backgroundColor: "var(--marca, #2563eb)" };
+  }
+  if (props.variant === "link") {
+    return { color: "var(--marca, #2563eb)" };
+  }
+  return {};
+});
 </script>
+
+<style scoped>
+@keyframes spin-fast {
+  to { transform: rotate(360deg); }
+}
+.animate-spin-fast {
+  animation: spin-fast 0.6s linear infinite;
+}
+.btn-press:active {
+  transform: scale(0.96);
+}
+.btn-press:active:not(:disabled):not(.loading) {
+  transition: transform 0.05s ease;
+}
+.btn-primary:not(:disabled):hover {
+  filter: brightness(0.9);
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-spin-fast {
+    animation-duration: 0.01ms;
+  }
+  .btn-press:active {
+    transform: none;
+  }
+}
+</style>

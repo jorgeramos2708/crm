@@ -26,8 +26,8 @@
         color="green"
       />
       <StatCard
-        title="Ponderado"
-        :value="formatCurrency(funnel.ponderadoTotal)"
+        title="Estimado"
+        :value="formatCurrency(funnel.estimadoTotal)"
         icon="M13 10V3L4 14h7v7l9-11h-7z"
         color="purple"
       />
@@ -81,7 +81,7 @@
                 >{{ formatCurrency(e.importe) }} total</Badge
               >
               <Badge color="blue" variant="pill" class="tabular-nums"
-                >{{ formatCurrency(e.ponderado) }} ponderado</Badge
+                >{{ formatCurrency(e.estimado) }} estimado</Badge
               >
             </span>
           </div>
@@ -128,7 +128,7 @@ import GraficaDona from "../components/GraficaDona.vue";
 const funnel = ref({
   total: 0,
   valorTotal: 0,
-  ponderadoTotal: 0,
+  estimadoTotal: 0,
   ticketMedio: 0,
   etapas: [],
 });
