@@ -169,31 +169,33 @@
         </div>
 
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Field label="Descuento">
-            <div class="relative">
-              <input
-                v-model.number="form.descuento"
-                type="number"
-                min="0"
-                max="100"
-                class="w-full pl-3 pr-8 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm"
-              />
-              <span
-                class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-zinc-500"
-                >%</span
-              >
-            </div>
-          </Field>
-          <div>
+          <div class="max-w-[6.5rem]">
+            <Field label="Descuento">
+              <div class="relative">
+                <input
+                  v-model.number="form.descuento"
+                  type="number"
+                  min="0"
+                  max="100"
+                  class="w-full pl-3 pr-8 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm"
+                />
+                <span
+                  class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-zinc-500"
+                  >%</span
+                >
+              </div>
+            </Field>
+          </div>
+          <div class="max-w-[6.5rem]">
             <span class="block text-sm mb-1">Impuesto</span>
             <label
-              class="flex items-center gap-2 h-[38px] px-3 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm cursor-pointer select-none"
+              class="flex items-center gap-2 h-[38px] text-sm cursor-pointer select-none"
               ><input
                 type="checkbox"
                 v-model="form.aplicaIva"
                 class="w-4 h-4"
               />
-              IVA (16%)</label
+              IVA</label
             >
           </div>
           <Field label="Estado">

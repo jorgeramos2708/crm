@@ -13,7 +13,7 @@
         :class="[
           $attrs.class ||
             'w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700',
-          'pr-10',
+          'pr-11',
         ]"
       />
       <button
