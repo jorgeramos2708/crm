@@ -85,15 +85,29 @@
           <Field label="SKU">
             <Input v-model="form.sku" type="text" class="w-full font-mono" />
           </Field>
-          <Field label="Precio" required>
-            <input
-              v-model.number="form.precio"
-              type="number"
-              min="0"
-              required
-              class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700"
-            />
-          </Field>
+          <div>
+            <span class="mb-1 block text-sm"
+              >Precio <span class="text-red-500">*</span></span
+            >
+            <div class="flex items-center gap-3">
+              <input
+                v-model.number="form.precio"
+                type="number"
+                min="0"
+                required
+                class="min-w-0 flex-1 px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700"
+              />
+              <label
+                class="flex shrink-0 items-center gap-1.5 text-sm cursor-pointer"
+                ><input
+                  type="checkbox"
+                  v-model="form.cobraIva"
+                  class="w-4 h-4"
+                />
+                IVA</label
+              >
+            </div>
+          </div>
         </div>
         <Field label="Descripción">
           <Input
@@ -106,10 +120,6 @@
         <label class="flex items-center gap-2 text-sm cursor-pointer"
           ><input type="checkbox" v-model="form.activo" class="w-4 h-4" />
           Activo</label
-        >
-        <label class="flex items-center gap-2 text-sm cursor-pointer"
-          ><input type="checkbox" v-model="form.cobraIva" class="w-4 h-4" />
-          Cobrar IVA (16%)</label
         >
         <div class="flex gap-2 pt-2">
           <Btn

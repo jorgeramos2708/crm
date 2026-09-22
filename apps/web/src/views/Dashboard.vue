@@ -336,13 +336,36 @@ const fetchDashboard = async () => {
 
 const fetchTareas = async () => {
   try {
-    const res = await axios.get("/api/tareas?estado=pendiente&limit=5");
-    tareas.value = res.data.data || [];
+    const res = await axios.get("/api/tareas?estado=pendiente&limit=50");
+    tareas.value = priorizarTareas(res.data.data || []);
   } catch (e) {
     console.error("Error fetching tareas:", e);
   } finally {
     loadingTareas.value = false;
   }
+};
+
+const ORDEN_PRIORIDAD = { urgente: 0, alta: 1, media: 2, baja: 3 };
+
+const porVencimiento = (a, b) => {
+  if (!a.vencimiento && !b.vencimiento) return 0;
+  if (!a.vencimiento) return 1;
+  if (!b.vencimiento) return -1;
+  return new Date(a.vencimiento) - new Date(b.vencimiento);
+};
+
+const priorizarTareas = (lista) => {
+  const ordenadas = [...lista].sort((a, b) => {
+    const pa = ORDEN_PRIORIDAD[a.prioridad] ?? 9;
+    const pb = ORDEN_PRIORIDAD[b.prioridad] ?? 9;
+    return pa !== pb ? pa - pb : porVencimiento(a, b);
+  });
+  const altas = ordenadas.filter(
+    (t) => t.prioridad === "urgente" || t.prioridad === "alta",
+  );
+  if (altas.length) return altas.slice(0, 5);
+  const mejor = ordenadas[0]?.prioridad;
+  return ordenadas.filter((t) => t.prioridad === mejor).slice(0, 5);
 };
 
 const fetchActividad = async () => {

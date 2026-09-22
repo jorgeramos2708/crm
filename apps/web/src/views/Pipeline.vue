@@ -2,7 +2,6 @@
   <div class="min-h-screen bg-zinc-50 dark:bg-zinc-900 p-6">
     <header class="mb-6 flex items-end justify-between flex-wrap gap-3">
       <div class="flex items-center gap-3">
-        <p class="text-sm text-zinc-500">{{ total }} oportunidades</p>
         <Select v-model="alcance" @change="fetchData">
           <option value="">Todas</option>
           <option value="mio">Mías</option>
@@ -92,7 +91,7 @@
         </Field>
         <div>
           <label class="block text-sm mb-1">Importe</label>
-          <div class="flex gap-2">
+          <div class="flex items-center gap-3">
             <input
               v-model.number="nuevaOportunidad.importe"
               type="number"
@@ -100,27 +99,16 @@
               class="flex-1 min-w-0 px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm focus-ring"
               @focus="onImporteFocus"
             />
-            <button
-              type="button"
-              class="shrink-0 px-3 py-2 rounded-lg border text-sm font-medium transition-colors"
-              :class="
-                nuevaOportunidad.ivaIncluido
-                  ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300'
-                  : 'border-zinc-300 text-zinc-500 hover:bg-zinc-50 dark:border-zinc-600 dark:hover:bg-zinc-700'
-              "
-              :aria-pressed="nuevaOportunidad.ivaIncluido"
-              @click="nuevaOportunidad.ivaIncluido = !nuevaOportunidad.ivaIncluido"
+            <label
+              class="flex shrink-0 items-center gap-1.5 text-sm cursor-pointer"
+              ><input
+                type="checkbox"
+                v-model="nuevaOportunidad.ivaIncluido"
+                class="w-4 h-4"
+              />
+              IVA</label
             >
-              IVA 16%
-            </button>
           </div>
-          <p class="mt-1 text-xs text-zinc-500">
-            {{
-              nuevaOportunidad.ivaIncluido
-                ? "IVA 16% incluido en el importe"
-                : "IVA no incluido"
-            }}
-          </p>
         </div>
         <Field label="Descripción">
           <Input
@@ -203,8 +191,6 @@ const oportunidadesPorStage = computed(() => {
   });
   return grouped;
 });
-
-const total = computed(() => oportunidades.value.length);
 
 const draggedOportunidad = ref(null);
 
