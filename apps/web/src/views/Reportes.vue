@@ -44,18 +44,20 @@
         <h2 class="text-lg font-semibold mb-3">Importe por mes</h2>
         <GraficaBarras :datos="mensual" color="#3b82f6" />
       </Card>
-      <Card class="p-6 lg:col-span-2">
+      <Card class="p-6 lg:col-span-2 flex flex-col">
         <h2 class="text-lg font-semibold mb-3">Reparto por etapa</h2>
-        <GraficaDona
-          :datos="
-            (funnel.etapas || []).map((e) => ({
-              etiqueta: e.nombre,
-              count: e.count,
-              color: e.color || '#3b82f6',
-            }))
-          "
-          centro="Negocios"
-        />
+        <div class="flex-1 flex items-center justify-center">
+          <GraficaDona
+            :datos="
+              (funnel.etapas || []).map((e) => ({
+                etiqueta: e.nombre,
+                count: e.count,
+                color: e.color || '#3b82f6',
+              }))
+            "
+            centro="Negocios"
+          />
+        </div>
       </Card>
     </div>
 
