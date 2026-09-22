@@ -71,8 +71,8 @@
           {{ editing ? `Editar ${editing.folio}` : "Nuevo Presupuesto" }}
         </h2>
       </template>
-      <form @submit.prevent="guardar" class="space-y-4">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <form @submit.prevent="guardar" class="space-y-5">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Field label="Oportunidad">
             <Select v-model="form.oportunidadId" class="w-full">
               <option value="">—</option>
@@ -100,9 +100,9 @@
         </div>
 
         <div>
-          <div class="flex items-center justify-between mb-2">
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-2">
             <label class="block text-sm font-medium">Conceptos</label>
-            <div class="flex gap-2">
+            <div class="flex flex-wrap gap-2">
               <Select v-model="prodSel" size="sm">
                 <option value="">Del catálogo...</option>
                 <option v-for="p in productos" :key="p.id" :value="p.id">
@@ -168,7 +168,7 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Field label="Descuento">
             <div class="relative">
               <input
@@ -185,13 +185,16 @@
             </div>
           </Field>
           <div>
-            <label class="block text-sm mb-1">Impuestos (16% fijo)</label>
-            <input
-              :value="16"
-              type="number"
-              disabled
-              class="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-900/50 text-sm text-zinc-500"
-            />
+            <span class="block text-sm mb-1">Impuesto</span>
+            <label
+              class="flex items-center gap-2 h-[38px] px-3 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm cursor-pointer select-none"
+              ><input
+                type="checkbox"
+                v-model="form.aplicaIva"
+                class="w-4 h-4"
+              />
+              IVA (16%)</label
+            >
           </div>
           <Field label="Estado">
             <Select v-model="form.estado" class="w-full">
@@ -222,7 +225,7 @@
           <div v-if="descPct" class="text-zinc-500">
             Descuento ({{ descPct }}%): −{{ formatCurrency(descMonto) }}
           </div>
-          <div class="text-zinc-500">
+          <div v-if="form.aplicaIva" class="text-zinc-500">
             IVA (16%): {{ formatCurrency(ivaMonto) }}
           </div>
           <div class="text-lg font-bold">
@@ -230,7 +233,7 @@
           </div>
         </div>
 
-        <div class="flex gap-2 pt-2">
+        <div class="flex gap-3 pt-2">
           <Btn
             type="button"
             variant="outline"
@@ -381,7 +384,7 @@ const form = ref({
   empresaId: "",
   items: [],
   descuento: 0,
-  impuestos: 0,
+  aplicaIva: false,
   estado: "borrador",
   validez: "",
   notas: "",
@@ -398,7 +401,9 @@ const descPct = computed(() =>
 );
 const descMonto = computed(() => (subtotalCalc.value * descPct.value) / 100);
 const ivaMonto = computed(() =>
-  Math.round((subtotalCalc.value - descMonto.value) * 0.16),
+  form.value.aplicaIva
+    ? Math.round((subtotalCalc.value - descMonto.value) * 0.16)
+    : 0,
 );
 const totalCalc = computed(() =>
   Math.max(
@@ -455,7 +460,7 @@ const openModal = (p) => {
         empresaId: p.empresaId || "",
         items: JSON.parse(JSON.stringify(p.items || [])),
         descuento: p.descuento,
-        impuestos: p.impuestos,
+        aplicaIva: p.aplicaIva ?? (p.impuestos > 0),
         estado: p.estado,
         validez: p.validez ? p.validez.slice(0, 10) : "",
         notas: p.notas || "",
@@ -466,7 +471,7 @@ const openModal = (p) => {
         empresaId: "",
         items: [],
         descuento: 0,
-        impuestos: 0,
+        aplicaIva: false,
         estado: "borrador",
         validez: "",
         notas: "",

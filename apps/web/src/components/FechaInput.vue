@@ -1,7 +1,8 @@
 <template>
-  <div class="relative">
+  <div ref="raizRef" class="relative">
     <div class="relative">
       <input
+        ref="inputRef"
         :value="texto"
         @input="onInput($event.target.value)"
         @focus="openCalendar"
@@ -38,11 +39,13 @@
       </button>
     </div>
 
-    <div
-      v-if="abierto"
-      ref="calendarioRef"
-      class="absolute z-30 mt-1 w-64 rounded-xl border border-zinc-200 bg-white p-3 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
-    >
+    <Teleport to="body">
+      <div
+        v-if="abierto"
+        ref="calendarioRef"
+        class="fixed z-[60] w-72 rounded-xl border border-zinc-200 bg-white p-3 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
+        :style="posStyle"
+      >
       <div class="mb-2 flex items-center justify-between">
         <button
           type="button"
@@ -133,7 +136,8 @@
           Limpiar
         </button>
       </div>
-    </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -166,6 +170,9 @@ const DIAS = ["lu", "ma", "mi", "ju", "vi", "sá", "do"];
 
 const abierto = ref(false);
 const calendarioRef = ref(null);
+const inputRef = ref(null);
+const raizRef = ref(null);
+const posStyle = ref({});
 const ahora = new Date();
 const vistaMes = ref(ahora.getMonth());
 const vistaAnio = ref(ahora.getFullYear());
@@ -270,6 +277,23 @@ const celdas = computed(() => {
   return lista;
 });
 
+const posicionar = () => {
+  const el = inputRef.value;
+  if (!el) return;
+  const r = el.getBoundingClientRect();
+  const calW = 288;
+  const calH = 340;
+  const margin = 8;
+  let left = r.left;
+  if (left + calW > window.innerWidth - margin)
+    left = Math.max(margin, r.right - calW);
+  if (left < margin) left = margin;
+  let top = r.bottom + 4;
+  if (top + calH > window.innerHeight - margin)
+    top = Math.max(margin, r.top - calH - 4);
+  posStyle.value = { left: `${left}px`, top: `${top}px` };
+};
+
 const abrir = () => {
   abierto.value = true;
   if (props.modelValue) {
@@ -285,6 +309,7 @@ const abrir = () => {
     vistaMes.value = h.getMonth();
     vistaAnio.value = h.getFullYear();
   }
+  posicionar();
 };
 
 const toggleCalendar = () => {
@@ -342,10 +367,9 @@ const mesSiguiente = () => {
 
 const onClickFuera = (e) => {
   if (!abierto.value) return;
-  const el = calendarioRef.value;
-  if (el && !el.contains(e.target) && e.target.tagName !== "INPUT") {
-    cerrar();
-  }
+  const enRaiz = raizRef.value && raizRef.value.contains(e.target);
+  const enCal = calendarioRef.value && calendarioRef.value.contains(e.target);
+  if (!enRaiz && !enCal) cerrar();
 };
 
 onMounted(() => document.addEventListener("mousedown", onClickFuera));

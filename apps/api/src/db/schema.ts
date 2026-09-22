@@ -583,6 +583,7 @@ export const presupuestos = pgTable(
     subtotal: integer("subtotal").notNull().default(0),
     descuento: integer("descuento").notNull().default(0),
     impuestos: integer("impuestos").notNull().default(0),
+    aplicaIva: boolean("aplica_iva").notNull().default(false),
     total: integer("total").notNull().default(0),
     estado: varchar("estado", { length: 20 }).notNull().default("borrador"),
     validez: timestamp("validez", { withTimezone: true }),

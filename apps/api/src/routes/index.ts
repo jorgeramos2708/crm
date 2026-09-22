@@ -2505,7 +2505,11 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       "vencido",
     ];
     const IVA = 0.16;
-    function totalesPresupuesto(items: any[], descuentoPct = 0) {
+    function totalesPresupuesto(
+      items: any[],
+      descuentoPct = 0,
+      aplicaIva = false,
+    ) {
       const subtotal = (items || []).reduce(
         (a, it) =>
           a +
@@ -2515,7 +2519,9 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       );
       const pct = Math.min(100, Math.max(0, Number(descuentoPct) || 0));
       const descMonto = (subtotal * pct) / 100;
-      const impuestos = Math.round((subtotal - descMonto) * IVA);
+      const impuestos = aplicaIva
+        ? Math.round((subtotal - descMonto) * IVA)
+        : 0;
       const total = Math.max(0, Math.round(subtotal - descMonto + impuestos));
       return {
         subtotal: Math.round(subtotal),
@@ -2599,6 +2605,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         }>;
         descuento?: number;
         impuestos?: number;
+        aplicaIva?: boolean;
         estado?: string;
         validez?: string;
         notas?: string;
@@ -2614,7 +2621,11 @@ export async function registerAuthRoutes(app: FastifyInstance) {
           error: `estado debe ser uno de: ${PRESUPUESTO_ESTADOS.join(", ")}`,
         });
       }
-      const calc = totalesPresupuesto(items, body.descuento);
+      const calc = totalesPresupuesto(
+        items,
+        body.descuento,
+        body.aplicaIva ?? false,
+      );
       const year = new Date().getFullYear();
       const [{ total: existentes }] = await db
         .select({ total: count() })
@@ -2631,6 +2642,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
           subtotal: calc.subtotal,
           descuento: calc.descuentoPct,
           impuestos: calc.impuestos,
+          aplicaIva: body.aplicaIva ?? false,
           total: calc.total,
           estado: body.estado || "borrador",
           validez: body.validez ? new Date(body.validez) : null,
@@ -2663,9 +2675,14 @@ export async function registerAuthRoutes(app: FastifyInstance) {
               productoId: it.productoId || null,
             }))
           : (current.items as any[]);
+      const aplicaIva =
+        raw.aplicaIva !== undefined
+          ? Boolean(raw.aplicaIva)
+          : Boolean(current.aplicaIva);
       const calc = totalesPresupuesto(
         items,
         raw.descuento !== undefined ? raw.descuento : current.descuento,
+        aplicaIva,
       );
       const [p] = await db
         .update(presupuestos)
@@ -2676,6 +2693,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
           total: calc.total,
           descuento: calc.descuentoPct,
           impuestos: calc.impuestos,
+          aplicaIva,
           validez:
             raw.validez !== undefined
               ? raw.validez

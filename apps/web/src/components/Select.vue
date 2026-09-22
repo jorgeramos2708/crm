@@ -60,6 +60,7 @@ const hexStyle = computed(() => {
          disabled:opacity-50
          dark:border-zinc-600 dark:bg-zinc-700
          appearance-none pr-10
+         w-full
          transition-all duration-200 ease-out;
 }
 .select-field:focus {
@@ -73,14 +74,16 @@ const hexStyle = computed(() => {
   @apply border-red-500 ring-2 ring-red-500/20;
 }
 .select-arrow {
-  @apply absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none;
+  @apply absolute right-3 text-zinc-400 pointer-events-none;
+  top: 50%;
+  transform: translateY(-50%);
 }
 .animate-drop-in {
   animation: dropIn 0.2s ease-out;
 }
 @keyframes dropIn {
-  from { opacity: 0; transform: translateY(-4px) rotate(-90deg); }
-  to { opacity: 1; transform: translateY(0) rotate(0); }
+  from { opacity: 0; transform: translateY(calc(-50% - 4px)) rotate(-90deg); }
+  to { opacity: 1; transform: translateY(-50%) rotate(0); }
 }
 @media (prefers-reduced-motion: reduce) {
   .animate-drop-in {
