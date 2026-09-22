@@ -127,7 +127,9 @@ services:
       context: ./apps/web
       dockerfile: Dockerfile.vue
       args:
-        VITE_API_URL: http://localhost:3001
+        # Vacío: axios usa URLs relativas y nginx proxy /api -> crm-api:3001.
+        # No poner http://localhost:3001 (bloqueado por CSP del navegador).
+        VITE_API_URL: ""
     container_name: crm-web
     ports:
       - "8081:80"

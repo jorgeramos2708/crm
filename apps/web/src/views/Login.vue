@@ -6,7 +6,6 @@
         v-if="fondoFoto"
         :src="fondoFoto"
         alt=""
-        @error="sinFoto = true"
         class="h-full w-full scale-105 object-cover opacity-70 blur-[6px]"
       />
       <template v-if="!fondoFoto && !fondoSolido">
@@ -109,7 +108,8 @@ import { marca, loadMarca } from '../utils/marca'
 
 const fondoFoto = computed(() => {
   if (marca.value.fondo && marca.value.fondo.startsWith('data:')) return marca.value.fondo
-  return sinFoto.value ? '' : '/fondo-oficina.jpg'
+  // Sin imagen por defecto: no existe /fondo-oficina.jpg; se usa la malla cálida del template
+  return ''
 })
 const fondoSolido = computed(() => {
   const f = marca.value.fondo || ''
@@ -125,7 +125,6 @@ const password = ref('')
 const verPassword = ref(false)
 const loading = ref(false)
 const error = ref(null)
-const sinFoto = ref(false)
 
 const ERRORES_SSO = {
   sso_cancelado: 'Cancelaste el inicio de sesión.',
