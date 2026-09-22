@@ -13,6 +13,7 @@
         'sm:px-2 sm:py-1 sm:text-xs': size === 'sm',
         'px-3 py-2 text-sm': size !== 'sm',
       }"
+      :style="hexStyle"
       @focus="focused = true"
       @blur="focused = false"
     >
@@ -27,17 +28,27 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
-defineProps({
+const model = defineModel();
+const focused = ref(false);
+
+const props = defineProps({
   size: { type: String, default: "md" },
   required: { type: Boolean, default: false },
   disabled: { type: Boolean, default: false },
   error: { type: Boolean, default: false },
+  hex: { type: String, default: "" },
 });
 
-const model = defineModel();
-const focused = ref(false);
+const hexStyle = computed(() => {
+  if (!props.hex) return undefined;
+  return {
+    borderColor: props.hex,
+    backgroundColor: `color-mix(in srgb, ${props.hex} 18%, transparent)`,
+    color: props.hex,
+  };
+});
 </script>
 
 <style scoped>

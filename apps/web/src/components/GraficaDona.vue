@@ -33,7 +33,6 @@
       <li v-for="s in segmentos" :key="s.etiqueta" class="flex items-center gap-2">
         <span class="h-2.5 w-2.5 flex-shrink-0 rounded-full" :style="{ backgroundColor: s.color }"></span>
         <span class="min-w-0 flex-1 truncate">{{ s.etiqueta }}</span>
-        <span class="tabular-nums text-zinc-500">{{ s.count }} · {{ s.pct }}%</span>
       </li>
       <li v-if="!segmentos.length" class="text-sm text-zinc-500">Sin datos.</li>
     </ul>

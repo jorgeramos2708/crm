@@ -43,6 +43,7 @@
           <td class="px-6 py-4">
             <Select
               :modelValue="o.stageId"
+              :hex="stageHex(o.stageId)"
               @change="cambiarEtapa(o, $event.target.value)"
               size="sm"
             >
@@ -85,7 +86,7 @@
           <Input v-model="form.nombre" type="text" required class="w-full" />
         </Field>
         <Field label="Etapa">
-          <Select v-model="form.stageId" required class="w-full">
+          <Select v-model="form.stageId" :hex="stageHex(form.stageId)" required class="w-full">
             <option v-for="s in stages" :key="s.id" :value="s.id">{{ s.nombre }}</option>
           </Select>
         </Field>
@@ -133,6 +134,9 @@ const cargando = ref(true);
 const showModal = ref(false);
 const editing = ref(null);
 const form = ref({ nombre: "", stageId: "", importe: 0, probabilidad: 50, descripcion: "" });
+
+const stageHex = (stageId) =>
+  stages.value.find((s) => s.id === stageId)?.color || "";
 
 const fetchNegocios = async () => {
   cargando.value = true;
