@@ -31,7 +31,7 @@
     
 
     <Card class="overflow-hidden">
-      <Table :cols="['20%', '20%', '15%', '20%', '15%', '10%']">
+      <Table :cols="['18%', '18%', '13%', '18%', '15%', '18%']">
         <template #head>
           <tr>
             <Th>Nombre</Th>
@@ -62,7 +62,7 @@
           <Td>
             {{ contacto.cargo || "-" }}
           </Td>
-          <Td align="right" class="font-medium">
+          <Td align="right" class="font-medium whitespace-nowrap">
             <Btn variant="link" class="mr-3" @click="openModal(contacto)"
               >Editar</Btn
             >

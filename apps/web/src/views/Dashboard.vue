@@ -24,12 +24,7 @@
         </Card>
 
         <Card class="px-5 py-4">
-          <div class="mb-2 flex items-center justify-between">
-            <p class="text-sm font-medium text-zinc-500">Eventos próximos</p>
-            <router-link to="/calendario" class="text-xs hover:underline" style="color: var(--marca, #2563eb)">
-              Calendario
-            </router-link>
-          </div>
+          <p class="mb-2 text-sm font-medium text-zinc-500">Eventos próximos</p>
           <div v-if="loadingCalendario" class="py-1">
             <Skeleton :filas="2" />
           </div>
@@ -53,6 +48,11 @@
               </component>
             </li>
           </ul>
+          <div class="mt-3 flex justify-center">
+            <router-link to="/calendario" class="text-xs hover:underline" style="color: var(--marca, #2563eb)">
+              Ver calendario
+            </router-link>
+          </div>
         </Card>
       </div>
 

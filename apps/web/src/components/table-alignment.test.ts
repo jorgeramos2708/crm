@@ -119,7 +119,7 @@ describe("Blindado: número de columnas por tabla", () => {
     },
     {
       archivo: "Contactos",
-      cols: ["20%", "20%", "15%", "20%", "15%", "10%"],
+      cols: ["18%", "18%", "13%", "18%", "15%", "18%"],
       headers: ["Nombre", "Email", "Teléfono", "Empresa", "Cargo"],
     },
     {
