@@ -41,10 +41,7 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-4">
       <Card class="p-6 lg:col-span-3">
-        <h2 class="text-lg font-semibold">Importe por mes</h2>
-        <p class="text-xs text-zinc-500 mb-3">
-          Últimos 8 meses · el número es cantidad de negocios
-        </p>
+        <h2 class="text-lg font-semibold mb-3">Importe por mes</h2>
         <GraficaBarras :datos="mensual" color="#3b82f6" />
       </Card>
       <Card class="p-6 lg:col-span-2">
