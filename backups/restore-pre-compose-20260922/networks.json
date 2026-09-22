@@ -1,0 +1,149 @@
+[
+    {
+        "Name": "crm-network",
+        "Id": "985d4a169dc06495e7dbc1e2706c691eb23da29807ea0f961d1cd965ed36c53c",
+        "Created": "2026-09-21T20:44:14.903763614Z",
+        "Scope": "local",
+        "Driver": "bridge",
+        "EnableIPv4": true,
+        "EnableIPv6": false,
+        "IPAM": {
+            "Driver": "default",
+            "Options": {},
+            "Config": [
+                {
+                    "Subnet": "172.22.0.0/16",
+                    "Gateway": "172.22.0.1"
+                }
+            ]
+        },
+        "Internal": false,
+        "Attachable": false,
+        "Ingress": false,
+        "ConfigFrom": {
+            "Network": ""
+        },
+        "ConfigOnly": false,
+        "Options": {
+            "com.docker.network.enable_ipv4": "true",
+            "com.docker.network.enable_ipv6": "false"
+        },
+        "Labels": {},
+        "Containers": {
+            "0a279c4c3ec44a8a942e61b6e7000f41334828e5a5217cd33cdda7d8f926172e": {
+                "Name": "crm-web",
+                "EndpointID": "83324b3bd1364efece369fb37516f984f358f43716b0a098ae9cf210559199e7",
+                "MacAddress": "b6:c5:04:24:5b:24",
+                "IPv4Address": "172.22.0.5/16",
+                "IPv6Address": ""
+            },
+            "202cbd5dd83e80fff286d9834c976816d00b2b98bc291ed08c254618ead492a7": {
+                "Name": "crm-postgres",
+                "EndpointID": "dd7bf55056c66cd3b11aaa9fa06ecf7de4de0051d1f506443dfe54a61bb4d934",
+                "MacAddress": "9e:7c:72:4f:1b:92",
+                "IPv4Address": "172.22.0.2/16",
+                "IPv6Address": ""
+            },
+            "81bc552cc8fb1e7ab63e594fab7fd6d4cc79eeb8e2aa8ad039a337c7fedadf8f": {
+                "Name": "crm-api",
+                "EndpointID": "9a6afd5f206c070126e5fcb5f5a39bf8b3f6ba3bb74dbe9a77ff3fd5f45a5232",
+                "MacAddress": "de:9e:a2:92:04:1a",
+                "IPv4Address": "172.22.0.4/16",
+                "IPv6Address": ""
+            },
+            "b2c254f8b70725b1cdf25b0dc4974d1fc8ffe08e2308201793ae547094665c12": {
+                "Name": "crm-redis",
+                "EndpointID": "4ada9200e94e5100c95e4adc5ef429e54c15e64ff5286066acca4a177798603a",
+                "MacAddress": "86:ad:03:ff:01:32",
+                "IPv4Address": "172.22.0.3/16",
+                "IPv6Address": ""
+            }
+        },
+        "Status": {
+            "IPAM": {
+                "Subnets": {
+                    "172.22.0.0/16": {
+                        "IPsInUse": 7,
+                        "DynamicIPsAvailable": 65529
+                    }
+                }
+            }
+        }
+    },
+    {
+        "Name": "crm_default",
+        "Id": "73b544985c2258f080897ee0f33ac5afa522cfd93d6f1df61b352209ffafad38",
+        "Created": "2026-09-18T01:10:40.097565641Z",
+        "Scope": "local",
+        "Driver": "bridge",
+        "EnableIPv4": true,
+        "EnableIPv6": false,
+        "IPAM": {
+            "Driver": "default",
+            "Options": null,
+            "Config": [
+                {
+                    "Subnet": "172.21.0.0/16",
+                    "Gateway": "172.21.0.1"
+                }
+            ]
+        },
+        "Internal": false,
+        "Attachable": false,
+        "Ingress": false,
+        "ConfigFrom": {
+            "Network": ""
+        },
+        "ConfigOnly": false,
+        "Options": {
+            "com.docker.network.enable_ipv4": "true",
+            "com.docker.network.enable_ipv6": "false"
+        },
+        "Labels": {
+            "com.docker.compose.config-hash": "2f7899d8c0ad17cdfc01ec6f6540d47d5ea76d2704036e77c52af1c21f68cb4f",
+            "com.docker.compose.network": "default",
+            "com.docker.compose.project": "crm",
+            "com.docker.compose.version": "5.3.1"
+        },
+        "Containers": {
+            "017b58c4c67d8c2841c04c7520a404b76d4bed235a1dc82aff90b90570915ac5": {
+                "Name": "crm-minio",
+                "EndpointID": "11f6dc520207fe2afbab380106604af2d5fc445297050cdadbeafdbfb0caef32",
+                "MacAddress": "0a:81:72:5b:ed:1b",
+                "IPv4Address": "172.21.0.3/16",
+                "IPv6Address": ""
+            },
+            "202cbd5dd83e80fff286d9834c976816d00b2b98bc291ed08c254618ead492a7": {
+                "Name": "crm-postgres",
+                "EndpointID": "b37ca0f77a717c7068a5fffe374e22e34b4c6b517e4d31a449be05168c6cea0b",
+                "MacAddress": "06:e4:1d:f0:74:6a",
+                "IPv4Address": "172.21.0.5/16",
+                "IPv6Address": ""
+            },
+            "6b8a37084649892b2245c318dd73c4205bbec7da624d7153a28e394afdb6abd1": {
+                "Name": "crm-worker",
+                "EndpointID": "f9144e478455cbd808d5d3202af330f1b45cc970cdcc7056bad36cbf0cef7c73",
+                "MacAddress": "e6:8e:6e:d0:65:91",
+                "IPv4Address": "172.21.0.2/16",
+                "IPv6Address": ""
+            },
+            "b2c254f8b70725b1cdf25b0dc4974d1fc8ffe08e2308201793ae547094665c12": {
+                "Name": "crm-redis",
+                "EndpointID": "2f5861b7e65a7a78bc9681d4e32734261de47060eeb7fa9ed2a3c856e0fb3999",
+                "MacAddress": "a2:df:69:66:c6:71",
+                "IPv4Address": "172.21.0.4/16",
+                "IPv6Address": ""
+            }
+        },
+        "Status": {
+            "IPAM": {
+                "Subnets": {
+                    "172.21.0.0/16": {
+                        "IPsInUse": 7,
+                        "DynamicIPsAvailable": 65529
+                    }
+                }
+            }
+        }
+    }
+]

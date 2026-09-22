@@ -1,0 +1,348 @@
+[
+    {
+        "Id": "017b58c4c67d8c2841c04c7520a404b76d4bed235a1dc82aff90b90570915ac5",
+        "Created": "2026-09-18T01:42:42.826045299Z",
+        "Path": "/usr/bin/docker-entrypoint.sh",
+        "Args": [
+            "server",
+            "/data",
+            "--console-address",
+            ":9001"
+        ],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 861,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2026-09-22T15:15:56.340741158Z",
+            "FinishedAt": "2026-09-22T15:15:47.036766237Z",
+            "Health": {
+                "Status": "healthy",
+                "FailingStreak": 0,
+                "Log": [
+                    {
+                        "Start": "2026-09-22T16:56:53.381862489Z",
+                        "End": "2026-09-22T16:56:53.592874194Z",
+                        "ExitCode": 0,
+                        "Output": "The cluster 'local' is ready\n"
+                    },
+                    {
+                        "Start": "2026-09-22T16:56:58.594454688Z",
+                        "End": "2026-09-22T16:56:58.784748062Z",
+                        "ExitCode": 0,
+                        "Output": "The cluster 'local' is ready\n"
+                    },
+                    {
+                        "Start": "2026-09-22T16:57:03.793074576Z",
+                        "End": "2026-09-22T16:57:03.967398476Z",
+                        "ExitCode": 0,
+                        "Output": "The cluster 'local' is ready\n"
+                    },
+                    {
+                        "Start": "2026-09-22T16:57:08.979229539Z",
+                        "End": "2026-09-22T16:57:09.175710954Z",
+                        "ExitCode": 0,
+                        "Output": "The cluster 'local' is ready\n"
+                    },
+                    {
+                        "Start": "2026-09-22T16:57:13.147396817Z",
+                        "End": "2026-09-22T16:57:13.332426794Z",
+                        "ExitCode": 0,
+                        "Output": "The cluster 'local' is ready\n"
+                    }
+                ]
+            }
+        },
+        "Image": "sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e",
+        "ResolvConfPath": "/var/lib/docker/containers/017b58c4c67d8c2841c04c7520a404b76d4bed235a1dc82aff90b90570915ac5/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/017b58c4c67d8c2841c04c7520a404b76d4bed235a1dc82aff90b90570915ac5/hostname",
+        "HostsPath": "/var/lib/docker/containers/017b58c4c67d8c2841c04c7520a404b76d4bed235a1dc82aff90b90570915ac5/hosts",
+        "LogPath": "/var/lib/docker/containers/017b58c4c67d8c2841c04c7520a404b76d4bed235a1dc82aff90b90570915ac5/017b58c4c67d8c2841c04c7520a404b76d4bed235a1dc82aff90b90570915ac5-json.log",
+        "Name": "/crm-minio",
+        "RestartCount": 0,
+        "Driver": "overlayfs",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": [
+                "crm_minio_data:/data:rw"
+            ],
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "crm_default",
+            "PortBindings": {
+                "9000/tcp": [
+                    {
+                        "HostIp": "",
+                        "HostPort": "9000"
+                    }
+                ],
+                "9001/tcp": [
+                    {
+                        "HostIp": "",
+                        "HostPort": "9001"
+                    }
+                ]
+            },
+            "RestartPolicy": {
+                "Name": "unless-stopped",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "CapAdd": null,
+            "CapDrop": null,
+            "CgroupnsMode": "private",
+            "Dns": [],
+            "DnsOptions": [],
+            "DnsSearch": [],
+            "ExtraHosts": [],
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": null,
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 0,
+            "NanoCpus": 0,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": null,
+            "BlkioDeviceReadBps": null,
+            "BlkioDeviceWriteBps": null,
+            "BlkioDeviceReadIOps": null,
+            "BlkioDeviceWriteIOps": null,
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": null,
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "MemoryReservation": 0,
+            "MemorySwap": 0,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": null,
+            "Ulimits": null,
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "MaskedPaths": [
+                "/proc/acpi",
+                "/proc/asound",
+                "/proc/interrupts",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/sys/devices/virtual/powercap",
+                "/sys/firmware"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "Storage": {
+            "RootFS": {
+                "Snapshot": {
+                    "Name": "overlayfs"
+                }
+            }
+        },
+        "Mounts": [
+            {
+                "Type": "volume",
+                "Name": "crm_minio_data",
+                "Source": "/var/lib/docker/volumes/crm_minio_data/_data",
+                "Destination": "/data",
+                "Driver": "local",
+                "Mode": "rw",
+                "RW": true,
+                "Propagation": ""
+            }
+        ],
+        "Config": {
+            "Hostname": "017b58c4c67d",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": true,
+            "AttachStderr": true,
+            "ExposedPorts": {
+                "9000/tcp": {},
+                "9001/tcp": {}
+            },
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "MINIO_ROOT_USER=crm",
+                "MINIO_ROOT_PASSWORD=crm_dev_password",
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "MINIO_ACCESS_KEY_FILE=access_key",
+                "MINIO_SECRET_KEY_FILE=secret_key",
+                "MINIO_ROOT_USER_FILE=access_key",
+                "MINIO_ROOT_PASSWORD_FILE=secret_key",
+                "MINIO_KMS_SECRET_KEY_FILE=kms_master_key",
+                "MINIO_UPDATE_MINISIGN_PUBKEY=RWTx5Zr1tiHQLwG9keckT0c45M3AGeHD6IvimQHpyRywVWGbP1aVSGav",
+                "MINIO_CONFIG_ENV_FILE=config.env",
+                "MC_CONFIG_DIR=/tmp/.mc"
+            ],
+            "Cmd": [
+                "server",
+                "/data",
+                "--console-address",
+                ":9001"
+            ],
+            "Healthcheck": {
+                "Test": [
+                    "CMD",
+                    "mc",
+                    "ready",
+                    "local"
+                ],
+                "Interval": 5000000000,
+                "Timeout": 5000000000,
+                "Retries": 10
+            },
+            "Image": "quay.io/minio/minio:latest",
+            "Volumes": {
+                "/data": {}
+            },
+            "WorkingDir": "/",
+            "Entrypoint": [
+                "/usr/bin/docker-entrypoint.sh"
+            ],
+            "Labels": {
+                "architecture": "x86_64",
+                "build-date": "2025-08-06T08:12:37",
+                "com.docker.compose.config-hash": "d2bd94eeeb7dd8a81c6a5ff1b6507fa598ef93f1cc525f48d3b975b510e999c1",
+                "com.docker.compose.container-number": "1",
+                "com.docker.compose.depends_on": "",
+                "com.docker.compose.image": "sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e",
+                "com.docker.compose.oneoff": "False",
+                "com.docker.compose.project": "crm",
+                "com.docker.compose.project.config_files": "C:\\Proyectos-IA\\crm\\docker-compose.yml",
+                "com.docker.compose.project.working_dir": "C:\\Proyectos-IA\\crm",
+                "com.docker.compose.replace": "crm-minio",
+                "com.docker.compose.service": "minio",
+                "com.docker.compose.version": "5.3.1",
+                "com.redhat.component": "ubi9-micro-container",
+                "com.redhat.license_terms": "https://www.redhat.com/en/about/red-hat-end-user-license-agreements#UBI",
+                "description": "MinIO object storage is fundamentally different. Designed for performance and the S3 API, it is 100% open-source. MinIO is ideal for large, private cloud environments with stringent security requirements and delivers mission-critical availability across a diverse range of workloads.",
+                "distribution-scope": "public",
+                "io.buildah.version": "1.40.1",
+                "io.k8s.description": "Very small image which doesn't install the package manager.",
+                "io.k8s.display-name": "Red Hat Universal Base Image 9 Micro",
+                "io.openshift.expose-services": "",
+                "maintainer": "MinIO Inc \u003cdev@min.io\u003e",
+                "name": "MinIO",
+                "release": "RELEASE.2025-09-07T16-13-09Z",
+                "summary": "MinIO is a High Performance Object Storage, API compatible with Amazon S3 cloud storage service.",
+                "url": "https://catalog.redhat.com/en/search?searchType=containers",
+                "vcs-ref": "32d8e5209f029a1fb7235308ab32253bface1001",
+                "vcs-type": "git",
+                "vendor": "MinIO Inc \u003cdev@min.io\u003e",
+                "version": "RELEASE.2025-09-07T16-13-09Z"
+            }
+        },
+        "NetworkSettings": {
+            "SandboxID": "ad58df717272fc06dc7bd9afffcb4fc6b7bd1f1066013dada10f4cda70e18eab",
+            "SandboxKey": "/var/run/docker/netns/ad58df717272",
+            "Ports": {
+                "9000/tcp": [
+                    {
+                        "HostIp": "0.0.0.0",
+                        "HostPort": "9000"
+                    },
+                    {
+                        "HostIp": "::",
+                        "HostPort": "9000"
+                    }
+                ],
+                "9001/tcp": [
+                    {
+                        "HostIp": "0.0.0.0",
+                        "HostPort": "9001"
+                    },
+                    {
+                        "HostIp": "::",
+                        "HostPort": "9001"
+                    }
+                ]
+            },
+            "Networks": {
+                "crm_default": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": [
+                        "crm-minio",
+                        "minio"
+                    ],
+                    "DriverOpts": null,
+                    "GwPriority": 0,
+                    "NetworkID": "73b544985c2258f080897ee0f33ac5afa522cfd93d6f1df61b352209ffafad38",
+                    "EndpointID": "11f6dc520207fe2afbab380106604af2d5fc445297050cdadbeafdbfb0caef32",
+                    "Gateway": "172.21.0.1",
+                    "IPAddress": "172.21.0.3",
+                    "MacAddress": "0a:81:72:5b:ed:1b",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "DNSNames": [
+                        "crm-minio",
+                        "minio",
+                        "017b58c4c67d"
+                    ]
+                }
+            }
+        },
+        "ImageManifestDescriptor": {
+            "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+            "digest": "sha256:a1a8bd4ac40ad7881a245bab97323e18f971e4d4cba2c2007ec1bedd21cbaba2",
+            "size": 2081,
+            "platform": {
+                "architecture": "amd64",
+                "os": "linux"
+            }
+        }
+    }
+]

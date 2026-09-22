@@ -59,6 +59,30 @@ Estos elementos están blindados con tests (`npm test`). Cualquier cambio debe p
 # Tests (SIEMPRE antes de deploy)
 cd apps/web && npm test
 
-# Deploy Docker
-cd apps/web && docker rm -f crm-web && docker build -f Dockerfile.vue -t crm-web . && docker run -d --name crm-web --network crm-network -p 8081:80 crm-web
+# Deploy — TODO bajo Compose (raíz del proyecto)
+docker compose up -d --build
+
+# Solo web (rebuild parcial)
+docker compose up -d --build web
+
+# Estado
+docker compose ps
+
+# Logs
+docker compose logs -f api web
+
+# ⛔ NO usar (deja huérfanos fuera de Compose, rompe DNS minio):
+# docker rm -f crm-web && docker run ... --network crm-network
 ```
+
+### Rollback pre-compose (2026-09-22)
+
+- Git tag: `restore-pre-compose-20260922`
+- Snapshot + script: `backups/restore-pre-compose-20260922/ROLLBACK.ps1`
+- Imágenes respaldo: `restore-pre-compose-crm-{api,web,worker}`
+
+### Reglas Docker
+
+1. **Nunca** `docker run` manual para servicios CRM — siempre `docker compose`.
+2. **Una sola red**: `crm_default` (la de Compose). No crear `crm-network`.
+3. Los 6 servicios (postgres, redis, minio, api, worker, web) viven en el proyecto Compose `crm`.

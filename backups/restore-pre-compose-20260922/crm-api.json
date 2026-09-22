@@ -1,0 +1,226 @@
+[
+    {
+        "Id": "81bc552cc8fb1e7ab63e594fab7fd6d4cc79eeb8e2aa8ad039a337c7fedadf8f",
+        "Created": "2026-09-22T00:46:00.115075395Z",
+        "Path": "docker-entrypoint.sh",
+        "Args": [
+            "npx",
+            "tsx",
+            "watch",
+            "src/server.ts"
+        ],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 6381,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2026-09-22T15:17:58.908889081Z",
+            "FinishedAt": "2026-09-22T15:15:47.030464184Z"
+        },
+        "Image": "sha256:6088bce8e2a2c114f8a0104e5e7fd99f2e93214cbe465e8686c2f226b201cbd2",
+        "ResolvConfPath": "/var/lib/docker/containers/81bc552cc8fb1e7ab63e594fab7fd6d4cc79eeb8e2aa8ad039a337c7fedadf8f/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/81bc552cc8fb1e7ab63e594fab7fd6d4cc79eeb8e2aa8ad039a337c7fedadf8f/hostname",
+        "HostsPath": "/var/lib/docker/containers/81bc552cc8fb1e7ab63e594fab7fd6d4cc79eeb8e2aa8ad039a337c7fedadf8f/hosts",
+        "LogPath": "/var/lib/docker/containers/81bc552cc8fb1e7ab63e594fab7fd6d4cc79eeb8e2aa8ad039a337c7fedadf8f/81bc552cc8fb1e7ab63e594fab7fd6d4cc79eeb8e2aa8ad039a337c7fedadf8f-json.log",
+        "Name": "/crm-api",
+        "RestartCount": 0,
+        "Driver": "overlayfs",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": null,
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "crm-network",
+            "PortBindings": {
+                "3001/tcp": [
+                    {
+                        "HostIp": "",
+                        "HostPort": "3001"
+                    }
+                ]
+            },
+            "RestartPolicy": {
+                "Name": "no",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "CapAdd": null,
+            "CapDrop": null,
+            "CgroupnsMode": "private",
+            "Dns": [],
+            "DnsOptions": [],
+            "DnsSearch": [],
+            "ExtraHosts": null,
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": null,
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 0,
+            "NanoCpus": 0,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": [],
+            "BlkioDeviceReadBps": [],
+            "BlkioDeviceWriteBps": [],
+            "BlkioDeviceReadIOps": [],
+            "BlkioDeviceWriteIOps": [],
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": [],
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "MemoryReservation": 0,
+            "MemorySwap": 0,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": null,
+            "Ulimits": [],
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "MaskedPaths": [
+                "/proc/acpi",
+                "/proc/asound",
+                "/proc/interrupts",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/sys/devices/virtual/powercap",
+                "/sys/firmware"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "Storage": {
+            "RootFS": {
+                "Snapshot": {
+                    "Name": "overlayfs"
+                }
+            }
+        },
+        "Mounts": [],
+        "Config": {
+            "Hostname": "81bc552cc8fb",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": false,
+            "AttachStderr": false,
+            "ExposedPorts": {
+                "3001/tcp": {}
+            },
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "NODE_VERSION=20.20.2",
+                "YARN_VERSION=1.22.22"
+            ],
+            "Cmd": [
+                "npx",
+                "tsx",
+                "watch",
+                "src/server.ts"
+            ],
+            "Image": "crm-api",
+            "Volumes": null,
+            "WorkingDir": "/app",
+            "Entrypoint": [
+                "docker-entrypoint.sh"
+            ],
+            "Labels": {}
+        },
+        "NetworkSettings": {
+            "SandboxID": "0717bfaa063ce54cb5a851aa711353e73209c8d56403ebe18df0bc7724b7820b",
+            "SandboxKey": "/var/run/docker/netns/0717bfaa063c",
+            "Ports": {
+                "3001/tcp": [
+                    {
+                        "HostIp": "0.0.0.0",
+                        "HostPort": "3001"
+                    },
+                    {
+                        "HostIp": "::",
+                        "HostPort": "3001"
+                    }
+                ]
+            },
+            "Networks": {
+                "crm-network": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "DriverOpts": null,
+                    "GwPriority": 0,
+                    "NetworkID": "985d4a169dc06495e7dbc1e2706c691eb23da29807ea0f961d1cd965ed36c53c",
+                    "EndpointID": "9a6afd5f206c070126e5fcb5f5a39bf8b3f6ba3bb74dbe9a77ff3fd5f45a5232",
+                    "Gateway": "172.22.0.1",
+                    "IPAddress": "172.22.0.4",
+                    "MacAddress": "de:9e:a2:92:04:1a",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "DNSNames": [
+                        "crm-api",
+                        "81bc552cc8fb"
+                    ]
+                }
+            }
+        },
+        "ImageManifestDescriptor": {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:a4fdd799d2971cc67204b612f1b91d377fab511a8f4febacabcb61124fd3da3e",
+            "size": 1815,
+            "platform": {
+                "architecture": "amd64",
+                "os": "linux"
+            }
+        }
+    }
+]

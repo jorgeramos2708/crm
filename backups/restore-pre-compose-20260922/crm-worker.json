@@ -1,0 +1,262 @@
+[
+    {
+        "Id": "6b8a37084649892b2245c318dd73c4205bbec7da624d7153a28e394afdb6abd1",
+        "Created": "2026-09-19T19:26:39.559271163Z",
+        "Path": "docker-entrypoint.sh",
+        "Args": [
+            "sh",
+            "-c",
+            "npm install \u0026\u0026 npx tsx src/worker.ts"
+        ],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 751,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2026-09-22T15:15:56.392325005Z",
+            "FinishedAt": "2026-09-22T15:15:47.035543882Z"
+        },
+        "Image": "sha256:331283cf9c81a89048bb3c5293ff71b88974739223489504c5e337dc339e7580",
+        "ResolvConfPath": "/var/lib/docker/containers/6b8a37084649892b2245c318dd73c4205bbec7da624d7153a28e394afdb6abd1/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/6b8a37084649892b2245c318dd73c4205bbec7da624d7153a28e394afdb6abd1/hostname",
+        "HostsPath": "/var/lib/docker/containers/6b8a37084649892b2245c318dd73c4205bbec7da624d7153a28e394afdb6abd1/hosts",
+        "LogPath": "/var/lib/docker/containers/6b8a37084649892b2245c318dd73c4205bbec7da624d7153a28e394afdb6abd1/6b8a37084649892b2245c318dd73c4205bbec7da624d7153a28e394afdb6abd1-json.log",
+        "Name": "/crm-worker",
+        "RestartCount": 0,
+        "Driver": "overlayfs",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": [
+                "C:\\Proyectos-IA\\crm\\apps\\api:/app:rw"
+            ],
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "crm_default",
+            "PortBindings": {},
+            "RestartPolicy": {
+                "Name": "unless-stopped",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "CapAdd": null,
+            "CapDrop": null,
+            "CgroupnsMode": "private",
+            "Dns": [],
+            "DnsOptions": [],
+            "DnsSearch": [],
+            "ExtraHosts": [],
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": null,
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 0,
+            "NanoCpus": 0,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": null,
+            "BlkioDeviceReadBps": null,
+            "BlkioDeviceWriteBps": null,
+            "BlkioDeviceReadIOps": null,
+            "BlkioDeviceWriteIOps": null,
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": null,
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "MemoryReservation": 0,
+            "MemorySwap": 0,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": null,
+            "Ulimits": null,
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "Mounts": [
+                {
+                    "Type": "volume",
+                    "Source": "4b909f6fbae1ee8b4125914d0c4006f2fb6600f0d9f1b7d6070514fda88784c2",
+                    "Target": "/app/node_modules"
+                }
+            ],
+            "MaskedPaths": [
+                "/proc/acpi",
+                "/proc/asound",
+                "/proc/interrupts",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/sys/devices/virtual/powercap",
+                "/sys/firmware"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "Storage": {
+            "RootFS": {
+                "Snapshot": {
+                    "Name": "overlayfs"
+                }
+            }
+        },
+        "Mounts": [
+            {
+                "Type": "bind",
+                "Source": "C:\\Proyectos-IA\\crm\\apps\\api",
+                "Destination": "/app",
+                "Mode": "rw",
+                "RW": true,
+                "Propagation": "rprivate"
+            },
+            {
+                "Type": "volume",
+                "Name": "4b909f6fbae1ee8b4125914d0c4006f2fb6600f0d9f1b7d6070514fda88784c2",
+                "Source": "/var/lib/docker/volumes/4b909f6fbae1ee8b4125914d0c4006f2fb6600f0d9f1b7d6070514fda88784c2/_data",
+                "Destination": "/app/node_modules",
+                "Driver": "local",
+                "Mode": "z",
+                "RW": true,
+                "Propagation": ""
+            }
+        ],
+        "Config": {
+            "Hostname": "6b8a37084649",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": true,
+            "AttachStderr": true,
+            "ExposedPorts": {
+                "3001/tcp": {}
+            },
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "MINIO_BUCKET=crm-archivos",
+                "MINIO_PORT=9000",
+                "REDIS_URL=redis://redis:6379",
+                "NODE_ENV=development",
+                "MINIO_ENDPOINT=minio",
+                "MINIO_USER=crm",
+                "MINIO_PASSWORD=crm_dev_password",
+                "DATABASE_URL=postgres://crm:crm_dev_password@postgres:5432/crm",
+                "GRAPH_PUBLIC_URL=http://localhost:3001",
+                "MICROSOFT_CRYPTO_KEY=0977bac398073dfeee3d5223b9ba1a201414227e037ec1825ee50c25a10cc017",
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "NODE_VERSION=20.20.2",
+                "YARN_VERSION=1.22.22"
+            ],
+            "Cmd": [
+                "sh",
+                "-c",
+                "npm install \u0026\u0026 npx tsx src/worker.ts"
+            ],
+            "Image": "crm-worker",
+            "Volumes": null,
+            "WorkingDir": "/app",
+            "Entrypoint": [
+                "docker-entrypoint.sh"
+            ],
+            "Labels": {
+                "com.docker.compose.config-hash": "6760a3ba1ebd2cac1c07ea118e65075ae835a2e52d06836193a24a71aff89a20",
+                "com.docker.compose.container-number": "1",
+                "com.docker.compose.depends_on": "postgres:service_healthy:false,redis:service_healthy:false,api:service_started:false",
+                "com.docker.compose.image": "sha256:331283cf9c81a89048bb3c5293ff71b88974739223489504c5e337dc339e7580",
+                "com.docker.compose.oneoff": "False",
+                "com.docker.compose.project": "crm",
+                "com.docker.compose.project.config_files": "C:\\Proyectos-IA\\crm\\docker-compose.yml",
+                "com.docker.compose.project.working_dir": "C:\\Proyectos-IA\\crm",
+                "com.docker.compose.replace": "crm-worker",
+                "com.docker.compose.service": "worker",
+                "com.docker.compose.version": "5.3.1"
+            }
+        },
+        "NetworkSettings": {
+            "SandboxID": "a85dce7df67275483f0325b353576e09d5b8d2567dfad14a10c073c7f677ff98",
+            "SandboxKey": "/var/run/docker/netns/a85dce7df672",
+            "Ports": {
+                "3001/tcp": null
+            },
+            "Networks": {
+                "crm_default": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": [
+                        "crm-worker",
+                        "worker"
+                    ],
+                    "DriverOpts": null,
+                    "GwPriority": 0,
+                    "NetworkID": "73b544985c2258f080897ee0f33ac5afa522cfd93d6f1df61b352209ffafad38",
+                    "EndpointID": "f9144e478455cbd808d5d3202af330f1b45cc970cdcc7056bad36cbf0cef7c73",
+                    "Gateway": "172.21.0.1",
+                    "IPAddress": "172.21.0.2",
+                    "MacAddress": "e6:8e:6e:d0:65:91",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "DNSNames": [
+                        "crm-worker",
+                        "worker",
+                        "6b8a37084649"
+                    ]
+                }
+            }
+        },
+        "ImageManifestDescriptor": {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:b0e8a354cdd6dbc33f0aa6f111ce6095d29a17ecc249f4e92d220a2aa4b62ac3",
+            "size": 1815,
+            "platform": {
+                "architecture": "amd64",
+                "os": "linux"
+            }
+        }
+    }
+]

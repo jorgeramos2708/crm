@@ -1,0 +1,3 @@
+crm-web:latest 6c22124e69fa
+crm-api:latest 6088bce8e2a2
+crm-worker:latest 331283cf9c81
