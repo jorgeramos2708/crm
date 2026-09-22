@@ -70,7 +70,7 @@
             v-else-if="tareas.length === 0"
             class="text-center py-8 text-zinc-500"
           >
-            No hay tareas pendientes.
+            No hay tareas abiertas.
           </div>
           <div v-else class="space-y-3">
             <router-link
@@ -336,8 +336,11 @@ const fetchDashboard = async () => {
 
 const fetchTareas = async () => {
   try {
-    const res = await axios.get("/api/tareas?estado=pendiente&limit=50");
-    tareas.value = priorizarTareas(res.data.data || []);
+    const res = await axios.get("/api/tareas?limit=50");
+    const abiertas = (res.data.data || []).filter(
+      (t) => t.estado !== "completada" && t.estado !== "cancelada",
+    );
+    tareas.value = priorizarTareas(abiertas);
   } catch (e) {
     console.error("Error fetching tareas:", e);
   } finally {
