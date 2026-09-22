@@ -54,7 +54,7 @@
               color: e.color || '#3b82f6',
             }))
           "
-          centro="negocios"
+          centro="Negocios"
         />
       </Card>
     </div>
