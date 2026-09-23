@@ -43,6 +43,8 @@ import {
   asc,
   and,
   or,
+  ne,
+  gte,
   ilike,
   count,
   sql,
@@ -63,6 +65,13 @@ import {
   logActivity,
 } from "../services/automatizaciones.js";
 import { parseTrackingId } from "../services/email.js";
+import {
+  scheduleCampaignSend,
+  scheduleTaskDueReminder,
+  cancelJob,
+  getCampaignQueue,
+  getTaskQueue,
+} from "../services/queues.js";
 import { encrypt } from "../services/crypto.js";
 import { parseCsv, toCsv } from "../services/csv.js";
 import {
@@ -2185,6 +2194,19 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         stageId: opp.stageId,
         importe: opp.importe,
       }).catch(() => {});
+      // Fase 2: disparar automatizaciones de creación
+      processAutomatizaciones({
+        evento: "oportunidad_created",
+        oportunidadId: opp.id,
+        stageId: opp.stageId,
+        userId: req.user?.id,
+        pipelineId: opp.pipelineId,
+        importe: opp.importe,
+        probabilidad: opp.probabilidad,
+        nombre: opp.nombre,
+      }).catch((err) =>
+        console.error("automatizaciones oportunidad_created:", err),
+      );
       return res.code(201).send(opp);
     });
 
@@ -2378,6 +2400,15 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         nombre: contacto.nombre,
         email: contacto.email,
       }).catch(() => {});
+      processAutomatizaciones({
+        evento: "contacto_created",
+        contactoId: contacto.id,
+        nombre: contacto.nombre,
+        email: contacto.email,
+        userId: req.user?.id,
+      }).catch((err) =>
+        console.error("automatizaciones contacto_created:", err),
+      );
       return res.code(201).send(contacto);
     });
 
@@ -3083,6 +3114,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       estado: tareas.estado,
       createdAt: tareas.createdAt,
     };
+    const TAREA_RETENCION_COMPLETADAS_MS = 7 * 24 * 60 * 60 * 1000;
     app.get(
       "/api/tareas",
       async (
@@ -3118,6 +3150,15 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         if (asignadoId) conditions.push(eq(tareas.asignadoId, asignadoId));
         const vis = await alcanceIds(req.user!.id, alcance);
         if (vis) conditions.push(inArray(tareas.asignadoId, vis));
+        const cutoffCompletadas = new Date(
+          Date.now() - TAREA_RETENCION_COMPLETADAS_MS,
+        );
+        conditions.push(
+          or(
+            ne(tareas.estado, "completada"),
+            gte(tareas.updatedAt, cutoffCompletadas),
+          ),
+        );
         const col = TAREA_SORT[sortBy] || tareas.createdAt;
         const order = sortDir === "asc" ? asc(col) : desc(col);
         const data = await db
@@ -3162,24 +3203,54 @@ export async function registerAuthRoutes(app: FastifyInstance) {
           creadoPor: req.user!.id,
         })
         .returning();
+      if (
+        t.vencimiento &&
+        t.estado !== "completada" &&
+        t.estado !== "cancelada"
+      ) {
+        try {
+          await scheduleTaskDueReminder(t.id, t.vencimiento);
+        } catch (err) {
+          console.error("No se pudo agendar vencimiento tarea:", err);
+        }
+      }
       return res.code(201).send(t);
     });
 
     app.put("/api/tareas/:id", async (req, res) => {
+      const id = (req as any).params.id;
       const body = stripReadonly(req.body as Record<string, any>);
       if (body.vencimiento)
         body.vencimiento = new Date(body.vencimiento as any);
       const [t] = await db
         .update(tareas)
         .set({ ...body, updatedAt: new Date() })
-        .where(eq(tareas.id, (req as any).params.id))
+        .where(eq(tareas.id, id))
         .returning();
       if (!t) return res.code(404).send({ error: "No encontrada" });
+      try {
+        await cancelJob(getTaskQueue(), `task-${t.id}`);
+        if (
+          t.vencimiento &&
+          t.estado !== "completada" &&
+          t.estado !== "cancelada"
+        ) {
+          await scheduleTaskDueReminder(t.id, t.vencimiento);
+        }
+      } catch (err) {
+        console.error("No se pudo re-agendar tarea:", err);
+      }
       return t;
     });
 
     app.delete("/api/tareas/:id", async (req, res) => {
-      await db.delete(tareas).where(eq(tareas.id, (req as any).params.id));
+      const id = (req as any).params.id;
+      try {
+        await cancelJob(getTaskQueue(), `task-${id}`);
+      } catch {
+        /* noop */
+      }
+      await db.delete(tareas).where(eq(tareas.id, id));
       return { ok: true };
     });
 
@@ -3643,6 +3714,218 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       },
     );
 
+    // Fase 3 — Reporte de actividad (timeline por tipo + filtros de fecha)
+    app.get(
+      "/api/reportes/actividad",
+      async (
+        req: FastifyRequest<{
+          Querystring: { desde?: string; hasta?: string; tipo?: string };
+        }>,
+      ) => {
+        const conds = [];
+        if (req.query.desde)
+          conds.push(
+            sql`${activities.createdAt} >= ${new Date(req.query.desde)}`,
+          );
+        if (req.query.hasta)
+          conds.push(
+            sql`${activities.createdAt} <= ${new Date(req.query.hasta)}`,
+          );
+        if (req.query.tipo) conds.push(eq(activities.tipo, req.query.tipo));
+        const where = conds.length ? and(...conds) : undefined;
+
+        const [totalRow] = await db
+          .select({ count: count() })
+          .from(activities)
+          .where(where);
+
+        const porTipo = await db
+          .select({ tipo: activities.tipo, count: count() })
+          .from(activities)
+          .where(where)
+          .groupBy(activities.tipo)
+          .orderBy(desc(count()));
+
+        const recientes = await db
+          .select()
+          .from(activities)
+          .where(where)
+          .orderBy(desc(activities.createdAt))
+          .limit(20);
+
+        // Serie diaria últimos 30 días (con mismos filtros)
+        const serieConds = [
+          sql`${activities.createdAt} >= now() - interval '30 days'`,
+          ...conds,
+        ];
+        const serie = await db
+          .select({
+            dia: sql<string>`to_char(date_trunc('day', ${activities.createdAt}), 'YYYY-MM-DD')`,
+            count: count(),
+          })
+          .from(activities)
+          .where(and(...serieConds))
+          .groupBy(sql`date_trunc('day', ${activities.createdAt})`)
+          .orderBy(sql`date_trunc('day', ${activities.createdAt})`);
+
+        return {
+          total: Number(totalRow.count),
+          porTipo: porTipo.map((r) => ({
+            tipo: r.tipo,
+            count: Number(r.count),
+          })),
+          serie: serie.map((r) => ({ dia: r.dia, count: Number(r.count) })),
+          recientes,
+        };
+      },
+    );
+
+    // Fase 3 — Leaderboard de vendedores (oportunidades por propietario)
+    app.get(
+      "/api/reportes/vendedores",
+      async (
+        req: FastifyRequest<{
+          Querystring: { pipelineId?: string; desde?: string; hasta?: string };
+        }>,
+      ) => {
+        const conds = [sql`${oportunidades.propietarioId} is not null`];
+        if (req.query.pipelineId)
+          conds.push(eq(oportunidades.pipelineId, req.query.pipelineId));
+        if (req.query.desde)
+          conds.push(
+            sql`${oportunidades.createdAt} >= ${new Date(req.query.desde)}`,
+          );
+        if (req.query.hasta)
+          conds.push(
+            sql`${oportunidades.createdAt} <= ${new Date(req.query.hasta)}`,
+          );
+
+        const rows = await db
+          .select({
+            propietarioId: oportunidades.propietarioId,
+            nombre: users.name,
+            email: users.email,
+            count: count(),
+            valorTotal: sql<number>`coalesce(sum(${oportunidades.importe}), 0)`,
+            estimado: sql<number>`coalesce(sum(${oportunidades.importe} * coalesce(${oportunidades.probabilidad}, 50) / 100.0), 0)`,
+          })
+          .from(oportunidades)
+          .leftJoin(users, eq(oportunidades.propietarioId, users.id))
+          .where(and(...conds))
+          .groupBy(oportunidades.propietarioId, users.name, users.email)
+          .orderBy(desc(sql`coalesce(sum(${oportunidades.importe}), 0)`));
+
+        return {
+          currency: env.CURRENCY,
+          vendedores: rows.map((r) => ({
+            propietarioId: r.propietarioId,
+            nombre: r.nombre || "(sin asignar)",
+            email: r.email || "",
+            count: Number(r.count),
+            valorTotal: Number(r.valorTotal || 0),
+            estimado: Math.round(Number(r.estimado || 0)),
+          })),
+        };
+      },
+    );
+
+    // Fase 3 — Reporte agregado de campañas de email
+    app.get("/api/reportes/campanas", async () => {
+      const camps = await db
+        .select()
+        .from(emailCampaigns)
+        .orderBy(desc(emailCampaigns.createdAt));
+
+      const tracking = await db
+        .select({
+          campaignId: emailTracking.campaignId,
+          tipo: emailTracking.tipo,
+          count: count(),
+        })
+        .from(emailTracking)
+        .where(sql`${emailTracking.campaignId} is not null`)
+        .groupBy(emailTracking.campaignId, emailTracking.tipo);
+
+      const byCampaign = new Map<
+        string,
+        { sent: number; opens: number; clicks: number; unsubscribes: number }
+      >();
+      for (const t of tracking) {
+        if (!t.campaignId) continue;
+        const e = byCampaign.get(t.campaignId) || {
+          sent: 0,
+          opens: 0,
+          clicks: 0,
+          unsubscribes: 0,
+        };
+        const n = Number(t.count);
+        if (t.tipo === "sent") e.sent += n;
+        if (t.tipo === "open") e.opens += n;
+        if (t.tipo === "click") e.clicks += n;
+        if (t.tipo === "unsubscribe") e.unsubscribes += n;
+        byCampaign.set(t.campaignId, e);
+      }
+
+      return {
+        currency: env.CURRENCY,
+        campanas: camps.map((c) => {
+          const s = byCampaign.get(c.id) || {
+            sent: 0,
+            opens: 0,
+            clicks: 0,
+            unsubscribes: 0,
+          };
+          return {
+            id: c.id,
+            nombre: c.nombre,
+            asunto: c.asunto,
+            estado: c.estado,
+            programadaPara: c.programadaPara,
+            enviadaEn: c.enviadaEn,
+            sent: s.sent,
+            opens: s.opens,
+            clicks: s.clicks,
+            unsubscribes: s.unsubscribes,
+            openRate: s.sent ? Math.round((s.opens / s.sent) * 100) : 0,
+            clickRate: s.sent ? Math.round((s.clicks / s.sent) * 100) : 0,
+          };
+        }),
+      };
+    });
+
+    // Fase 3 — Resumen de tareas (pendientes/completadas por prioridad)
+    app.get("/api/reportes/tareas", async () => {
+      const porEstado = await db
+        .select({ estado: tareas.estado, count: count() })
+        .from(tareas)
+        .groupBy(tareas.estado);
+      const porPrioridad = await db
+        .select({ prioridad: tareas.prioridad, count: count() })
+        .from(tareas)
+        .where(sql`${tareas.estado} != 'completada'`)
+        .groupBy(tareas.prioridad);
+      const [vencidas] = await db
+        .select({ count: count() })
+        .from(tareas)
+        .where(
+          and(
+            sql`${tareas.vencimiento} < now()`,
+            sql`${tareas.estado} != 'completada'`,
+          ),
+        );
+      return {
+        porEstado: porEstado.map((r) => ({
+          estado: r.estado,
+          count: Number(r.count),
+        })),
+        porPrioridad: porPrioridad.map((r) => ({
+          prioridad: r.prioridad,
+          count: Number(r.count),
+        })),
+        vencidas: Number(vencidas.count),
+      };
+    });
+
     // Automatizaciones
     app.get("/api/automatizaciones", async () =>
       db
@@ -3747,6 +4030,18 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         .insert(emailCampaigns)
         .values(req.body as any)
         .returning();
+      // Fase 2: si tiene fecha futura, encolar envío diferido
+      if (campaign.programadaPara && campaign.estado !== "enviada") {
+        try {
+          const when =
+            campaign.programadaPara instanceof Date
+              ? campaign.programadaPara
+              : new Date(campaign.programadaPara);
+          await scheduleCampaignSend(campaign.id, when);
+        } catch (err) {
+          console.error("No se pudo agendar campaña:", err);
+        }
+      }
       return res.code(201).send(campaign);
     });
     app.post(
@@ -3840,6 +4135,22 @@ export async function registerAuthRoutes(app: FastifyInstance) {
           .where(eq(emailCampaigns.id, req.params.id))
           .returning();
         if (!campaign) return res.code(404).send({ error: "No encontrada" });
+        // Re-agendar / cancelar envío programado
+        try {
+          await cancelJob(getCampaignQueue(), `campaign-${campaign.id}`);
+          if (
+            campaign.programadaPara &&
+            campaign.estado !== "enviada" &&
+            new Date(campaign.programadaPara).getTime() > Date.now()
+          ) {
+            await scheduleCampaignSend(
+              campaign.id,
+              new Date(campaign.programadaPara),
+            );
+          }
+        } catch (err) {
+          console.error("No se pudo re-agendar campaña:", err);
+        }
         return campaign;
       },
     );

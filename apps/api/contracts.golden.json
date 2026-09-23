@@ -79,8 +79,12 @@
     "GET /api/presupuestos",
     "GET /api/presupuestos/:id",
     "GET /api/productos",
+    "GET /api/reportes/actividad",
+    "GET /api/reportes/campanas",
     "GET /api/reportes/embudo",
     "GET /api/reportes/mensual",
+    "GET /api/reportes/tareas",
+    "GET /api/reportes/vendedores",
     "GET /api/stream",
     "GET /api/tareas",
     "GET /api/timeline",
@@ -144,7 +148,7 @@
     "PUT /api/users/:id",
     "PUT /api/users/:id/permisos"
   ],
-  "routeCount": 143,
+  "routeCount": 147,
   "schema": {
     "users": {
       "exportName": "users",

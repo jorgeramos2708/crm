@@ -87,8 +87,9 @@ describe("Card", () => {
       props: { variant: "elevated" },
       slots: { default: "hola" },
     });
-    expect(w.classes()).toContain("bg-white");
+    expect(w.classes()).toContain("border");
     expect(w.classes()).toContain("rounded-2xl");
+    expect(w.classes().join(" ")).not.toContain("bg-white");
   });
 });
 

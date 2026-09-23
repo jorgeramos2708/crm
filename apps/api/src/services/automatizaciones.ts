@@ -10,6 +10,7 @@ import {
 } from "../db/schema.js";
 import { eq, and } from "drizzle-orm";
 import { sendEmail } from "./email.js";
+import { scheduleAction } from "./queues.js";
 
 interface Condition {
   campo: string;
@@ -270,13 +271,25 @@ export async function processAutomatizaciones(
       const actions = auto.acciones as Action[];
       for (const action of actions) {
         if (action.tipo && action.delay) {
-          console.log(
-            "[AUTOMATIZACIONES] Scheduling delayed action:",
-            action.tipo,
-            "delay:",
-            action.delay,
-          );
-          setTimeout(() => executeAction(action, context), action.delay * 1000);
+          // Persistir en BullMQ: sobrevive reinicios, con reintentos
+          try {
+            await scheduleAction(action, context, Number(action.delay));
+            console.log(
+              "[AUTOMATIZACIONES] Queued delayed action:",
+              action.tipo,
+              "delay(s):",
+              action.delay,
+            );
+          } catch (err) {
+            console.error(
+              "[AUTOMATIZACIONES] Queue failed, running inline:",
+              (err as Error)?.message || err,
+            );
+            setTimeout(
+              () => executeAction(action, context),
+              action.delay * 1000,
+            );
+          }
         } else {
           console.log("[AUTOMATIZACIONES] Executing action:", action.tipo);
           await executeAction(action, context);

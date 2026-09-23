@@ -11,3 +11,4 @@ allowBuilds:
   unrs-resolver: true
   next: true
   vue-demi: true
+  msgpackr-extract: true

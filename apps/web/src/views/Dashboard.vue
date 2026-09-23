@@ -7,16 +7,18 @@
 
       <!-- Valor total + Eventos (misma fila, compactos) -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <Card class="flex items-center justify-between px-5 py-4">
-          <div>
-            <p class="text-sm font-medium text-zinc-500">Valor total del pipeline</p>
-            <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">
-              {{ formatCurrency(stats.valorTotal) }}
-            </p>
-          </div>
+        <Card class="px-5 py-4">
+          <p class="text-sm font-medium text-zinc-500">
+            Valor total del pipeline
+          </p>
+          <p
+            class="text-2xl font-bold text-zinc-900 dark:text-zinc-100 tabular-nums"
+          >
+            {{ formatCurrency(stats.valorTotal) }}
+          </p>
           <router-link
             to="/negocios"
-            class="text-sm font-medium hover:underline"
+            class="mt-1 inline-block text-sm font-medium hover:underline"
             style="color: var(--marca, #2563eb)"
           >
             Ver negocios
@@ -30,29 +32,33 @@
           </div>
           <div v-else-if="errorCalendario" class="text-sm text-zinc-500">
             Calendario no conectado ·
-            <router-link to="/settings" class="underline" style="color: var(--marca, #2563eb)">Configurar</router-link>
+            <router-link
+              to="/settings"
+              class="underline"
+              style="color: var(--marca, #2563eb)"
+              >Configurar</router-link
+            >
           </div>
           <div v-else-if="eventos.length === 0" class="text-sm text-zinc-500">
             No hay eventos esta semana.
           </div>
           <ul v-else class="space-y-1.5">
             <li v-for="(ev, i) in eventos.slice(0, 3)" :key="i">
-              <component
-                :is="ev.webLink || ev.htmlLink ? 'a' : 'div'"
-                :href="ev.webLink || ev.htmlLink || undefined"
-                :target="(ev.webLink || ev.htmlLink) ? '_blank' : undefined"
+              <router-link
+                to="/calendario"
                 class="flex items-baseline justify-between gap-3 rounded-lg px-2 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors"
               >
-                <span class="truncate text-sm text-zinc-900 dark:text-zinc-100">{{ ev.subject || ev.title }}</span>
-                <span class="flex-shrink-0 text-xs text-zinc-500 tabular-nums">{{ formatFechaEvento(ev.start) }}</span>
-              </component>
+                <span
+                  class="truncate text-sm text-zinc-900 dark:text-zinc-100"
+                  >{{ ev.subject || ev.title }}</span
+                >
+                <span
+                  class="flex-shrink-0 text-xs text-zinc-500 tabular-nums"
+                  >{{ formatFechaEvento(ev.start) }}</span
+                >
+              </router-link>
             </li>
           </ul>
-          <div class="mt-3 flex justify-center">
-            <router-link to="/calendario" class="text-xs hover:underline" style="color: var(--marca, #2563eb)">
-              Ver calendario
-            </router-link>
-          </div>
         </Card>
       </div>
 
@@ -60,7 +66,9 @@
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <!-- Tareas pendientes -->
         <Card class="p-6">
-          <h2 class="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
+          <h2
+            class="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-4"
+          >
             Próximas tareas
           </h2>
           <div v-if="loadingTareas" class="py-2">
@@ -83,7 +91,11 @@
               <div class="flex items-center gap-3 min-w-0">
                 <span class="text-lg">{{ iconPrioridad(t.prioridad) }}</span>
                 <div class="min-w-0">
-                  <p class="font-medium text-zinc-900 dark:text-zinc-100 truncate">{{ t.titulo }}</p>
+                  <p
+                    class="font-medium text-zinc-900 dark:text-zinc-100 truncate"
+                  >
+                    {{ t.titulo }}
+                  </p>
                   <p v-if="t.vencimiento" class="text-xs text-zinc-500">
                     {{ formatVencimiento(t.vencimiento) }}
                   </p>
@@ -102,7 +114,9 @@
 
         <!-- Actividad reciente -->
         <Card class="p-6">
-          <h2 class="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
+          <h2
+            class="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-4"
+          >
             Actividad reciente
           </h2>
           <div v-if="loadingActividad" class="py-2">
@@ -121,7 +135,9 @@
               :to="entityRoute(a.entityType)"
               class="flex items-start gap-3 p-2 rounded-lg cursor-pointer block hover:bg-zinc-50 dark:hover:bg-zinc-700/50"
             >
-              <span class="text-lg mt-0.5 flex-shrink-0">{{ iconActividad(a.tipo) }}</span>
+              <span class="text-lg mt-0.5 flex-shrink-0">{{
+                iconActividad(a.tipo)
+              }}</span>
               <div class="min-w-0">
                 <p class="text-sm text-zinc-900 dark:text-zinc-100">
                   <span class="font-medium">{{ a.titulo }}</span>
@@ -148,7 +164,9 @@
             class="stage-card flex flex-col items-center justify-center p-6 rounded-2xl text-white min-h-[140px] cursor-pointer"
             :style="{ backgroundColor: stage.color || '#3b82f6' }"
           >
-            <span class="text-4xl font-bold">{{ conteoPorEtapa[stage.id] || 0 }}</span>
+            <span class="text-4xl font-bold">{{
+              conteoPorEtapa[stage.id] || 0
+            }}</span>
             <span class="text-base font-medium opacity-90 mt-2">{{
               stage.nombre
             }}</span>
@@ -171,11 +189,11 @@
           No hay oportunidades aún.
           <Btn to="/pipeline" variant="link">Crea la primera</Btn>
         </div>
-        <div class="space-y-3" v-else>
+        <div class="space-y-1" v-else>
           <div
             v-for="opp in recientes"
             :key="opp.id"
-            class="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-700 rounded-lg"
+            class="flex items-center justify-between px-2 py-2 rounded-lg"
           >
             <div>
               <p class="font-medium text-zinc-900 dark:text-zinc-100">
@@ -210,7 +228,12 @@ import Card from "../components/Card.vue";
 
 const authStore = useAuthStore();
 
-const stats = ref({ totalOportunidades: 0, valorTotal: 0, totalEtapas: 0, totalUsuarios: 0 });
+const stats = ref({
+  totalOportunidades: 0,
+  valorTotal: 0,
+  totalEtapas: 0,
+  totalUsuarios: 0,
+});
 const oportunidades = ref([]);
 const pipelineStages = ref([]);
 const loading = ref(true);
@@ -246,63 +269,73 @@ const colorEtapa = (stageId) => {
 };
 
 const iconPrioridad = (p) => {
-  const map = { urgente: '🔴', alta: '🟠', media: '🟡', baja: '🟢' };
-  return map[p] || '⚪';
+  const map = { urgente: "🔴", alta: "🟠", media: "🟡", baja: "🟢" };
+  return map[p] || "⚪";
 };
 
 const bgPrioridad = (p) => {
   const map = {
-    urgente: 'bg-red-50 dark:bg-red-900/20',
-    alta: 'bg-orange-50 dark:bg-orange-900/20',
-    media: 'bg-yellow-50 dark:bg-yellow-900/20',
-    baja: 'bg-green-50 dark:bg-green-900/20',
+    urgente: "bg-red-50 dark:bg-red-900/20",
+    alta: "bg-orange-50 dark:bg-orange-900/20",
+    media: "bg-yellow-50 dark:bg-yellow-900/20",
+    baja: "bg-green-50 dark:bg-green-900/20",
   };
-  return map[p] || 'bg-zinc-50 dark:bg-zinc-700';
+  return map[p] || "bg-zinc-50 dark:bg-zinc-700";
 };
 
 const badgePrioridad = (p) => {
-  const map = { urgente: 'red', alta: 'orange', media: 'yellow', baja: 'green' };
-  return map[p] || 'zinc';
+  const map = {
+    urgente: "red",
+    alta: "orange",
+    media: "yellow",
+    baja: "green",
+  };
+  return map[p] || "zinc";
 };
 
 const entityRoute = (type) => {
-  const map = { oportunidad: '/negocios', contacto: '/contactos', empresa: '/empresas', campana: '/campañas' };
-  return map[type] || '/';
+  const map = {
+    oportunidad: "/negocios",
+    contacto: "/contactos",
+    empresa: "/empresas",
+    campana: "/campañas",
+  };
+  return map[type] || "/";
 };
 
 const iconActividad = (tipo) => {
   const map = {
-    email_sent: '✉️',
-    email_opened: '👁️',
-    email_clicked: '🔗',
-    stage_changed: '🔄',
-    task_created: '📋',
-    notification: '🔔',
-    oportunidad_created: '💼',
-    oportunidad_won: '🎉',
-    oportunidad_lost: '❌',
+    email_sent: "✉️",
+    email_opened: "👁️",
+    email_clicked: "🔗",
+    stage_changed: "🔄",
+    task_created: "📋",
+    notification: "🔔",
+    oportunidad_created: "💼",
+    oportunidad_won: "🎉",
+    oportunidad_lost: "❌",
   };
-  return map[tipo] || '📌';
+  return map[tipo] || "📌";
 };
 
 const formatVencimiento = (fecha) => {
-  if (!fecha) return '';
+  if (!fecha) return "";
   const d = new Date(fecha);
   const hoy = new Date();
   const diff = Math.ceil((d - hoy) / (1000 * 60 * 60 * 24));
   if (diff < 0) return `Venció hace ${Math.abs(diff)} día(s)`;
-  if (diff === 0) return 'Vence hoy';
-  if (diff === 1) return 'Vence mañana';
+  if (diff === 0) return "Vence hoy";
+  if (diff === 1) return "Vence mañana";
   return `Vence en ${diff} días`;
 };
 
 const tiempoRelativo = (fecha) => {
-  if (!fecha) return '';
+  if (!fecha) return "";
   const d = new Date(fecha);
   const ahora = new Date();
   const diffMs = ahora - d;
   const mins = Math.floor(diffMs / 60000);
-  if (mins < 1) return 'ahora';
+  if (mins < 1) return "ahora";
   if (mins < 60) return `hace ${mins}m`;
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `hace ${hrs}h`;
@@ -311,9 +344,15 @@ const tiempoRelativo = (fecha) => {
 };
 
 const formatFechaEvento = (fecha) => {
-  if (!fecha) return '';
+  if (!fecha) return "";
   const d = new Date(fecha);
-  return d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleDateString("es-MX", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 };
 
 const fetchDashboard = async () => {
@@ -409,7 +448,9 @@ onMounted(async () => {
 
 <style scoped>
 .stage-card {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
   text-decoration: none;
 }
 .stage-card:hover {
@@ -417,6 +458,8 @@ onMounted(async () => {
   box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.15);
 }
 @media (prefers-reduced-motion: reduce) {
-  .stage-card { transition: none !important; }
+  .stage-card {
+    transition: none !important;
+  }
 }
 </style>

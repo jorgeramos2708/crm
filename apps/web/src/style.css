@@ -5,7 +5,7 @@
 /* Diseño flat: paneles sin sombra ni borde, métricas flotantes */
 @layer components {
   .panel-flat {
-    @apply bg-panel dark:bg-white/[0.04] rounded-xl;
+    @apply rounded-xl;
   }
   .metric-float {
     @apply py-1;
@@ -23,7 +23,8 @@
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
-  h1, h2 {
+  h1,
+  h2 {
     font-weight: 700;
   }
   h3 {
@@ -32,13 +33,16 @@
   button {
     font-weight: 500;
   }
-  nav a, aside a {
+  nav a,
+  aside a {
     font-weight: 500;
   }
   label {
     font-weight: 400;
   }
-  input, select, textarea {
+  input,
+  select,
+  textarea {
     font-weight: 400;
   }
   ::selection {
@@ -64,7 +68,8 @@
 }
 
 @media print {
-  aside, header {
+  aside,
+  header {
     display: none !important;
   }
   main {
@@ -87,9 +92,6 @@ html:not(.dark) body.tema-marca .bg-zinc-50 {
   background-color: var(--fondo);
 }
 html:not(.dark) body.tema-marca .bg-zinc-100 {
-  background-color: var(--panel);
-}
-html:not(.dark) body.tema-marca .panel-flat {
   background-color: var(--panel);
 }
 

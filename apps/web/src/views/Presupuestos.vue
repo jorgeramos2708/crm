@@ -50,10 +50,7 @@
           :colspan="4"
           loading
         />
-        <TableState
-          v-if="!cargando && !presupuestos.length"
-          :colspan="4"
-        >
+        <TableState v-if="!cargando && !presupuestos.length" :colspan="4">
           Sin presupuestos.
         </TableState>
       </Table>
@@ -326,9 +323,7 @@
         {{ detalle.notas }}
       </p>
       <div class="flex gap-2 mt-4 print:hidden">
-        <Btn variant="outline" class="flex-1" @click="window.print()"
-          >Imprimir</Btn
-        >
+        <Btn variant="outline" class="flex-1" @click="imprimir">Imprimir</Btn>
         <Btn
           variant="outline"
           class="flex-1"
@@ -428,6 +423,9 @@ const estadoClass = (e) =>
   })[e] || "";
 
 const cargando = ref(true);
+const imprimir = () => {
+  window.print();
+};
 const fetchPresupuestos = async () => {
   cargando.value = true;
   try {
@@ -464,7 +462,7 @@ const openModal = (p) => {
         empresaId: p.empresaId || "",
         items: JSON.parse(JSON.stringify(p.items || [])),
         descuento: p.descuento,
-        aplicaIva: p.aplicaIva ?? (p.impuestos > 0),
+        aplicaIva: p.aplicaIva ?? p.impuestos > 0,
         estado: p.estado,
         validez: p.validez ? p.validez.slice(0, 10) : "",
         notas: p.notas || "",

@@ -39,7 +39,7 @@ Estos elementos están blindados con tests (`npm test`). Cualquier cambio debe p
 
 - `src/components/table-alignment.test.ts` — comportamiento de Table/Th/Td
 - `src/views/table-headers.lock.test.ts` — estructura fuente de las 3 vistas
-- `apps/api/src/contracts.lock.test.ts` — 143 rutas API + 33 tablas + rutas Vue/nav/cols/compose (golden)
+- `apps/api/src/contracts.lock.test.ts` — 147 rutas API + 33 tablas + rutas Vue/nav/cols/compose (golden)
 - `apps/api/src/services/email.test.ts` — tracking de email (pixel/click ids)
 
 **Regenerar goldens SOLO a propósito** (cambio de contrato):
@@ -50,6 +50,15 @@ node scripts/extract-contracts.mjs
 ```
 
 **Ejecutar siempre:** `npm test` en `apps/web` y `apps/api`
+
+**Fase 2 — BullMQ**: colas en `apps/api/src/services/queues.ts`
+(`automatizaciones-action`, `email-campaign-send`, `tarea-vencimiento`).
+Consumers en `worker.ts`. Delayed actions NO usan `setTimeout`.
+
+**Fase 3 — Reportes + Metabase**:
+
+- Endpoints: `/api/reportes/{embudo,mensual,actividad,vendedores,campanas,tareas}`
+- Metabase (opcional): `docker compose --profile bi up -d metabase` → puerto 3002
 
 ---
 
