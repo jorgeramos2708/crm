@@ -62,6 +62,7 @@ import {
   sendEmail,
   logActivity,
 } from "../services/automatizaciones.js";
+import { parseTrackingId } from "../services/email.js";
 import { encrypt } from "../services/crypto.js";
 import { parseCsv, toCsv } from "../services/csv.js";
 import {
@@ -783,9 +784,12 @@ export async function registerAuthRoutes(app: FastifyInstance) {
   });
 
   // Public tracking endpoints (no auth required)
+  // trackingId: "campaignId" | "campaignId.contactoId"
   app.get("/api/track/open/:trackingId", async (req, res) => {
+    const parsed = parseTrackingId((req as any).params.trackingId);
     await db.insert(emailTracking).values({
-      campaignId: (req as any).params.trackingId,
+      campaignId: parsed.campaignId,
+      contactoId: parsed.contactoId,
       tipo: "open",
       metadata: { userAgent: req.headers["user-agent"], ip: req.ip },
     });
@@ -800,8 +804,10 @@ export async function registerAuthRoutes(app: FastifyInstance) {
     "/api/track/click/:trackingId",
     async (req: FastifyRequest<{ Querystring: { url?: string } }>, res) => {
       const { url } = req.query;
+      const parsed = parseTrackingId((req as any).params.trackingId);
       await db.insert(emailTracking).values({
-        campaignId: (req as any).params.trackingId,
+        campaignId: parsed.campaignId,
+        contactoId: parsed.contactoId,
         tipo: "click",
         metadata: { url, userAgent: req.headers["user-agent"], ip: req.ip },
       });
@@ -810,8 +816,10 @@ export async function registerAuthRoutes(app: FastifyInstance) {
   );
 
   app.get("/api/track/unsubscribe/:trackingId", async (req, res) => {
+    const parsed = parseTrackingId((req as any).params.trackingId);
     await db.insert(emailTracking).values({
-      campaignId: (req as any).params.trackingId,
+      campaignId: parsed.campaignId,
+      contactoId: parsed.contactoId,
       tipo: "unsubscribe",
       metadata: { userAgent: req.headers["user-agent"], ip: req.ip },
     });
@@ -3783,6 +3791,9 @@ export async function registerAuthRoutes(app: FastifyInstance) {
               subject: campaign.asunto,
               html,
               text,
+              from: `"${campaign.remitenteNombre}" <${campaign.remitenteEmail}>`,
+              campaignId: campaign.id,
+              contactoId: contact.id,
             });
             await logActivity(
               "email_sent",

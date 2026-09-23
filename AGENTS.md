@@ -18,9 +18,9 @@ Estos elementos están blindados con tests (`npm test`). Cualquier cambio debe p
 
 2. **Headers vacíos para acciones**: las columnas Editar/Eliminar/Acciones usan `<Th></Th>` vacío (sin `align`, sin texto visible). El ancho lo da el `colgroup`, no el contenido.
 
-3. **Anchos actuales (NO CAMBIAR):**
-   - Negocios: `["35%", "15%", "15%", "15%", "10%", "10%"]` — 6 col
-   - Contactos: `["20%", "20%", "15%", "20%", "15%", "10%"]` — 6 col
+3. **Anchos actuales (NO CAMBIAR — verificados en `contracts.golden.json`):**
+   - Negocios: `["30%", "20%", "15%", "15%", "10%", "10%"]` — 6 col
+   - Contactos: `["18%", "18%", "13%", "18%", "15%", "18%"]` — 6 col
    - Productos: `["35%", "20%", "15%", "15%", "15%"]` — 5 col
 
 4. **Headers visibles (exactos):**
@@ -39,8 +39,17 @@ Estos elementos están blindados con tests (`npm test`). Cualquier cambio debe p
 
 - `src/components/table-alignment.test.ts` — comportamiento de Table/Th/Td
 - `src/views/table-headers.lock.test.ts` — estructura fuente de las 3 vistas
+- `apps/api/src/contracts.lock.test.ts` — 143 rutas API + 33 tablas + rutas Vue/nav/cols/compose (golden)
+- `apps/api/src/services/email.test.ts` — tracking de email (pixel/click ids)
 
-**Ejecutar siempre:** `npm test` (debe ser 85/85)
+**Regenerar goldens SOLO a propósito** (cambio de contrato):
+
+```bash
+node scripts/extract-contracts.mjs
+# revisar diff de apps/*/contracts.golden.json y commitear
+```
+
+**Ejecutar siempre:** `npm test` en `apps/web` y `apps/api`
 
 ---
 

@@ -1,0 +1,527 @@
+{
+  "routes": [
+    "DELETE /api/api-tokens/:id",
+    "DELETE /api/archivos/:id",
+    "DELETE /api/automatizaciones/:id",
+    "DELETE /api/companies/:id",
+    "DELETE /api/companies/:id/contacts/:contactoId",
+    "DELETE /api/contact-lists/:id",
+    "DELETE /api/contact-lists/:id/members/:contactoId",
+    "DELETE /api/contactos/:id",
+    "DELETE /api/custom-fields/:id",
+    "DELETE /api/email-campaigns/:id",
+    "DELETE /api/email-templates/:id",
+    "DELETE /api/equipos/:id",
+    "DELETE /api/equipos/:id/miembros/:userId",
+    "DELETE /api/google/disconnect",
+    "DELETE /api/microsoft/disconnect",
+    "DELETE /api/microsoft/subscriptions/:id",
+    "DELETE /api/oportunidades/:id",
+    "DELETE /api/presupuestos/:id",
+    "DELETE /api/productos/:id",
+    "DELETE /api/tareas/:id",
+    "DELETE /api/users/:id",
+    "DELETE /api/vistas/:id",
+    "DELETE /api/webhooks/:id",
+    "GET /api/activities",
+    "GET /api/ajustes/marca",
+    "GET /api/api-tokens",
+    "GET /api/archivos",
+    "GET /api/archivos/:id/download",
+    "GET /api/auth/:proveedor/login",
+    "GET /api/auth/:proveedor/login/callback",
+    "GET /api/auth/google/callback",
+    "GET /api/auth/google/connect",
+    "GET /api/auth/me",
+    "GET /api/auth/microsoft/callback",
+    "GET /api/auth/microsoft/connect",
+    "GET /api/automatizaciones",
+    "GET /api/calendario",
+    "GET /api/companies",
+    "GET /api/companies/:id",
+    "GET /api/companies/export",
+    "GET /api/config",
+    "GET /api/contact-lists",
+    "GET /api/contact-lists/:id",
+    "GET /api/contact-lists/:id/members",
+    "GET /api/contactos",
+    "GET /api/contactos/:id/companies",
+    "GET /api/contactos/:id/timeline",
+    "GET /api/contactos/export",
+    "GET /api/custom-fields",
+    "GET /api/dashboard/stats",
+    "GET /api/email-campaigns",
+    "GET /api/email-subscriptions",
+    "GET /api/email-subscriptions/confirm/:token",
+    "GET /api/email-subscriptions/unsubscribe/:token",
+    "GET /api/email-templates",
+    "GET /api/email-tracking",
+    "GET /api/email-tracking/stats/:campaignId",
+    "GET /api/equipos",
+    "GET /api/google/config",
+    "GET /api/google/emails",
+    "GET /api/google/profile",
+    "GET /api/google/status",
+    "GET /api/graph/notify",
+    "GET /api/microsoft/config",
+    "GET /api/microsoft/emails",
+    "GET /api/microsoft/profile",
+    "GET /api/microsoft/status",
+    "GET /api/microsoft/subscriptions",
+    "GET /api/oportunidades",
+    "GET /api/oportunidades/:id",
+    "GET /api/oportunidades/:id/timeline",
+    "GET /api/oportunidades/export",
+    "GET /api/pipeline-stages",
+    "GET /api/pipeline-stages/:id",
+    "GET /api/pipelines",
+    "GET /api/pipelines/:id",
+    "GET /api/presupuestos",
+    "GET /api/presupuestos/:id",
+    "GET /api/productos",
+    "GET /api/reportes/embudo",
+    "GET /api/reportes/mensual",
+    "GET /api/stream",
+    "GET /api/tareas",
+    "GET /api/timeline",
+    "GET /api/track/click/:trackingId",
+    "GET /api/track/open/:trackingId",
+    "GET /api/track/unsubscribe/:trackingId",
+    "GET /api/users",
+    "GET /api/users/:id/permisos",
+    "GET /api/vistas",
+    "GET /api/webhooks",
+    "GET /api/webhooks/:id/deliveries",
+    "GET /health",
+    "POST /api/api-tokens",
+    "POST /api/api-tokens/:id/rotar",
+    "POST /api/archivos",
+    "POST /api/auth/login",
+    "POST /api/auth/logout",
+    "POST /api/automatizaciones",
+    "POST /api/companies",
+    "POST /api/companies/:id/contacts",
+    "POST /api/contact-lists",
+    "POST /api/contact-lists/:id/members",
+    "POST /api/contactos",
+    "POST /api/contactos/import",
+    "POST /api/custom-fields",
+    "POST /api/email-campaigns",
+    "POST /api/email-campaigns/:id/send",
+    "POST /api/email-subscriptions",
+    "POST /api/email-templates",
+    "POST /api/equipos",
+    "POST /api/equipos/:id/miembros",
+    "POST /api/google/send",
+    "POST /api/graph/notify",
+    "POST /api/microsoft/send",
+    "POST /api/microsoft/subscriptions",
+    "POST /api/microsoft/subscriptions/:id/renew",
+    "POST /api/microsoft/vincular",
+    "POST /api/oportunidades",
+    "POST /api/pipeline-stages",
+    "POST /api/pipelines",
+    "POST /api/presupuestos",
+    "POST /api/productos",
+    "POST /api/tareas",
+    "POST /api/users",
+    "POST /api/vistas",
+    "POST /api/webhooks",
+    "PUT /api/ajustes/marca",
+    "PUT /api/automatizaciones/:id",
+    "PUT /api/companies/:id",
+    "PUT /api/contact-lists/:id",
+    "PUT /api/contactos/:id",
+    "PUT /api/custom-fields/:id",
+    "PUT /api/email-campaigns/:id",
+    "PUT /api/email-templates/:id",
+    "PUT /api/google/config",
+    "PUT /api/microsoft/config",
+    "PUT /api/oportunidades/:id",
+    "PUT /api/presupuestos/:id",
+    "PUT /api/productos/:id",
+    "PUT /api/tareas/:id",
+    "PUT /api/users/:id",
+    "PUT /api/users/:id/permisos"
+  ],
+  "routeCount": 143,
+  "schema": {
+    "users": {
+      "exportName": "users",
+      "columns": [
+        "id",
+        "email",
+        "passwordHash",
+        "name",
+        "role",
+        "activo",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "pipelines": {
+      "exportName": "pipelines",
+      "columns": [
+        "id",
+        "nombre",
+        "descripcion",
+        "activo",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "pipeline_stages": {
+      "exportName": "pipelineStages",
+      "columns": [
+        "id",
+        "pipelineId",
+        "nombre",
+        "color",
+        "orden",
+        "esInicial",
+        "esFinal",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "oportunidades": {
+      "exportName": "oportunidades",
+      "columns": [
+        "id",
+        "nombre",
+        "descripcion",
+        "pipelineId",
+        "stageId",
+        "contactoId",
+        "propietarioId",
+        "importe",
+        "probabilidad",
+        "ivaIncluido",
+        "fechaCierreEstimada",
+        "custom",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "contactos": {
+      "exportName": "contactos",
+      "columns": [
+        "id",
+        "nombre",
+        "email",
+        "telefono",
+        "empresa",
+        "cargo",
+        "custom",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "companies": {
+      "exportName": "companies",
+      "columns": ["id", "nombre", "dominio", "custom", "createdAt", "updatedAt"]
+    },
+    "microsoft_config": {
+      "exportName": "microsoftConfig",
+      "columns": [
+        "id",
+        "clientId",
+        "clientSecret",
+        "tenantId",
+        "redirectUri",
+        "scopes",
+        "activo",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "contact_companies": {
+      "exportName": "contactCompanies",
+      "columns": ["contactId", "companyId"]
+    },
+    "automatizaciones": {
+      "exportName": "automatizaciones",
+      "columns": [
+        "id",
+        "nombre",
+        "descripcion",
+        "evento",
+        "condiciones",
+        "acciones",
+        "activo",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "email_templates": {
+      "exportName": "emailTemplates",
+      "columns": [
+        "id",
+        "nombre",
+        "asunto",
+        "contenidoHtml",
+        "contenidoTexto",
+        "variables",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "email_campaigns": {
+      "exportName": "emailCampaigns",
+      "columns": [
+        "id",
+        "nombre",
+        "templateId",
+        "remitenteNombre",
+        "remitenteEmail",
+        "asunto",
+        "estado",
+        "programadaPara",
+        "enviadaEn",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "activities": {
+      "exportName": "activities",
+      "columns": [
+        "id",
+        "tipo",
+        "titulo",
+        "descripcion",
+        "entityType",
+        "entityId",
+        "userId",
+        "metadata",
+        "createdAt"
+      ]
+    },
+    "contact_lists": {
+      "exportName": "contactLists",
+      "columns": ["id", "nombre", "descripcion", "createdAt", "updatedAt"]
+    },
+    "contact_list_members": {
+      "exportName": "contactListMembers",
+      "columns": ["id", "listId", "contactoId", "addedAt"]
+    },
+    "email_tracking": {
+      "exportName": "emailTracking",
+      "columns": [
+        "id",
+        "campaignId",
+        "contactoId",
+        "tipo",
+        "metadata",
+        "createdAt"
+      ]
+    },
+    "email_subscriptions": {
+      "exportName": "emailSubscriptions",
+      "columns": [
+        "id",
+        "contactoId",
+        "listaId",
+        "estado",
+        "token",
+        "confirmadoEn",
+        "canceladoEn",
+        "createdAt"
+      ]
+    },
+    "microsoft_graph_tokens": {
+      "exportName": "microsoftGraphTokens",
+      "columns": [
+        "id",
+        "userId",
+        "accessToken",
+        "refreshToken",
+        "expiresAt",
+        "scopes",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "microsoft_graph_subscriptions": {
+      "exportName": "microsoftGraphSubscriptions",
+      "columns": [
+        "id",
+        "userId",
+        "subscriptionId",
+        "resource",
+        "changeType",
+        "notificationUrl",
+        "expiresAt",
+        "clientState",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "api_tokens": {
+      "exportName": "apiTokens",
+      "columns": [
+        "id",
+        "userId",
+        "nombre",
+        "tokenHash",
+        "prefijo",
+        "ultimoUsoEn",
+        "expiraEn",
+        "activo",
+        "createdAt"
+      ]
+    },
+    "webhook_endpoints": {
+      "exportName": "webhookEndpoints",
+      "columns": [
+        "id",
+        "nombre",
+        "url",
+        "secret",
+        "eventos",
+        "activo",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "webhook_deliveries": {
+      "exportName": "webhookDeliveries",
+      "columns": [
+        "id",
+        "endpointId",
+        "evento",
+        "statusCode",
+        "ok",
+        "error",
+        "createdAt"
+      ]
+    },
+    "custom_fields": {
+      "exportName": "customFields",
+      "columns": [
+        "id",
+        "entidad",
+        "clave",
+        "etiqueta",
+        "tipo",
+        "opciones",
+        "requerido",
+        "orden",
+        "activo",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "tareas": {
+      "exportName": "tareas",
+      "columns": [
+        "id",
+        "titulo",
+        "descripcion",
+        "estado",
+        "prioridad",
+        "vencimiento",
+        "entityType",
+        "entityId",
+        "asignadoId",
+        "creadoPor",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "archivos": {
+      "exportName": "archivos",
+      "columns": [
+        "id",
+        "nombre",
+        "mime",
+        "tamano",
+        "clave",
+        "entityType",
+        "entityId",
+        "userId",
+        "createdAt"
+      ]
+    },
+    "google_config": {
+      "exportName": "googleConfig",
+      "columns": [
+        "id",
+        "clientId",
+        "clientSecret",
+        "redirectUri",
+        "scopes",
+        "activo",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "google_tokens": {
+      "exportName": "googleTokens",
+      "columns": [
+        "id",
+        "userId",
+        "accessToken",
+        "refreshToken",
+        "expiresAt",
+        "scopes",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "equipos": {
+      "exportName": "equipos",
+      "columns": ["id", "nombre", "createdAt", "updatedAt"]
+    },
+    "equipo_miembros": {
+      "exportName": "equipoMiembros",
+      "columns": ["equipoId", "userId"]
+    },
+    "vistas_guardadas": {
+      "exportName": "vistasGuardadas",
+      "columns": ["id", "userId", "entidad", "nombre", "filtros", "createdAt"]
+    },
+    "productos": {
+      "exportName": "productos",
+      "columns": [
+        "id",
+        "nombre",
+        "sku",
+        "descripcion",
+        "precio",
+        "cobraIva",
+        "activo",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "presupuestos": {
+      "exportName": "presupuestos",
+      "columns": [
+        "id",
+        "folio",
+        "oportunidadId",
+        "contactoId",
+        "empresaId",
+        "items",
+        "subtotal",
+        "descuento",
+        "impuestos",
+        "aplicaIva",
+        "total",
+        "estado",
+        "validez",
+        "notas",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "permisos": {
+      "exportName": "permisos",
+      "columns": ["userId", "modulo", "r", "w", "x"]
+    },
+    "ajustes": {
+      "exportName": "ajustes",
+      "columns": ["clave", "valor", "updatedAt"]
+    }
+  }
+}

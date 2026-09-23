@@ -3,8 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob: 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; worker-src 'self'; manifest-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self' https: ws: wss:;" />
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta name="theme-color" content="#2563eb" />
+    <meta name="description" content="CRM de ventas, contactos y pipeline" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="CRM" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icon.svg" />
     <title>CRM</title>
   </head>
   <body>
