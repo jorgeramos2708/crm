@@ -91,24 +91,13 @@
         </Field>
         <div>
           <label class="block text-sm mb-1">Importe</label>
-          <div class="flex items-center gap-3">
-            <input
-              v-model.number="nuevaOportunidad.importe"
-              type="number"
-              min="0"
-              class="flex-1 min-w-0 px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm focus-ring"
-              @focus="onImporteFocus"
-            />
-            <label
-              class="flex shrink-0 items-center gap-1.5 text-sm cursor-pointer"
-              ><input
-                type="checkbox"
-                v-model="nuevaOportunidad.ivaIncluido"
-                class="w-4 h-4"
-              />
-              IVA</label
-            >
-          </div>
+          <input
+            v-model.number="nuevaOportunidad.importe"
+            type="number"
+            min="0"
+            class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm focus-ring"
+            @focus="onImporteFocus"
+          />
         </div>
         <Field label="Descripción">
           <Input

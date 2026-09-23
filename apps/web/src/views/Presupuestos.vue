@@ -169,34 +169,36 @@
         </div>
 
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div class="max-w-[6.5rem]">
-            <Field label="Descuento">
-              <div class="relative">
-                <input
-                  v-model.number="form.descuento"
-                  type="number"
-                  min="0"
-                  max="100"
-                  class="w-full pl-3 pr-8 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm"
+          <div class="md:col-span-2 flex items-end gap-3">
+            <div class="w-24 shrink-0">
+              <Field label="Descuento">
+                <div class="relative">
+                  <input
+                    v-model.number="form.descuento"
+                    type="number"
+                    min="0"
+                    max="100"
+                    class="w-full pl-3 pr-8 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm"
+                  />
+                  <span
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-zinc-500"
+                    >%</span
+                  >
+                </div>
+              </Field>
+            </div>
+            <div>
+              <span class="block text-sm mb-1">Impuesto</span>
+              <label
+                class="flex items-center gap-2 h-[38px] text-sm cursor-pointer select-none"
+                ><input
+                  type="checkbox"
+                  v-model="form.aplicaIva"
+                  class="w-4 h-4"
                 />
-                <span
-                  class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-zinc-500"
-                  >%</span
-                >
-              </div>
-            </Field>
-          </div>
-          <div class="max-w-[6.5rem]">
-            <span class="block text-sm mb-1">Impuesto</span>
-            <label
-              class="flex items-center gap-2 h-[38px] text-sm cursor-pointer select-none"
-              ><input
-                type="checkbox"
-                v-model="form.aplicaIva"
-                class="w-4 h-4"
-              />
-              IVA</label
-            >
+                IVA</label
+              >
+            </div>
           </div>
           <Field label="Estado">
             <Select v-model="form.estado" class="w-full">

@@ -89,24 +89,13 @@
             <span class="mb-1 block text-sm"
               >Precio <span class="text-red-500">*</span></span
             >
-            <div class="flex items-center gap-3">
-              <input
-                v-model.number="form.precio"
-                type="number"
-                min="0"
-                required
-                class="min-w-0 flex-1 px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700"
-              />
-              <label
-                class="flex shrink-0 items-center gap-1.5 text-sm cursor-pointer"
-                ><input
-                  type="checkbox"
-                  v-model="form.cobraIva"
-                  class="w-4 h-4"
-                />
-                IVA</label
-              >
-            </div>
+            <input
+              v-model.number="form.precio"
+              type="number"
+              min="0"
+              required
+              class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700"
+            />
           </div>
         </div>
         <Field label="Descripción">

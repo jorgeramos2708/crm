@@ -23,7 +23,7 @@
     </div>
 
     <Card class="overflow-hidden">
-      <Table :cols="['35%', '15%', '15%', '15%', '10%', '10%']">
+      <Table :cols="['30%', '20%', '15%', '15%', '10%', '10%']">
         <template #head>
           <tr>
             <Th>Negocio</Th>
@@ -193,7 +193,7 @@ const guardarEdicion = async () => {
     showModal.value = false;
     editing.value = null;
     await fetchNegocios();
-    toast.success("Negocio actualizado");
+    toast.exito("Negocio actualizado");
   } catch (e) {
     console.error(e);
     toast.error(e.response?.data?.error || "Error al guardar");

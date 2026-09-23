@@ -22,7 +22,7 @@
             variant="pill"
             :dot="false"
             class="tabular-nums text-xs"
-            >{{ (tareasPorEstado[col.estado] || []).length }}</Badge
+            >{{ col.estado === 'completada' ? completadas.length : (tareasPorEstado[col.estado] || []).length }}</Badge
           >
         </div>
         <div
@@ -69,7 +69,31 @@
             </div>
           </div>
           <div
-            v-if="!(tareasPorEstado[col.estado] || []).length"
+            v-if="col.estado === 'completada'"
+            class="space-y-2"
+          >
+            <div
+              v-for="t in completadas"
+              :key="t.id"
+              class="p-2.5 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700"
+            >
+              <div class="font-medium text-xs line-through text-zinc-500">{{ t.titulo }}</div>
+              <div class="text-[10px] text-zinc-400 mt-0.5">
+                Completada · {{ formatFecha(t.updatedAt || t.createdAt) }}
+              </div>
+              <div class="flex gap-2 mt-1.5 text-[11px]">
+                <Btn variant="link" size="sm" @click="eliminar(t)">Eliminar</Btn>
+              </div>
+            </div>
+            <div
+              v-if="!completadas.length"
+              class="p-3 text-center text-xs text-zinc-400"
+            >
+              Arrastra aquí para completar
+            </div>
+          </div>
+          <div
+            v-else-if="!(tareasPorEstado[col.estado] || []).length"
             class="p-3 text-center text-xs text-zinc-400"
           >
             Arrastra tareas aquí
@@ -203,6 +227,7 @@ const COLOR_BADGE = {
 };
 
 const tareas = ref([]);
+const completadas = ref([]);
 const cargando = ref(true);
 const contactos = ref([]);
 const empresas = ref([]);
@@ -230,6 +255,7 @@ const tareasPorEstado = computed(() => {
     g[e] = [];
   });
   tareas.value.forEach((t) => {
+    if (t.estado === "completada") return;
     (g[t.estado] || g.pendiente).push(t);
   });
   return g;
@@ -273,10 +299,18 @@ const fetchTareas = async () => {
         nombres[r.id] = r.nombre;
       },
     );
-    tareas.value = (data.data || []).map((t) => ({
+    const todas = (data.data || []).map((t) => ({
       ...t,
       _vinculo: t.entityId ? nombres[t.entityId] || "" : "",
     }));
+    completadas.value = todas
+      .filter((t) => t.estado === "completada")
+      .sort(
+        (a, b) =>
+          new Date(b.updatedAt || b.createdAt) -
+          new Date(a.updatedAt || a.createdAt),
+      );
+    tareas.value = todas.filter((t) => t.estado !== "completada");
   } catch (e) {
     console.error(e);
     toast.error("Error al cargar tareas");
@@ -300,6 +334,9 @@ const onDrop = async (estado) => {
   t.estado = estado;
   try {
     await axios.put(`/api/tareas/${t.id}`, { estado });
+    if (estado === "completada") {
+      await fetchTareas();
+    }
   } catch (e) {
     t.estado = anterior;
     toast.error(e.response?.data?.error || "Error moviendo la tarea");

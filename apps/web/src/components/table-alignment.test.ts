@@ -114,7 +114,7 @@ describe("Blindado: número de columnas por tabla", () => {
   const casos = [
     {
       archivo: "Negocios",
-      cols: ["35%", "15%", "15%", "15%", "10%", "10%"],
+      cols: ["30%", "20%", "15%", "15%", "10%", "10%"],
       headers: ["Negocio", "Etapa", "Importe", "Probabilidad"],
     },
     {
