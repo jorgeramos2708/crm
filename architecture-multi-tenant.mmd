@@ -1,0 +1,30 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#0ea5e9', 'edgeLabelBackground': '#e0f2fe'}}}%%
+sequenceDiagram
+    autonumber
+    participant Client as 🌐 Client
+    participant NGINX as 🌐 NGINX
+    participant Kong as 🚪 Kong
+    participant TenantMW as 🏢 Tenant Middleware
+    participant AuthMW as 🔐 Auth Middleware
+    participant API as 🚀 Fastify Route
+    participant DB as 🗄️ PostgreSQL
+    participant RLS as 🔒 RLS Policy
+
+    Client->>NGINX: GET /api/oportunidades\nHost: acme.crm.com
+    NGINX->>Kong: Forward
+    Kong->>TenantMW: Resolve tenant
+    TenantMW->>Kong: subdomain='acme'
+    TenantMW->>DB: SELECT id FROM tenants WHERE subdominio='acme'
+    DB-->>TenantMW: tenant_id = 'uuid-acme'
+    TenantMW->>Kong: Set x-tenant-id header
+    Kong->>AuthMW: Forward
+    AuthMW->>AuthMW: Validate JWT/Cookie
+    AuthMW->>DB: SELECT * FROM users WHERE id = user_id AND tenant_id = 'uuid-acme'
+    DB-->>AuthMW: user (role, activo)
+    AuthMW->>API: Set request.user + request.tenantId
+    API->>DB: SELECT set_tenant_context('uuid-acme')
+    DB-->>RLS: SET LOCAL app.current_tenant_id = 'uuid-acme'
+    API->>DB: SELECT * FROM oportunidades WHERE pipeline_id = 'p1'
+    RLS->>DB: Policy: tenant_id = current_setting('app.current_tenant_id')::uuid
+    DB-->>API: Only acme's opportunities
+    API-->>Client: 200 OK + data

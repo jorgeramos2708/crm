@@ -1,0 +1,42 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#2563eb', 'edgeLabelBackground': '#f8fafc'}}}%%
+sequenceDiagram
+    autonumber
+    actor Sender as 📧 Email Sender
+    participant NGINX as 🌐 NGINX
+    participant InboundW as 📥 Inbound Worker
+    participant Parser as 📝 Mailparser
+    participant ThreadDet as 🧵 Thread Detection
+    participant ContactMatch as 🔍 Contact Match
+    participant DB as 🗄️ PostgreSQL
+    participant Thread as 🧵 Thread
+    participant Message as 📧 Message
+    participant Activity as 📋 Activity
+    participant Push as 🔔 Push Notification
+    participant FE as 🎨 Frontend
+
+    Sender->>NGINX: SMTP/Graph/IMAP
+    NGINX->>InboundW: Raw MIME
+    InboundW->>Parser: Parse MIME
+    Parser->>ThreadDet: Parsed email + headers
+    ThreadDet->>DB: SELECT thread_id WHERE message_id IN (References, In-Reply-To)
+    alt Thread exists
+        DB-->>ThreadDet: thread_id
+    else New thread
+        ThreadDet->>DB: INSERT thread
+        DB-->>ThreadDet: new thread_id
+    end
+    ThreadDet->>ContactMatch: from_email
+    ContactMatch->>DB: SELECT id FROM contactos WHERE email = from_email
+    alt Contact exists
+        DB-->>ContactMatch: contact_id
+    else New lead
+        ContactMatch->>DB: INSERT contact (lead)
+        DB-->>ContactMatch: new contact_id
+    end
+    ContactMatch->>DB: INSERT message (thread_id, contact_id, direction='inbound')
+    DB-->>Message: message_id
+    Message->>Thread: UPDATE last_message_at, message_count++
+    Message->>Activity: INSERT activity (email_received)
+    Message->>Push: Real-time notification
+    Push->>FE: WebSocket → UI update
+    FE->>User: 🔔 New email in thread

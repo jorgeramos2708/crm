@@ -1,0 +1,35 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#f97316', 'edgeLabelBackground': '#fef3c7'}}}%%
+sequenceDiagram
+    autonumber
+    actor User as 👤 User (Mobile)
+    participant App as 📱 Mobile App
+    participant IDB as 💾 IndexedDB (Dexie)
+    participant Sync as 🔄 Sync Engine
+    participant API as 🚀 API
+    participant DB as 🗄️ PostgreSQL
+    participant Worker as ⚙️ Workers
+
+    User->>App: Create contact (offline)
+    App->>IDB: INSERT contact (optimistic)
+    App->>User: ✅ Immediate feedback
+    App->>Sync: queueMutation(contactos, id, 'create', payload)
+    Sync->>IDB: INSERT pendingMutations
+    alt Online
+        Sync->>API: POST /api/contactos
+        API->>DB: INSERT contact
+        DB-->>API: contact_id
+        API-->>Sync: 201 + server_id
+        Sync->>IDB: DELETE mutation + UPDATE contact (server_id)
+    else Offline
+        Sync->>User: ⏳ Queued for sync
+    end
+    
+    %% Later: Background Sync
+    Sync->>API: GET /api/contactos?since=lastSync
+    API->>DB: SELECT * FROM contactos WHERE updatedAt > since
+    DB-->>API: server_changes
+    API-->>Sync: server_changes
+    Sync->>IDB: Upsert batch (upsertBatch)
+    Sync->>IDB: UPDATE syncMetadata (lastSync)
+    Sync->>App: Real-time update (liveQuery)
+    App->>User: 🔄 Synced silently

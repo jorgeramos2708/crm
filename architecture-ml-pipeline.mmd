@@ -1,0 +1,40 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#8b5cf6', 'edgeLabelBackground': '#f3e8ff'}}}%%
+graph LR
+    subgraph DAILY["🌙 DAILY RETRAIN (03:00 UTC)"]
+        direction TB
+        Scheduler["⏰ Prefect Scheduler\n03:00 UTC"]
+        Extract["📥 Extract\nbuild_deal_features()\n~50k deals × 80 features"]
+        Train["🏋️ Train\nXGBoost/LightGBM\nTimeSeriesSplit CV\nMLflow tracking"]
+        Evaluate["📊 Evaluate\nAUC, Brier, Calibration\nPSI drift check"]
+        Promote["🚀 Promote\nMLflow Registry\nAuto-promote if AUC+1%"]
+        Deploy["🚀 Deploy\nRolling update\nBlue/Green ML API"]
+    end
+    
+    Scheduler --> Extract
+    Extract --> Train
+    Train --> Evaluate
+    Evaluate -->|AUC+1%| Promote
+    Promote --> Deploy
+    Deploy -.->|Hot reload| ML_API
+
+    subgraph REALTIME["⚡ REAL-TIME INFERENCE"]
+        direction TB
+        API["🚀 API Gateway"]
+        ML_API["🤖 ML API\nFastAPI"]
+        FeatureEng["🔧 Feature Eng\nReal-time SQL"]
+        Model["🏋️ Model\nXGBoost/LightGBM"]
+        NBA["🎯 NBA Engine"]
+        FE["🎨 Frontend"]
+    end
+    
+    FE -->|PUT /oportunidades/:id| API
+    API -->|WebSocket push| FE
+    API -->|POST /predict| ML_API
+    ML_API --> FeatureEng
+    FeatureEng -.->|SQL| DB
+    ML_API --> Model
+    Model --> ML_API
+    ML_API --> NBA
+    NBA --> ML_API
+    ML_API -->|{prob, actions}| API
+    API -->|WebSocket| FE

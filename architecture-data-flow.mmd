@@ -1,0 +1,95 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#f97316', 'edgeLabelBackground': '#fff7ed'}}}%%
+graph TB
+    subgraph SOURCE["📡 SOURCE SYSTEMS"]
+        CRM["📱 CRM App\n• User actions\n• API calls"]
+        Mobile["📱 Mobile App\n• Offline mutations"]
+        Webhooks["🔗 Webhooks\n• External events"]
+        Email["📧 Email Systems\n• SMTP/Graph/IMAP"]
+    end
+    
+    subgraph INGEST["📥 DATA INGESTION"]
+        API["🚀 API Gateway\n• Fastify\n• Auth + Tenant\n• Rate limit"]
+        Workers["⚙️ Workers\n• BullMQ\n• Email, Sequences\n• Enrichment, Sync"]
+        CDC["📡 CDC (pg_notify)\n• Real-time changes\n• Meilisearch sync"]
+        ML["🤖 ML Pipeline\n• Feature store\n• Model serving"]
+    end
+    
+    subgraph PROCESS["⚙️ PROCESSING LAYER"]
+        Stream["🌊 Stream Processing\n• Redis Streams\n• Real-time events\n• Cross-service"]
+        Cache["💾 Cache Layer\n• Redis Cluster\n• Sessions, config\n• Rate limits"]
+        Search["🔍 Search Index\n• Meilisearch\n• Full-text + facets"]
+        MLFeature["🔧 Feature Store\n• Feast + Redis\n• Online/Offline"]
+    end
+    
+    subgraph STORAGE["💾 STORAGE LAYER"]
+        PG[("🐘 PostgreSQL 16\n• Primary + Replica\n• RLS + Partitions\n• Audit partitions")]
+        Redis[("🔴 Redis Cluster\n• Sessions, Cache\n• BullMQ, Pub/Sub\n• Streams")]
+        MinIO[("🪣 MinIO (S3)\n• Files, Attachments\n• Versioned, Encrypted")]
+        Meili[("🔍 Meilisearch\n• Full-text search\n• Facets, Ranking\n• Synonyms")]
+        Audit[("📝 Audit Log\n• Partitioned by month\n• Hash chain (SHA256)\n• Immutable")]
+    end
+    
+    subgraph SERVE["🎯 SERVING LAYER"]
+        API[("🚀 API (Fastify)\n• REST + WebSocket\n• OpenAPI 3.1\n• Multi-tenant")]
+        ML_API[("🤖 ML API\n• Win prob + NBA\n• SHAP explanations\n• A/B testing")]
+        GraphQL[("🔗 GraphQL (Future)\n• Federation\n• Subscriptions")]
+        Mobile_API[("📱 Mobile API\n• Offline sync\n• Conflict resolution\n• Push notifications")]
+    end
+    
+    subgraph FRONTEND["🎨 FRONTEND LAYER"]
+        Web["🌐 Web App (Vue 3)\n• 19 Views\n• Command Palette\n• Real-time WS"]
+        Mobile["📱 Mobile (Capacitor)\n• Offline-first\n• Native plugins\n• Push + Background sync"]
+        Portal["🏢 Buyer Portal\n• Deal Rooms\n• e-Sign\n• Analytics"]
+        Admin["⚙️ Admin Panel\n• Tenant mgmt\n• RBAC\n• Audit viewer"]
+    end
+    
+    subgraph EXTERNAL["🔗 EXTERNAL INTEGRATIONS"]
+        Clearbit["🔍 Clearbit\n• Enrichment"]
+        Apollo["🚀 Apollo\n• Enrichment"]
+        Stripe["💳 Stripe\n• Billing"]
+        Google["🔵 Google\n• Gmail/Calendar/Contacts"]
+        Microsoft["🔷 Microsoft\n• Graph API"]
+        SendGrid["📧 SendGrid\n• Transactional"]
+        Meilisearch["🔍 Meilisearch"]
+        Sentry["🐛 Sentry"]
+        Slack["💬 Slack"]
+        DocuSign["✍️ DocuSign"]
+        Whisper["🎙️ Whisper"]
+        OpenAI["🤖 OpenAI"]
+        Metabase["📊 Metabase"]
+    end
+
+    %% Connections
+    SOURCE --> INGEST
+    INGEST --> PROCESS
+    PROCESS --> STORAGE
+    STORAGE --> SERVE
+    SERVE --> FRONTEND
+    FRONTEND -.->|HTTPS/WS| API
+    SERVE -.->|SQL| STORAGE
+    SERVE -.->|Commands| REDIS
+    SERVE -.->|HTTP| EXTERNAL
+    WORKERS -.->|Commands| REDIS
+    WORKERS -.->|SQL| STORAGE
+    CDC -.->|pg_notify| MEILI
+    ML -.->|Features| FEATURE_STORE
+    ML -.->|Predictions| NBA_ENGINE
+    SEARCH -.->|Index| MEILI
+    CACHE -.->|Cache| REDIS
+    STREAM -.->|Pub/Sub| FE
+    AUDIT -.->|Immutable| AUDIT_LOG
+    AUDIT -.->|Verify| HASH_CHAIN
+    SERVE -.->|HTTPS| EXTERNAL
+    FRONTEND -.->|HTTPS/WS| API
+    MOBILE -.->|HTTPS/WS| API
+    MOBILE -.->|Sync| SYNC_ENGINE
+    SYNC_ENGINE -.->|HTTPS| API
+    BACKUP -.->|DR| PRIMARY
+    MINIO -.->|Replication| BACKUP
+    CI_CD -.->|Deploy| K8S
+    ARGOCD -.->|GitOps| K8S
+    MONITORING -.->|Scrape| PROMETHEUS
+    PROMETHEUS -.->|Metrics| GRAFANA
+    LOKI -.->|Logs| GRAFANA
+    TEMPO -.->|Traces| GRAFANA
+    ALERTMANAGER -.->|Alert| SLACK

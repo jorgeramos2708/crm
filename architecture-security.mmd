@@ -1,0 +1,53 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#22c55e', 'edgeLabelBackground': '#dcfce7'}}}%%
+graph TB
+    subgraph INTERNET["🌐 INTERNET"]
+        Attacker["👤 Attacker"]
+        LegitUser["👤 Legit User"]
+    end
+    
+    subgraph DMZ["🛡️ DMZ (NGINX + KONG + WAF)"]
+        WAF["🛡️ WAF\n• SQLi/XSS block\n• Rate limit\n• Geo-block"]
+        Kong["🚪 Kong\n• Auth\n• Rate limit\n• Tenant resolve"]
+    end
+    
+    subgraph VPC["☁️ VPC (PRIVATE SUBNETS)"]
+        subgraph PUBLIC["🌐 PUBLIC SUBNET"]
+            NLB["⚖️ NLB\n• TLS termination\n• Health checks"]
+        end
+        
+        subgraph PRIVATE["🔒 PRIVATE SUBNETS"]
+            subgraph APP["🚀 APP TIER"]
+                API["🚀 API (Fastify)\n• Private only\n• mTLS ready"]
+                Workers["⚙️ Workers\n• No ingress\n• Queue consumers"]
+                ML["🤖 ML API\n• Internal only"]
+            end
+            
+            subgraph DATA["🗄️ DATA TIER"]
+                Primary["🐘 Primary PG\n• Encrypted at rest\n• Automated backups"]
+                Replica["🔄 Replica\n• Read scaling"]
+                Redis["🔴 Redis Cluster\n• Encrypted transit"]
+                MinIO["🪣 MinIO\n• SSE-S3 encryption"]
+            end
+        end
+    end
+    
+    subgraph MGMT["🔧 MANAGEMENT"]
+        Bastion["🏰 Bastion Host\n• SSM Session Manager\n• No SSH keys"]
+        Monitoring["📊 Monitoring\n• Prometheus/Grafana\n• Loki/Tempo"]
+        Vault["🔐 Vault/SealedSecrets\n• DB passwords\n• API keys\n• Certificates"]
+    end
+    
+    LegitUser --> WAF
+    Attacker -.->|BLOCKED| WAF
+    WAF --> Kong
+    Kong --> NLB
+    NLB --> API
+    API -.->|mTLS| Primary
+    API -.->|Commands| Workers
+    Workers -.->|Commands| Redis
+    API -.->|HTTPS| EXT_SVC
+    Workers -.->|HTTPS| EXT_SVC
+    
+    Bastion -.->|SSM| API
+    Monitoring -.->|Scrape| API
+    Vault -.->|Inject| API

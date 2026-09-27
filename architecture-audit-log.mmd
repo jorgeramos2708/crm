@@ -1,0 +1,29 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#ef4444', 'edgeLabelBackground': '#fef2f2'}}}%%
+sequenceDiagram
+    autonumber
+    participant App as 🚀 App
+    participant Audit as 📝 AuditService
+    participant DB as 🗄️ PostgreSQL
+    participant Verify as ✅ VerifyChain
+
+    App->>Audit: log({eventType: 'oportunidad.actualizada', ...})
+    Audit->>DB: SELECT currentHash FROM audit_log WHERE tenantId=? ORDER BY timestamp DESC LIMIT 1
+    DB-->>Audit: previousHash = "a1b2c3..."
+    Audit->>Audit: currentHash = SHA256(JSON.stringify({...event, previousHash}))
+    Audit->>DB: INSERT audit_log {..., previousHash, currentHash}
+    
+    %% Later: Verification
+    Auditor->>Verify: verifyChain(tenantId, startDate, endDate)
+    Verify->>DB: SELECT * FROM audit_log WHERE tenantId=? ORDER BY timestamp
+    DB-->>Verify: [entry1, entry2, entry3...]
+    loop For each entry
+        Verify->>Verify: expected = SHA256({...entry, previousHash})
+        Verify->>Verify: assert entry.currentHash === expected
+        Verify->>Verify: assert entry.previousHash === previousHash
+        Verify->>Verify: previousHash = entry.currentHash
+    end
+    alt Chain valid
+        Verify-->>Auditor: {valid: true}
+    else Chain broken
+        Verify-->>Auditor: {valid: false, brokenAt: [{id, expected, actual}]}
+    end

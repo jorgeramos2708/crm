@@ -1,0 +1,43 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#ec4899', 'edgeLabelBackground': '#fce7f3'}}}%%
+graph LR
+    subgraph DEV["👨‍💻 DEVELOPER"]
+        Commit["📝 git commit\nfeat: add email sequences"]
+        Push["📤 git push origin feature/email-sequences"]
+    end
+    
+    subgraph CI["🔄 CI (GITHUB ACTIONS)"]
+        Lint["🔍 Lint\n• ESLint + Prettier\n• TypeScript strict"]
+        TypeCheck["🔍 Type Check\n• tsc --noEmit"]
+        UnitTest["🧪 Unit Tests\n• Vitest (114 tests)\n• Coverage >80%"]
+        Build["🐳 Build Docker\n• Multi-stage\n• SBOM + Sign"]
+        Security["🔒 Security\n• Trivy + CodeQL\n• Dependabot"]
+        Contract["📋 Contract Test\n• Pact (provider)\n• Schema lock"]
+    end
+    
+    subgraph CD["🚀 CD (ARGOCD + GITOPS)"]
+        Staging["🚀 Deploy Staging\n• ArgoCD sync\n• Smoke tests\n• Performance baseline"]
+        Approve["✅ Manual Approve\n• Slack notification\n• 1-click promote"]
+        Canary["🐤 Canary Deploy\n• 10% traffic\n• 10 min observation\n• Auto-rollback on SLO breach"]
+        Production["🚀 Production\n• 100% traffic\n• Health checks\n• Rollback < 2min"]
+    end
+    
+    subgraph POST["📊 POST-DEPLOY"]
+        Smoke["💨 Smoke Tests\n• Critical paths\n• API health"]
+        Monitor["📊 Monitor\n• SLO burn rate\n• Error rate <0.1%\n• Latency p99 <200ms"]
+        Notify["📢 Notify\n• Slack #releases\n• Release notes\n• Changelog"]
+    end
+    
+    Commit --> Push
+    Push --> Lint
+    Lint --> TypeCheck
+    TypeCheck --> UnitTest
+    UnitTest --> Build
+    Build --> Security
+    Security --> Contract
+    Contract --> Staging
+    Staging --> Approve
+    Approve --> Canary
+    Canary --> Production
+    Production --> Smoke
+    Smoke --> Monitor
+    Monitor --> Notify

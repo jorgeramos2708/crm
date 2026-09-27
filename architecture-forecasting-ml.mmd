@@ -1,0 +1,42 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#a855f7', 'edgeLabelBackground': '#f3e8ff'}}}%%
+sequenceDiagram
+    autonumber
+    participant FE as 🎨 Frontend
+    participant API as 🚀 API Gateway
+    participant ML as 🤖 ML Service
+    participant FeatureEng as 🔧 Feature Engineering
+    participant Model as 🏋️ Model (XGBoost)
+    participant NBA as 🎯 NBA Engine
+    participant DB as 🗄️ PostgreSQL
+    participant Scheduler as ⏰ Scheduler
+
+    Note over FE, Scheduler: DAILY BATCH (03:00 UTC)
+    Scheduler->>API: Trigger daily forecast
+    API->>ML: POST /predict/win-probability (batch 500 deals)
+    ML->>FeatureEng: build_deal_features(deal_ids)
+    FeatureEng->>DB: Complex SQL (CTEs: temporal, owner, stage, company, activity)
+    DB-->>FeatureEng: Feature matrix (500 x 80 features)
+    FeatureEng-->>ML: Feature matrix
+    ML->>Model: predict(features)
+    Model-->>ML: win_probabilities (500 floats)
+    ML->>NBA: generate_actions(deal, prob)
+    NBA->>NBA: Evaluate rules (stale_high_prob, closing_no_activity, etc.)
+    NBA-->>ML: Top 3 actions per deal
+    ML-->>API: {deal_id, win_prob, risk, actions}[]
+    API->>DB: UPDATE oportunidades SET ml_score=?, risk_level=?
+    API-->>FE: WebSocket push → DealForecastCard update
+    
+    Note over FE, Scheduler: REAL-TIME (on deal change)
+    FE->>API: PUT /api/oportunidades/:id (stage change)
+    API->>DB: UPDATE oportunidad + emitEvent('oportunidad.actualizada')
+    API->>ML: POST /predict/win-probability (single deal)
+    ML->>FeatureEng: build_deal_features([deal_id])
+    FeatureEng->>DB: Real-time features (activity count, days_in_stage)
+    DB-->>FeatureEng: Fresh features
+    FeatureEng-->>ML: Features
+    ML->>Model: predict([features])
+    Model-->>ML: prob (0.73)
+    ML->>NBA: generate_actions(deal, 0.73)
+    NBA-->>ML: [{rule: 'stale_high_prob', action: '...', priority: 1}]
+    ML-->>API: {win_prob: 0.73, risk: 'low', actions: [...]}
+    API-->>FE: WebSocket → DealForecastCard update + NBAFeed push
