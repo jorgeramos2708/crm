@@ -60,6 +60,34 @@ jobs:
       - name: Build Docker
         run: docker build -t crm-web -f Dockerfile.vue .
 
+  mermaid:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install mermaid-cli
+        run: npm install -g @mermaid-js/mermaid-cli
+
+      - name: Validate Mermaid diagrams
+        run: |
+          echo "Validating Mermaid diagrams..."
+          for file in $(find . -name "*.mmd" -not -path "./node_modules/*" -not -path "./.git/*"); do
+            echo "Checking $file..."
+            mmdc -i "$file" -o /dev/null
+            if [ $? -ne 0 ]; then
+              echo "::error file=$file::Mermaid syntax error in $file"
+              exit 1
+            fi
+          done
+        shell: bash
+
   integration:
     runs-on: ubuntu-latest
     timeout-minutes: 20
