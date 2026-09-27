@@ -72,23 +72,33 @@ const boxedClasses = computed(() => [
 ]);
 
 const pulseClass = computed(() => {
-  if (!props.pulse) return '';
-  return 'animate-pulse-badge';
+  if (!props.pulse) return "";
+  return "animate-pulse-badge";
 });
 
-watch(() => props.pulse, (val) => {
-  if (val) {
-    setTimeout(() => {
-      // Auto-reset pulse after animation
-    }, 1000);
-  }
-});
+watch(
+  () => props.pulse,
+  (val) => {
+    if (val) {
+      setTimeout(() => {
+        // Auto-reset pulse after animation
+      }, 1000);
+    }
+  },
+);
 </script>
 
 <style scoped>
 @keyframes pulse-badge {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.6; transform: scale(1.1); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.1);
+  }
 }
 .animate-pulse-badge {
   animation: pulse-badge 0.8s ease-in-out;

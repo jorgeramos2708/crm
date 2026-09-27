@@ -1,7 +1,7 @@
 <template>
   <div class="p-6">
     <header class="mb-6 flex justify-end">
-      <Btn @click="openModal(null)">+ Nueva Lista</Btn>
+      <Btn @click="openModal(null)" variant="icon">+</Btn>
     </header>
 
     <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -25,32 +25,38 @@
           <Btn variant="secondary" class="flex-1" to="/contactos"
             >Ver contactos</Btn
           >
-          <Btn
-            variant="link"
-            class="text-zinc-600 dark:text-zinc-400"
-            @click="openModal(lista)"
-            >Editar</Btn
-          >
-          <button
-            @click="eliminarLista(lista)"
-            class="px-4 py-2 text-center text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-sm"
-          >
-            Eliminar
-          </button>
+          <div class="flex gap-1">
+            <Btn
+              variant="ghost"
+              title="Editar"
+              aria-label="Editar"
+              @click="openModal(lista)"
+            >
+              <Icon name="editar" class="h-4 w-4" />
+            </Btn>
+            <Btn
+              variant="ghost"
+              class="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+              title="Eliminar"
+              aria-label="Eliminar"
+              @click="eliminarLista(lista)"
+            >
+              <Icon name="eliminar" class="h-4 w-4" />
+            </Btn>
+          </div>
         </div>
       </Card>
 
       <Card v-if="cargando && !listas.length" class="col-span-full p-6"
         ><Skeleton :filas="3"
       /></Card>
-      <Card
-        v-if="!cargando && listas.length === 0"
-        class="col-span-full p-12 text-center"
-      >
-        <p class="text-zinc-500 dark:text-zinc-400 mb-4">
+      <Card v-if="!cargando && listas.length === 0" class="col-span-full p-12">
+        <EmptyState icon="listas">
           No hay listas creadas
-        </p>
-        <Btn @click="openModal(null)" size="lg">Crear primera lista</Btn>
+          <template #action>
+            <Btn @click="openModal(null)" variant="icon">+</Btn>
+          </template>
+        </EmptyState>
       </Card>
     </div>
 
@@ -114,8 +120,10 @@ import Skeleton from "../components/Skeleton.vue";
 import { toast } from "../utils/toast";
 import { confirmar } from "../utils/confirm";
 import Btn from "../components/Btn.vue";
+import Icon from "../components/Icon.vue";
 import Card from "../components/Card.vue";
 import Modal from "../components/Modal.vue";
+import EmptyState from "../components/EmptyState.vue";
 import Field from "../components/Field.vue";
 import Input from "../components/Input.vue";
 

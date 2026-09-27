@@ -10,7 +10,7 @@
         <option value="vencido">Vencido</option>
       </Select>
       <div class="ml-auto">
-        <Btn @click="openModal(null)">+ Nuevo Presupuesto</Btn>
+        <Btn @click="openModal(null)" variant="icon">+</Btn>
       </div>
     </div>
 
@@ -40,9 +40,17 @@
           <Td align="right" class="font-medium tabular-nums">{{
             formatCurrency(p.total)
           }}</Td>
-          <td class="px-6 py-4 text-right text-sm">
+          <td class="px-6 py-4 text-right text-sm whitespace-nowrap">
             <Btn variant="link" class="mr-3" @click="verDetalle(p)">Ver</Btn>
-            <Btn variant="link-danger" @click="eliminar(p)">Eliminar</Btn>
+            <Btn
+              variant="ghost"
+              class="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+              title="Eliminar"
+              aria-label="Eliminar"
+              @click="eliminar(p)"
+            >
+              <Icon name="eliminar" class="h-4 w-4" />
+            </Btn>
           </td>
         </tr>
         <TableState
@@ -51,7 +59,12 @@
           loading
         />
         <TableState v-if="!cargando && !presupuestos.length" :colspan="4">
-          Sin presupuestos.
+          <EmptyState icon="presupuestos">
+            Sin presupuestos.
+            <template #action>
+              <Btn @click="openModal(null)" variant="icon">+</Btn>
+            </template>
+          </EmptyState>
         </TableState>
       </Table>
     </Card>
@@ -357,6 +370,7 @@ import { confirmar } from "../utils/confirm";
 import { formatCurrency, loadCurrency } from "../utils/currency";
 import FechaInput from "../components/FechaInput.vue";
 import Btn from "../components/Btn.vue";
+import Icon from "../components/Icon.vue";
 import Card from "../components/Card.vue";
 import Table from "../components/Table.vue";
 import Modal from "../components/Modal.vue";
@@ -366,6 +380,7 @@ import Select from "../components/Select.vue";
 import Th from "../components/Th.vue";
 import Td from "../components/Td.vue";
 import TableState from "../components/TableState.vue";
+import EmptyState from "../components/EmptyState.vue";
 
 const presupuestos = ref([]);
 const oportunidades = ref([]);

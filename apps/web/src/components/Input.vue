@@ -29,7 +29,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref } from "vue";
 
 defineProps({
   type: { type: String, default: "text" },
@@ -57,7 +57,8 @@ const focused = ref(false);
 }
 .focus-ring:not(:disabled) {
   border-color: var(--marca, #2563eb);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--marca, #2563eb) 20%, transparent);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--marca, #2563eb) 20%, transparent);
 }
 .error-ring:not(:disabled) {
   @apply border-red-500 ring-2 ring-red-500/20 dark:ring-red-500/30;

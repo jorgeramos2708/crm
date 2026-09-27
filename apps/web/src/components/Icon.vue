@@ -14,7 +14,7 @@
     stroke-linecap="round"
     stroke-linejoin="round"
     aria-hidden="true"
-    :class="{ 'icon-hover': hoverable }"
+    :class="{ 'icon-hover': props.hoverable && !hovered.value }"
     @mouseenter="hovered = true"
     @mouseleave="hovered = false"
   >
@@ -26,7 +26,7 @@
     :size="size"
     :stroke-width="strokeWidth"
     aria-hidden="true"
-    :class="{ 'icon-hover': hoverable }"
+    :class="{ 'icon-hover': props.hoverable && !hovered.value }"
     @mouseenter="hovered = true"
     @mouseleave="hovered = false"
   />
@@ -64,6 +64,14 @@ import {
   KeyRound,
   Plug,
   Palette,
+  Pencil,
+  Trash2,
+  CircleCheck,
+  RotateCcw,
+  Plus,
+  Search,
+  Download,
+  Upload,
 } from "@lucide/vue";
 
 const props = defineProps({
@@ -106,12 +114,18 @@ const icons = {
   tokens: KeyRound,
   conexiones: Plug,
   marca: Palette,
+  editar: Pencil,
+  eliminar: Trash2,
+  completar: CircleCheck,
+  reabrir: RotateCcw,
+  plus: Plus,
+  search: Search,
+  download: Download,
+  upload: Upload,
 };
 
 const icon = computed(() => icons[props.name] || House);
-const hovered = ref(false)
-
-const hoverable = computed(() => props.hoverable && !hovered.value)
+const hovered = ref(false);
 </script>
 
 <style scoped>

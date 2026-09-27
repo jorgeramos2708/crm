@@ -46,96 +46,102 @@
         class="fixed z-[60] w-72 rounded-xl border border-zinc-200 bg-white p-3 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
         :style="posStyle"
       >
-      <div class="mb-2 flex items-center justify-between">
-        <button
-          type="button"
-          class="rounded p-1 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-700"
-          aria-label="Mes anterior"
-          @click="mesAnterior"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-4 w-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            stroke-width="2"
+        <div class="mb-2 flex items-center justify-between">
+          <button
+            type="button"
+            class="rounded p-1 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+            aria-label="Mes anterior"
+            @click="mesAnterior"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M15.75 19.5L8.25 12l7.5-7.5"
-            />
-          </svg>
-        </button>
-        <div class="text-sm font-medium capitalize text-zinc-700 dark:text-zinc-200">
-          {{ MESES[vistaMes] }} {{ vistaAnio }}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M15.75 19.5L8.25 12l7.5-7.5"
+              />
+            </svg>
+          </button>
+          <div
+            class="text-sm font-medium capitalize text-zinc-700 dark:text-zinc-200"
+          >
+            {{ MESES[vistaMes] }} {{ vistaAnio }}
+          </div>
+          <button
+            type="button"
+            class="rounded p-1 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+            aria-label="Mes siguiente"
+            @click="mesSiguiente"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M8.25 4.5l7.5 7.5-7.5 7.5"
+              />
+            </svg>
+          </button>
         </div>
-        <button
-          type="button"
-          class="rounded p-1 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-700"
-          aria-label="Mes siguiente"
-          @click="mesSiguiente"
+
+        <div
+          class="mb-1 grid grid-cols-7 gap-0.5 text-center text-[11px] font-semibold text-zinc-400"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-4 w-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            stroke-width="2"
+          <span v-for="d in DIAS" :key="d">{{ d }}</span>
+        </div>
+
+        <div class="grid grid-cols-7 gap-0.5">
+          <button
+            v-for="(celda, i) in celdas"
+            :key="i"
+            type="button"
+            class="h-8 rounded-md text-sm transition-colors"
+            :class="
+              celda.esHoy
+                ? 'font-bold text-blue-600 dark:text-blue-400'
+                : celda.seleccionado
+                  ? 'bg-blue-600 font-medium text-white'
+                  : celda.dentro
+                    ? 'text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-700'
+                    : 'text-zinc-300 dark:text-zinc-600'
+            "
+            :disabled="!celda.dentro"
+            @click="seleccionar(celda)"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M8.25 4.5l7.5 7.5-7.5 7.5"
-            />
-          </svg>
-        </button>
-      </div>
+            {{ celda.dia }}
+          </button>
+        </div>
 
-      <div class="mb-1 grid grid-cols-7 gap-0.5 text-center text-[11px] font-semibold text-zinc-400">
-        <span v-for="d in DIAS" :key="d">{{ d }}</span>
-      </div>
-
-      <div class="grid grid-cols-7 gap-0.5">
-        <button
-          v-for="(celda, i) in celdas"
-          :key="i"
-          type="button"
-          class="h-8 rounded-md text-sm transition-colors"
-          :class="
-            celda.esHoy
-              ? 'font-bold text-blue-600 dark:text-blue-400'
-              : celda.seleccionado
-                ? 'bg-blue-600 font-medium text-white'
-                : celda.dentro
-                  ? 'text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-700'
-                  : 'text-zinc-300 dark:text-zinc-600'
-          "
-          :disabled="!celda.dentro"
-          @click="seleccionar(celda)"
+        <div
+          class="mt-2 flex justify-between border-t border-zinc-100 pt-2 dark:border-zinc-700"
         >
-          {{ celda.dia }}
-        </button>
-      </div>
-
-      <div class="mt-2 flex justify-between border-t border-zinc-100 pt-2 dark:border-zinc-700">
-        <button
-          type="button"
-          class="text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
-          @click="hoy"
-        >
-          Hoy
-        </button>
-        <button
-          type="button"
-          class="text-xs font-medium text-zinc-500 hover:underline"
-          @click="limpiar"
-        >
-          Limpiar
-        </button>
-      </div>
+          <button
+            type="button"
+            class="text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
+            @click="hoy"
+          >
+            Hoy
+          </button>
+          <button
+            type="button"
+            class="text-xs font-medium text-zinc-500 hover:underline"
+            @click="limpiar"
+          >
+            Limpiar
+          </button>
+        </div>
       </div>
     </Teleport>
   </div>
@@ -192,7 +198,9 @@ watch(
   (v) => {
     texto.value = isoAtexto(v);
     if (v) {
-      const m = String(v).slice(0, 10).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      const m = String(v)
+        .slice(0, 10)
+        .match(/^(\d{4})-(\d{2})-(\d{2})$/);
       if (m) {
         vistaMes.value = Number(m[2]) - 1;
         vistaAnio.value = Number(m[1]);

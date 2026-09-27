@@ -5,7 +5,11 @@
   <div class="overflow-x-auto">
     <table :class="cols && cols.length ? 'w-full table-fixed' : 'w-full'">
       <colgroup v-if="cols && cols.length">
-        <col v-for="(c, i) in cols" :key="i" :style="typeof c === 'object' ? c : { width: c }" />
+        <col
+          v-for="(c, i) in cols"
+          :key="i"
+          :style="typeof c === 'object' ? c : { width: c }"
+        />
       </colgroup>
       <thead class="bg-zinc-50 dark:bg-zinc-700/50">
         <slot name="head" />
@@ -23,7 +27,7 @@
 
 <script>
 export default {
-  name: 'Table',
+  name: "Table",
   props: {
     cols: { type: Array, default: null },
   },

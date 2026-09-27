@@ -1,13 +1,18 @@
 <template>
   <div class="p-6">
     <div class="mb-4 flex flex-wrap items-center gap-2">
-      <Input
-        v-model="q"
-        @input="fetchNegocios"
-        type="text"
-        placeholder="Buscar negocio..."
-        class="flex-1 min-w-[200px]"
-      />
+      <div
+        class="flex items-center gap-2 rounded-lg px-3 py-1.5 flex-1 min-w-[300px]"
+      >
+        <Icon name="chart-column" class="h-4 w-4 text-zinc-400" />
+        <Input
+          v-model="q"
+          @input="fetchNegocios"
+          type="text"
+          placeholder="Buscar negocio..."
+          class="border-0 bg-transparent focus:ring-0 p-0"
+        />
+      </div>
       <Select v-model="stageId" @change="fetchNegocios">
         <option value="">Todas las etapas</option>
         <option v-for="s in stages" :key="s.id" :value="s.id">
@@ -19,7 +24,9 @@
         <option value="mio">Míos</option>
         <option value="equipo">Mi equipo</option>
       </Select>
-      <Btn href="/api/oportunidades/export" variant="outline">Exportar CSV</Btn>
+      <Btn href="/api/oportunidades/export" variant="icon" title="Exportar CSV">
+        <Icon name="download" class="h-4 w-4" />
+      </Btn>
     </div>
 
     <Card class="overflow-hidden">
@@ -39,11 +46,22 @@
           :key="o.id"
           class="hover:bg-zinc-50 dark:hover:bg-zinc-700/50"
         >
-          <Td primary>{{ o.nombre }}</Td>
+          <Td primary>
+            {{ o.nombre }}
+            <Badge
+              v-if="o.completadoEn"
+              color="green"
+              variant="pill"
+              :dot="false"
+              class="ml-2 align-middle"
+              >Completado</Badge
+            >
+          </Td>
           <td class="px-6 py-4">
             <Select
               :modelValue="o.stageId"
               :hex="stageHex(o.stageId)"
+              :disabled="!!o.completadoEn"
               @change="cambiarEtapa(o, $event.target.value)"
               size="sm"
             >
@@ -58,22 +76,53 @@
           <Td align="right" tone="strong" class="tabular-nums"
             >{{ o.probabilidad ?? 50 }}%</Td
           >
-          <td class="px-6 py-4 text-sm">
-            <Btn variant="link" @click="abrirEdicion(o)">Editar</Btn>
+          <td class="px-6 py-4 text-right whitespace-nowrap">
+            <Btn
+              v-if="!o.completadoEn"
+              variant="icon"
+              :title="esGanado(o) ? 'Cerrar como ganado' : 'Cerrar negocio'"
+              :class="esGanado(o) ? 'text-green-600' : 'text-blue-600'"
+              @click="abrirCierre(o)"
+            >
+              <Icon :name="esGanado(o) ? 'completar' : 'pipeline'" class="h-4 w-4" />
+            </Btn>
+            <Btn
+              v-if="o.completadoEn"
+              variant="ghost"
+              title="Reabrir"
+              aria-label="Reabrir"
+              @click="reabrir(o)"
+            >
+              <Icon name="reabrir" class="h-4 w-4" />
+            </Btn>
+            <Btn
+              variant="ghost"
+              title="Editar"
+              aria-label="Editar"
+              @click="abrirEdicion(o)"
+            >
+              <Icon name="editar" class="h-4 w-4" />
+            </Btn>
           </td>
-          <td class="px-6 py-4 text-right text-sm">
-            <Btn variant="link-danger" @click="eliminar(o)">Eliminar</Btn>
+          <td class="px-6 py-4 text-right whitespace-nowrap">
+            <Btn
+              variant="ghost"
+              class="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+              title="Eliminar"
+              aria-label="Eliminar"
+              @click="eliminar(o)"
+            >
+              <Icon name="eliminar" class="h-4 w-4" />
+            </Btn>
           </td>
         </tr>
-        <TableState
-          v-if="cargando && !negocios.length"
-          :colspan="6"
-          loading
-        />
-        <TableState v-if="!cargando && !negocios.length" :colspan="6"
-          >Sin negocios. Créalos desde el
-          <Btn variant="link" to="/pipeline">Pipeline</Btn>.</TableState
-        >
+        <TableState v-if="cargando && !negocios.length" :colspan="6" loading />
+        <TableState v-if="!cargando && !negocios.length" :colspan="6">
+          <EmptyState icon="negocios">
+            Sin negocios. Créalos desde el
+            <Btn variant="link" to="/pipeline">Pipeline</Btn>.
+          </EmptyState>
+        </TableState>
       </Table>
     </Card>
 
@@ -86,22 +135,108 @@
           <Input v-model="form.nombre" type="text" required class="w-full" />
         </Field>
         <Field label="Etapa">
-          <Select v-model="form.stageId" :hex="stageHex(form.stageId)" required class="w-full">
-            <option v-for="s in stages" :key="s.id" :value="s.id">{{ s.nombre }}</option>
+          <Select
+            v-model="form.stageId"
+            :hex="stageHex(form.stageId)"
+            :disabled="!!editing?.completadoEn"
+            required
+            class="w-full"
+          >
+            <option v-for="s in stages" :key="s.id" :value="s.id">
+              {{ s.nombre }}
+            </option>
           </Select>
         </Field>
         <Field label="Importe">
-          <input v-model.number="form.importe" type="number" class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700" />
+          <input
+            v-model.number="form.importe"
+            type="number"
+            class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700"
+          />
         </Field>
         <Field label="Probabilidad (%)">
-          <input v-model.number="form.probabilidad" type="number" min="0" max="100" class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700" />
+          <input
+            v-model.number="form.probabilidad"
+            type="number"
+            min="0"
+            max="100"
+            class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700"
+          />
         </Field>
         <Field label="Descripción">
-          <Input v-model="form.descripcion" multiline :rows="3" class="w-full" />
+          <Input
+            v-model="form.descripcion"
+            multiline
+            :rows="3"
+            class="w-full"
+          />
         </Field>
         <div class="flex gap-2 pt-2">
-          <Btn type="button" variant="ghost" class="flex-1" @click="showModal = false">Cancelar</Btn>
+          <Btn
+            type="button"
+            variant="ghost"
+            class="flex-1"
+            @click="showModal = false"
+            >Cancelar</Btn
+          >
           <Btn type="submit" variant="primary" class="flex-1">Guardar</Btn>
+        </div>
+      </form>
+    </Modal>
+
+    <!-- Modal Cierre Negocio (Ganado/Perdido) -->
+    <Modal :open="showCloseModal" @close="showCloseModal = false" max-width="max-w-md">
+      <template #title>
+        <h2 class="text-xl font-bold mb-4">
+          {{ closeTipo === "ganado" ? "Cerrar como Ganado" : "Cerrar como Perdido" }}
+        </h2>
+      </template>
+      <form @submit.prevent="cerrarNegocio" class="space-y-4">
+        <Field label="Motivo (obligatorio)">
+          <Input
+            v-model="closeForm.motivo"
+            type="text"
+            required
+            class="w-full"
+            placeholder="Ej: Cliente firmó contrato / Cliente eligió competencia"
+          />
+        </Field>
+        <Field label="Probabilidad final">
+          <input
+            v-model.number="closeForm.probabilidad"
+            type="number"
+            min="0"
+            max="100"
+            :disabled="true"
+            class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800"
+          />
+        </Field>
+        <Field label="Importe final (opcional)">
+          <input
+            v-model.number="closeForm.importe"
+            type="number"
+            min="0"
+            step="1000"
+            class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700"
+          />
+        </Field>
+        <div class="flex gap-2 pt-2">
+          <Btn
+            type="button"
+            variant="ghost"
+            class="flex-1"
+            @click="showCloseModal = false"
+            >Cancelar</Btn
+          >
+          <Btn
+            type="submit"
+            :variant="closeTipo === 'ganado' ? 'primary' : 'danger'"
+            :class="closeTipo === 'ganado' ? '' : 'flex-1'"
+            class="flex-1"
+            :disabled="savingClose"
+            :loading="savingClose"
+            >{{ savingClose ? "Guardando..." : closeTipo === "ganado" ? "Cerrar Ganado" : "Cerrar Perdido" }}</Btn
+          >
         </div>
       </form>
     </Modal>
@@ -117,12 +252,15 @@ import { formatCurrency, loadCurrency } from "../utils/currency";
 import Input from "../components/Input.vue";
 import Select from "../components/Select.vue";
 import Btn from "../components/Btn.vue";
+import Icon from "../components/Icon.vue";
+import Badge from "../components/Badge.vue";
 import Card from "../components/Card.vue";
 import Table from "../components/Table.vue";
 import Th from "../components/Th.vue";
 import Td from "../components/Td.vue";
 import TableState from "../components/TableState.vue";
 import Modal from "../components/Modal.vue";
+import EmptyState from "../components/EmptyState.vue";
 import Field from "../components/Field.vue";
 
 const negocios = ref([]);
@@ -133,10 +271,34 @@ const alcance = ref("");
 const cargando = ref(true);
 const showModal = ref(false);
 const editing = ref(null);
-const form = ref({ nombre: "", stageId: "", importe: 0, probabilidad: 50, descripcion: "" });
+const form = ref({
+  nombre: "",
+  stageId: "",
+  importe: 0,
+  probabilidad: 50,
+  descripcion: "",
+});
+
+const showCloseModal = ref(false);
+const savingClose = ref(false);
+const closeTipo = ref("ganado");
+const closing = ref(null);
+const closeForm = ref({
+  motivo: "",
+  probabilidad: 100,
+  importe: null,
+});
 
 const stageHex = (stageId) =>
   stages.value.find((s) => s.id === stageId)?.color || "";
+
+const normNombre = (s) =>
+  (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+
+const esGanado = (o) => {
+  const st = stages.value.find((s) => s.id === o.stageId);
+  return ["ganado", "won", "closed"].includes(normNombre(st?.nombre));
+};
 
 const fetchNegocios = async () => {
   cargando.value = true;
@@ -157,10 +319,96 @@ const fetchNegocios = async () => {
 
 const cambiarEtapa = async (o, stage) => {
   try {
-    await axios.put(`/api/oportunidades/${o.id}`, { stageId: stage });
+    const body = { stageId: stage };
+    const st = stages.value.find((s) => s.id === stage);
+    const fueraGanado = !["ganado", "won", "closed"].includes(
+      normNombre(st?.nombre),
+    );
+    if (fueraGanado && o.completadoEn) body.completadoEn = null;
+    await axios.put(`/api/oportunidades/${o.id}`, body);
     await fetchNegocios();
   } catch (e) {
     toast.error(e.response?.data?.error || "Error cambiando etapa");
+  }
+};
+
+const completar = async (o) => {
+  if (
+    !(await confirmar(`¿Completar "${o.nombre}"?`, {
+      detalle: "Se marcará como completado (post-venta).",
+      peligro: false,
+    }))
+  )
+    return;
+  try {
+    await axios.put(`/api/oportunidades/${o.id}`, {
+      completadoEn: new Date().toISOString(),
+    });
+    await fetchNegocios();
+    toast.exito("Negocio completado");
+  } catch (e) {
+    toast.error(e.response?.data?.error || "Error al completar");
+  }
+};
+
+const reabrir = async (o) => {
+  if (
+    !(await confirmar(`¿Reabrir "${o.nombre}"?`, {
+      detalle: "Se limpiará la marca de completado.",
+      peligro: true,
+    }))
+  )
+    return;
+  try {
+    await axios.put(`/api/oportunidades/${o.id}`, { completadoEn: null });
+    await fetchNegocios();
+    toast.exito("Negocio reabierto");
+  } catch (e) {
+    toast.error(e.response?.data?.error || "Error al reabrir");
+  }
+};
+
+const abrirCierre = (o) => {
+  const st = stages.value.find((s) => s.id === o.stageId);
+  const esGan = ["ganado", "won", "closed"].includes(
+    (st?.nombre || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""),
+  );
+  closeTipo.value = esGan ? "ganado" : "perdido";
+  closing.value = o;
+  closeForm.value = {
+    motivo: "",
+    probabilidad: esGan ? 100 : 0,
+    importe: o.importe || null,
+  };
+  showCloseModal.value = true;
+};
+
+const cerrarNegocio = async () => {
+  if (!closeForm.value.motivo.trim()) {
+    toast.error("El motivo es obligatorio");
+    return;
+  }
+  if (!closing.value) return;
+  savingClose.value = true;
+  try {
+    const body = {
+      estadoCierre: closeTipo.value,
+      motivoGanado: closeTipo.value === "ganado" ? closeForm.value.motivo : null,
+      motivoPerdido: closeTipo.value === "perdido" ? closeForm.value.motivo : null,
+      probabilidad: closeForm.value.probabilidad,
+      importe: closeForm.value.importe ?? closing.value.importe,
+      completadoEn: new Date().toISOString(),
+    };
+    await axios.put(`/api/oportunidades/${closing.value.id}`, body);
+    showCloseModal.value = false;
+    closing.value = null;
+    closeForm.value.motivo = "";
+    await fetchNegocios();
+    toast.exito(closeTipo.value === "ganado" ? "Negocio ganado" : "Negocio perdido");
+  } catch (e) {
+    toast.error(e.response?.data?.error || "Error al cerrar");
+  } finally {
+    savingClose.value = false;
   }
 };
 

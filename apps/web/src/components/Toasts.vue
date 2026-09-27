@@ -1,8 +1,13 @@
 <template>
-  <TransitionGroup name="toast" tag="div" class="pointer-events-none fixed bottom-5 right-5 z-[80] flex w-80 max-w-[calc(100vw-2.5rem)] flex-col gap-2">
+  <TransitionGroup
+    name="toast"
+    tag="div"
+    class="pointer-events-none fixed bottom-5 right-5 z-[80] flex w-80 max-w-[calc(100vw-2.5rem)] flex-col gap-2"
+  >
     <div
       v-for="t in estadoToasts.items.value"
       :key="t.id"
+      role="status"
       class="pointer-events-auto flex items-start gap-2.5 rounded-xl border bg-white px-4 py-3 text-sm shadow-lg dark:bg-zinc-800 relative overflow-hidden"
       :class="borde[t.tipo]"
     >
@@ -39,7 +44,9 @@ const colorPorTipo = {
 <style scoped>
 .toast-enter-active,
 .toast-leave-active {
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
 }
 .toast-enter-from,
 .toast-leave-to {

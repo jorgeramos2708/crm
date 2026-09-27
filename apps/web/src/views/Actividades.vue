@@ -80,17 +80,19 @@
                 {{ act.userId?.slice(0, 8) || "Sistema" }}
               </td>
             </tr>
-        <TableState
-          v-if="cargando && !actividades.length"
-          :colspan="5"
-          loading
-        />
-        <TableState
-          v-if="!cargando && actividades.length === 0"
-          :colspan="5"
-        >
-          No hay actividades registradas
-        </TableState>
+            <TableState
+              v-if="cargando && !actividades.length"
+              :colspan="5"
+              loading
+            />
+            <TableState
+              v-if="!cargando && actividades.length === 0"
+              :colspan="5"
+            >
+              <EmptyState icon="actividades">
+                No hay actividades registradas
+              </EmptyState>
+            </TableState>
           </tbody>
         </table>
       </div>
@@ -115,6 +117,8 @@ import axios from "axios";
 import { toast } from "../utils/toast";
 import Select from "../components/Select.vue";
 import Pagination from "../components/Pagination.vue";
+import TableState from "../components/TableState.vue";
+import EmptyState from "../components/EmptyState.vue";
 
 const actividades = ref([]);
 const cargando = ref(false);

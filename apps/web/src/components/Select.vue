@@ -10,7 +10,7 @@
       :class="{
         'focus-ring': focused,
         'error-ring': error,
-        'sm:px-2 sm:py-1 sm:text-xs': size === 'sm',
+        'px-2 py-1 text-xs': size === 'sm',
         'px-3 py-2 text-sm': size !== 'sm',
       }"
       :style="hexStyle"
@@ -20,15 +20,25 @@
       <slot />
     </select>
     <div v-if="focused" class="select-arrow animate-drop-in" aria-hidden="true">
-      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+      <svg
+        class="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M19 9l-7 7-7-7"
+        />
       </svg>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed } from "vue";
 
 const model = defineModel();
 const focused = ref(false);
@@ -68,7 +78,8 @@ const hexStyle = computed(() => {
 }
 .select-field:not(:disabled):focus {
   border-color: var(--marca, #2563eb);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--marca, #2563eb) 20%, transparent);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--marca, #2563eb) 20%, transparent);
 }
 .error-ring:not(:disabled) {
   @apply border-red-500 ring-2 ring-red-500/20;
@@ -82,8 +93,14 @@ const hexStyle = computed(() => {
   animation: dropIn 0.2s ease-out;
 }
 @keyframes dropIn {
-  from { opacity: 0; transform: translateY(calc(-50% - 4px)) rotate(-90deg); }
-  to { opacity: 1; transform: translateY(-50%) rotate(0); }
+  from {
+    opacity: 0;
+    transform: translateY(calc(-50% - 4px)) rotate(-90deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) rotate(0);
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .animate-drop-in {

@@ -6,9 +6,16 @@
         {{ v.nombre }}
       </option>
     </Select>
-    <Btn v-if="sel" variant="link-danger" class="text-xs" @click="borrarSel"
-      >Eliminar vista</Btn
+    <Btn
+      v-if="sel"
+      variant="ghost"
+      class="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 text-xs"
+      title="Eliminar vista"
+      aria-label="Eliminar vista"
+      @click="borrarSel"
     >
+      <Icon name="eliminar" class="h-4 w-4" />
+    </Btn>
     <div class="flex gap-1">
       <Input
         v-model="nombre"
@@ -26,6 +33,7 @@ import axios from "axios";
 import { toast } from "../utils/toast";
 import { confirmar } from "../utils/confirm";
 import Btn from "./Btn.vue";
+import Icon from "./Icon.vue";
 import Input from "./Input.vue";
 import Select from "./Select.vue";
 

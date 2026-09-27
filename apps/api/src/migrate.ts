@@ -1,8 +1,8 @@
-import pg from 'pg'
+import pg from "pg";
 
 const pool = new pg.Pool({
-  connectionString: 'postgres://crm:crm_dev_password@postgres:5432/crm',
-})
+  connectionString: "postgres://crm:crm_dev_password@postgres:5432/crm",
+});
 
 async function migrate() {
   await pool.query(`
@@ -52,10 +52,11 @@ async function migrate() {
       importe INTEGER DEFAULT 0,
       probabilidad INTEGER DEFAULT 50,
       fecha_cierre_estimada TIMESTAMPTZ,
+      completado_en TIMESTAMPTZ,
       created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
       updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
     );
-    
+
     CREATE TABLE IF NOT EXISTS contactos (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       nombre VARCHAR(100) NOT NULL,
@@ -115,15 +116,30 @@ async function migrate() {
       metadata JSONB DEFAULT '{}',
       created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS equipos (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      nombre VARCHAR(100) NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+      updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS equipo_miembros (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      equipo_id UUID NOT NULL REFERENCES equipos(id) ON DELETE CASCADE,
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+      UNIQUE(equipo_id, user_id)
+    );
     
     CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
     CREATE EXTENSION IF NOT EXISTS "pgcrypto";
-  `)
-  console.log('Tables created successfully')
-  process.exit(0)
+  `);
+  console.log("Tables created successfully");
+  process.exit(0);
 }
 
-migrate().catch(err => {
-  console.error(err)
-  process.exit(1)
-})
+migrate().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

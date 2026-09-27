@@ -6,7 +6,7 @@
       </h2>
 
       <!-- Valor total + Eventos (misma fila, compactos) -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
         <Card class="px-5 py-4">
           <p class="text-sm font-medium text-zinc-500">
             Valor total del pipeline
@@ -39,8 +39,10 @@
               >Configurar</router-link
             >
           </div>
-          <div v-else-if="eventos.length === 0" class="text-sm text-zinc-500">
-            No hay eventos esta semana.
+          <div v-else-if="eventos.length === 0" class="py-2">
+            <EmptyState icon="calendario" compact>
+              No hay eventos esta semana.
+            </EmptyState>
           </div>
           <ul v-else class="space-y-1.5">
             <li v-for="(ev, i) in eventos.slice(0, 3)" :key="i">
@@ -63,7 +65,7 @@
       </div>
 
       <!-- Tareas pendientes + Actividad reciente -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <!-- Tareas pendientes -->
         <Card class="p-6">
           <h2
@@ -74,11 +76,10 @@
           <div v-if="loadingTareas" class="py-2">
             <Skeleton :filas="3" />
           </div>
-          <div
-            v-else-if="tareas.length === 0"
-            class="text-center py-8 text-zinc-500"
-          >
-            No hay tareas abiertas.
+          <div v-else-if="tareas.length === 0" class="py-4">
+            <EmptyState icon="tareas" compact>
+              No hay tareas abiertas.
+            </EmptyState>
           </div>
           <div v-else class="space-y-3">
             <router-link
@@ -122,11 +123,10 @@
           <div v-if="loadingActividad" class="py-2">
             <Skeleton :filas="3" />
           </div>
-          <div
-            v-else-if="actividades.length === 0"
-            class="text-center py-8 text-zinc-500"
-          >
-            No hay actividad reciente.
+          <div v-else-if="actividades.length === 0" class="py-4">
+            <EmptyState icon="actividades" compact>
+              No hay actividad reciente.
+            </EmptyState>
           </div>
           <div v-else class="space-y-3">
             <router-link
@@ -156,7 +156,7 @@
         <h2 class="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
           Oportunidades por etapa
         </h2>
-        <div class="grid grid-cols-5 gap-4">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           <router-link
             v-for="stage in pipelineStages"
             :key="stage.id"
@@ -182,12 +182,13 @@
         <div v-if="loading && !oportunidades.length" class="py-2">
           <Skeleton :filas="3" />
         </div>
-        <div
-          v-if="!loading && oportunidades.length === 0"
-          class="text-center py-8 text-zinc-500"
-        >
-          No hay oportunidades aún.
-          <Btn to="/pipeline" variant="link">Crea la primera</Btn>
+        <div v-if="!loading && oportunidades.length === 0" class="py-6">
+          <EmptyState icon="negocios">
+            No hay oportunidades aún.
+            <template #action>
+              <Btn to="/pipeline" variant="link">Crea la primera</Btn>
+            </template>
+          </EmptyState>
         </div>
         <div class="space-y-1" v-else>
           <div
@@ -221,6 +222,7 @@ import { useAuthStore } from "../stores/auth";
 import axios from "axios";
 import { toast } from "../utils/toast";
 import Skeleton from "../components/Skeleton.vue";
+import EmptyState from "../components/EmptyState.vue";
 import { formatCurrency, loadCurrency } from "../utils/currency";
 import Btn from "../components/Btn.vue";
 import Badge from "../components/Badge.vue";
@@ -362,7 +364,7 @@ const fetchDashboard = async () => {
       axios.get("/api/oportunidades?limit=200"),
       axios.get("/api/pipeline-stages"),
     ]);
-    stats.value = statsRes.data;
+    stats.value = statsRes.data || statsRes.data.data;
     oportunidades.value = oppsRes.data.data || oppsRes.data;
     pipelineStages.value = stagesRes.data.data || stagesRes.data;
   } catch (e) {

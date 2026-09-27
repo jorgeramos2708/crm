@@ -1,13 +1,17 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob: 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; worker-src 'self'; manifest-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self' https: ws: wss: http://localhost:3002;" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self' https: data: blob: 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; worker-src 'self'; manifest-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self' https: ws: wss: http://localhost:3002;"
+    />
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
     <meta name="theme-color" content="#2563eb" />
     <meta name="description" content="CRM de ventas, contactos y pipeline" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="CRM" />
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
@@ -17,9 +21,12 @@
   <body>
     <script>
       try {
-        var t = localStorage.getItem('crm-theme');
-        if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-          document.documentElement.classList.add('dark');
+        var t = localStorage.getItem("crm-theme");
+        if (
+          t === "dark" ||
+          (!t && window.matchMedia("(prefers-color-scheme: dark)").matches)
+        ) {
+          document.documentElement.classList.add("dark");
         }
       } catch (e) {}
     </script>

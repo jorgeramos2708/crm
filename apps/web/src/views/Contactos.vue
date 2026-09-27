@@ -1,12 +1,16 @@
 <template>
   <div class="p-6">
-    <header class="mb-6 flex justify-end">
+    <header class="mb-6 flex justify-end flex-wrap">
       <div class="flex gap-2">
-        <Btn href="/api/contactos/export" variant="outline">Exportar CSV</Btn>
+        <Btn href="/api/contactos/export" variant="icon" title="Exportar CSV">
+          <Icon name="download" class="h-4 w-4" />
+        </Btn>
         <label
-          class="px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-700 cursor-pointer"
+          class="inline-flex items-center justify-center rounded-xl h-9 w-9 cursor-pointer text-white font-medium transition-colors transition-transform hover:opacity-90"
+          style="background-color: var(--marca, #2563eb)"
+          title="Importar CSV"
         >
-          Importar CSV
+          <Icon name="upload" class="h-4 w-4" />
           <input
             type="file"
             accept=".csv"
@@ -14,7 +18,9 @@
             @change="importarCsv"
           />
         </label>
-        <Btn @click="openModal(null)">+ Nuevo Contacto</Btn>
+        <Btn @click="openModal(null)" variant="icon" title="Nuevo Contacto">
+          +
+        </Btn>
       </div>
     </header>
     <p
@@ -28,7 +34,6 @@
     >
       {{ importMsg }}
     </p>
-    
 
     <Card class="overflow-hidden">
       <Table :cols="['18%', '18%', '13%', '18%', '15%', '18%']">
@@ -63,25 +68,34 @@
             {{ contacto.cargo || "-" }}
           </Td>
           <Td align="right" class="font-medium whitespace-nowrap">
-            <Btn variant="link" class="mr-3" @click="openModal(contacto)"
-              >Editar</Btn
+            <Btn
+              variant="ghost"
+              class="mr-1"
+              title="Editar"
+              aria-label="Editar"
+              @click="openModal(contacto)"
             >
-            <Btn variant="link-danger" @click="eliminarContacto(contacto)"
-              >Eliminar</Btn
+              <Icon name="editar" class="h-4 w-4" />
+            </Btn>
+            <Btn
+              variant="ghost"
+              class="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+              title="Eliminar"
+              aria-label="Eliminar"
+              @click="eliminarContacto(contacto)"
             >
+              <Icon name="eliminar" class="h-4 w-4" />
+            </Btn>
           </Td>
         </tr>
-        <TableState
-          v-if="cargando && !contactos.length"
-          :colspan="6"
-          loading
-        />
-        <TableState
-          v-if="!cargando && contactos.length === 0"
-          :colspan="6"
-        >
-          No hay contactos.
-          <Btn variant="link" @click="openModal(null)">Crea el primero</Btn>
+        <TableState v-if="cargando && !contactos.length" :colspan="6" loading />
+        <TableState v-if="!cargando && contactos.length === 0" :colspan="6">
+          <EmptyState icon="contactos">
+            No hay contactos.
+            <template #action>
+              <Btn variant="link" @click="openModal(null)">Crea el primero</Btn>
+            </template>
+          </EmptyState>
         </TableState>
       </Table>
 
@@ -168,8 +182,11 @@ import { ref, onMounted } from "vue";
 import axios from "axios";
 import { toast } from "../utils/toast";
 import { confirmar } from "../utils/confirm";
+import { loadCurrency } from "../utils/currency";
 import CustomFields from "../components/CustomFields.vue";
+import EmptyState from "../components/EmptyState.vue";
 import Btn from "../components/Btn.vue";
+import Icon from "../components/Icon.vue";
 import Card from "../components/Card.vue";
 import Table from "../components/Table.vue";
 import Field from "../components/Field.vue";
@@ -288,7 +305,6 @@ const guardarContacto = async () => {
         contactos.value[idx] = response.data.data || response.data;
     } else {
       const response = await axios.post("/api/contactos", formData.value);
-      contactos.value.unshift(response.data.data || response.data);
     }
     closeModal();
     fetchContactos(); // Refresh to get correct pagination
@@ -343,7 +359,8 @@ const eliminarContacto = async (contacto) => {
   }
 };
 
-onMounted(() => {
+onMounted(async () => {
+  await loadCurrency();
   fetchContactos();
 });
 </script>

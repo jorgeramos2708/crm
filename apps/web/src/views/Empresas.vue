@@ -1,23 +1,30 @@
 <template>
   <div class="p-6">
-    <header class="mb-6 flex justify-end">
+    <header class="mb-6 flex justify-end flex-wrap">
       <div class="flex gap-2">
-        <Btn href="/api/companies/export" variant="outline">Exportar CSV</Btn>
-        <Btn @click="openModal(null)">+ Nueva Empresa</Btn>
+        <Btn href="/api/companies/export" variant="icon" title="Exportar CSV">
+          <Icon name="download" class="h-4 w-4" />
+        </Btn>
+        <Btn @click="openModal(null)" variant="icon" title="Nueva Empresa">
+          +
+        </Btn>
       </div>
     </header>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <!-- Lista -->
       <div class="panel-flat overflow-hidden">
         <div class="p-4 border-b border-zinc-200 dark:border-zinc-700">
-          <Input
-            v-model="q"
-            @input="fetchEmpresas"
-            type="text"
-            placeholder="Buscar por nombre o dominio..."
-            class="w-full"
-          />
+          <div class="flex items-center gap-2 rounded-lg px-3 py-1.5">
+            <Icon name="chart-column" class="h-4 w-4 text-zinc-400" />
+            <Input
+              v-model="q"
+              @input="fetchEmpresas"
+              type="text"
+              placeholder="Buscar por nombre o dominio..."
+              class="border-0 bg-transparent focus:ring-0 p-0 w-full"
+            />
+          </div>
         </div>
         <ul class="divide-y divide-zinc-200 dark:divide-zinc-700">
           <li
@@ -39,11 +46,13 @@
           <li v-if="cargando && !empresas.length" class="px-6 py-4">
             <Skeleton :filas="4" />
           </li>
-          <li
-            v-if="!cargando && empresas.length === 0"
-            class="px-6 py-12 text-center text-zinc-500 text-sm"
-          >
-            No hay empresas.
+          <li v-if="!cargando && empresas.length === 0" class="px-6 py-12">
+            <EmptyState icon="empresas">
+              No hay empresas.
+              <template #action>
+                <Btn @click="openModal(null)" variant="icon">+</Btn>
+              </template>
+            </EmptyState>
           </li>
         </ul>
       </div>
@@ -61,13 +70,24 @@
                 {{ selected.dominio || "Sin dominio" }}
               </p>
             </div>
-            <div class="flex gap-2">
-              <Btn variant="link" class="text-sm" @click="openModal(selected)"
-                >Editar</Btn
+            <div class="flex gap-1">
+              <Btn
+                variant="ghost"
+                title="Editar"
+                aria-label="Editar"
+                @click="openModal(selected)"
               >
-              <Btn variant="link-danger" class="text-sm" @click="eliminar"
-                >Eliminar</Btn
+                <Icon name="editar" class="h-4 w-4" />
+              </Btn>
+              <Btn
+                variant="ghost"
+                class="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                title="Eliminar"
+                aria-label="Eliminar"
+                @click="eliminar"
               >
+                <Icon name="eliminar" class="h-4 w-4" />
+              </Btn>
             </div>
           </div>
 
@@ -125,14 +145,20 @@
               >
               <span class="flex gap-2 text-xs">
                 <Btn
+                  variant="link"
                   :href="`/api/archivos/${a.id}/download`"
                   target="_blank"
-                  variant="link"
                   >Descargar</Btn
                 >
-                <Btn variant="link-danger" @click="borrarArchivo(a)"
-                  >Eliminar</Btn
+                <Btn
+                  variant="ghost"
+                  class="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                  title="Eliminar"
+                  aria-label="Eliminar"
+                  @click="borrarArchivo(a)"
                 >
+                  <Icon name="eliminar" class="h-4 w-4" />
+                </Btn>
               </span>
             </li>
             <li v-if="!adjuntos.length" class="py-2 text-sm text-zinc-500">
@@ -179,46 +205,43 @@
     </div>
 
     <!-- Modal -->
-    <div
-      v-if="showModal"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-    >
-      <div class="bg-white dark:bg-zinc-800 rounded-2xl p-6 w-full max-w-md">
+    <Modal :open="showModal" @close="showModal = false">
+      <template #title>
         <h2 class="text-xl font-bold mb-4">
           {{ editing ? "Editar Empresa" : "Nueva Empresa" }}
         </h2>
-        <form @submit.prevent="guardar" class="space-y-4">
-          <Field label="Nombre" required>
-            <Input v-model="form.nombre" type="text" required class="w-full" />
-          </Field>
-          <Field label="Dominio">
-            <Input
-              v-model="form.dominio"
-              type="text"
-              placeholder="empresa.com"
-              class="w-full"
-            />
-          </Field>
-          <CustomFields entidad="empresa" v-model="form.custom" />
-          <div class="flex gap-2 pt-2">
-            <Btn
-              type="button"
-              variant="outline"
-              class="flex-1"
-              @click="showModal = false"
-              >Cancelar</Btn
-            >
-            <Btn
-              type="submit"
-              class="flex-1"
-              :disabled="saving"
-              :loading="saving"
-              >{{ saving ? "Guardando..." : "Guardar" }}</Btn
-            >
-          </div>
-        </form>
-      </div>
-    </div>
+      </template>
+      <form @submit.prevent="guardar" class="space-y-4">
+        <Field label="Nombre" required>
+          <Input v-model="form.nombre" type="text" required class="w-full" />
+        </Field>
+        <Field label="Dominio">
+          <Input
+            v-model="form.dominio"
+            type="text"
+            placeholder="empresa.com"
+            class="w-full"
+          />
+        </Field>
+        <CustomFields entidad="empresa" v-model="form.custom" />
+        <div class="flex gap-2 pt-2">
+          <Btn
+            type="button"
+            variant="outline"
+            class="flex-1"
+            @click="showModal = false"
+            >Cancelar</Btn
+          >
+          <Btn
+            type="submit"
+            class="flex-1"
+            :disabled="saving"
+            :loading="saving"
+            >{{ saving ? "Guardando..." : "Guardar" }}</Btn
+          >
+        </div>
+      </form>
+    </Modal>
   </div>
 </template>
 
@@ -228,10 +251,13 @@ import axios from "axios";
 import { toast } from "../utils/toast";
 import { confirmar } from "../utils/confirm";
 import CustomFields from "../components/CustomFields.vue";
+import EmptyState from "../components/EmptyState.vue";
+import Modal from "../components/Modal.vue";
 import Skeleton from "../components/Skeleton.vue";
 import Input from "../components/Input.vue";
 import Select from "../components/Select.vue";
 import Btn from "../components/Btn.vue";
+import Icon from "../components/Icon.vue";
 import Field from "../components/Field.vue";
 
 const empresas = ref([]);
@@ -289,13 +315,17 @@ const seleccionar = async (e) => {
         params: { entityType: "empresa", entityId: e.id },
       });
       adjuntos.value = adj.data || [];
-    } catch { adjuntos.value = []; }
+    } catch {
+      adjuntos.value = [];
+    }
     try {
       const tl = await axios.get("/api/timeline", {
         params: { entityType: "empresa", entityId: e.id },
       });
       timeline.value = tl.data || [];
-    } catch { timeline.value = []; }
+    } catch {
+      timeline.value = [];
+    }
   } catch (e2) {
     console.error(e2);
     toast.error("Error al cargar el detalle");

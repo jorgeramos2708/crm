@@ -1,7 +1,7 @@
 <template>
   <div class="p-6">
     <header class="mb-6 flex justify-end">
-      <Btn @click="openModal(null)">+ Nueva Campaña</Btn>
+      <Btn @click="openModal(null)" variant="icon">+</Btn>
     </header>
 
     <div class="space-y-4">
@@ -26,7 +26,9 @@
               Asunto: {{ campaign.asunto }}
             </p>
             <p class="text-sm text-zinc-500 dark:text-zinc-400">
-              De: {{ campaign.remitenteNombre }} <{{ campaign.remitenteEmail }}>
+              De: {{ campaign.remitenteNombre }} &lt;{{
+                campaign.remitenteEmail
+              }}&gt;
             </p>
             <div
               class="flex gap-4 mt-3 text-sm text-zinc-500 dark:text-zinc-400"
@@ -42,14 +44,22 @@
               >Enviar</Btn
             >
             <Btn
-              variant="outline"
-              class="text-zinc-600 dark:text-zinc-400"
+              variant="ghost"
+              title="Editar"
+              aria-label="Editar"
               @click="openModal(campaign)"
-              >Editar</Btn
             >
-            <Btn variant="danger-soft" @click="eliminarCampana(campaign)"
-              >Eliminar</Btn
+              <Icon name="editar" class="h-4 w-4" />
+            </Btn>
+            <Btn
+              variant="ghost"
+              class="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+              title="Eliminar"
+              aria-label="Eliminar"
+              @click="eliminarCampana(campaign)"
             >
+              <Icon name="eliminar" class="h-4 w-4" />
+            </Btn>
           </div>
         </div>
       </Card>
@@ -57,11 +67,22 @@
       <Card v-if="cargando && !campanas.length" class="p-6"
         ><Skeleton :filas="3"
       /></Card>
-      <Card v-if="!cargando && campanas.length === 0" class="p-12 text-center">
-        <p class="text-zinc-500 dark:text-zinc-400 mb-4">
-          No hay campañas creadas
+      <Card v-if="errorCarga" class="p-6">
+        <p class="text-sm text-red-600 dark:text-red-400">
+          Error al cargar campañas: {{ errorCarga }}
         </p>
-        <Btn @click="openModal(null)" size="lg">Crear primera campaña</Btn>
+      </Card>
+      <Card
+        v-if="!cargando && !errorCarga && campanas.length === 0"
+        class="p-12"
+      >
+        <EmptyState icon="campanas">No hay campañas creadas</EmptyState>
+      </Card>
+      <Card v-if="!cargando && !errorCarga && campanas.length > 0" class="p-6">
+        <p class="text-sm text-zinc-500">
+          Debug: {{ campanas.length }} campañas, cargando={{ cargando }},
+          error={{ errorCarga || "ninguno" }}
+        </p>
       </Card>
     </div>
 
@@ -158,9 +179,11 @@ import Skeleton from "../components/Skeleton.vue";
 import { toast } from "../utils/toast";
 import { confirmar } from "../utils/confirm";
 import Btn from "../components/Btn.vue";
+import Icon from "../components/Icon.vue";
 import Badge from "../components/Badge.vue";
 import Card from "../components/Card.vue";
 import Modal from "../components/Modal.vue";
+import EmptyState from "../components/EmptyState.vue";
 import Field from "../components/Field.vue";
 import Input from "../components/Input.vue";
 import Select from "../components/Select.vue";
@@ -168,6 +191,7 @@ import Select from "../components/Select.vue";
 const campanas = ref([]);
 const plantillas = ref([]);
 const cargando = ref(true);
+const errorCarga = ref("");
 const showModal = ref(false);
 const saving = ref(false);
 const editingCampaign = ref(null);
@@ -187,10 +211,13 @@ const fetchData = async () => {
       axios.get("/api/email-campaigns"),
       axios.get("/api/email-templates"),
     ]);
-    campanas.value = campanasRes.data.data || campanasRes.data;
-    plantillas.value = plantillasRes.data.data || plantillasRes.data;
+    const rawC = campanasRes.data?.data ?? campanasRes.data;
+    const rawT = plantillasRes.data?.data ?? plantillasRes.data;
+    campanas.value = Array.isArray(rawC) ? rawC : [];
+    plantillas.value = Array.isArray(rawT) ? rawT : [];
   } catch (e) {
     console.error("Error fetching data:", e);
+    errorCarga.value = e?.response?.data?.error || e.message || String(e);
     toast.error("Error al cargar campañas");
   } finally {
     cargando.value = false;

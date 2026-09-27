@@ -1,13 +1,13 @@
 <template>
   <div class="p-6">
     <div class="mb-4 flex flex-wrap items-center gap-2 justify-end">
-      <Btn @click="openModal(null)">+ Nueva Tarea</Btn>
+      <Btn @click="openModal(null)" variant="icon">+</Btn>
     </div>
 
     <Card v-if="cargando && !tareas.length" class="p-6 mb-4"
       ><Skeleton :filas="4"
     /></Card>
-    <div class="grid grid-cols-5 gap-3">
+    <div class="grid grid-cols-4 gap-3">
       <div
         v-for="col in columnas"
         :key="col.estado"
@@ -16,7 +16,9 @@
         style="min-height: 400px"
       >
         <div class="flex items-center justify-between mb-3">
-          <h3 class="font-medium text-sm" :class="COLOR_TEXTO[col.estado]">{{ col.titulo }}</h3>
+          <h3 class="font-medium text-sm" :class="COLOR_TEXTO[col.estado]">
+            {{ col.titulo }}
+          </h3>
           <Badge
             :color="COLOR_BADGE[col.estado]"
             variant="pill"
@@ -26,17 +28,31 @@
           >
         </div>
         <div
-          class="space-y-2 flex-1 overflow-y-auto"
-          @dragover.prevent
+          v-auto-animate
+          class="space-y-2 flex-1 overflow-y-auto rounded-lg transition-colors"
+          :class="
+            dropTarget === col.estado && arrastrando
+              ? 'ring-2 ring-inset ring-blue-400/70 bg-blue-100/40 dark:bg-blue-500/10'
+              : ''
+          "
+          @dragover.prevent="onDragOver(col.estado)"
+          @dragleave="onDragLeave(col.estado)"
           @drop="onDrop(col.estado)"
         >
           <div
             v-for="t in tareasPorEstado[col.estado] || []"
             :key="t.id"
-            class="p-2.5 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 cursor-grab"
-            draggable="true"
+            class="p-2.5 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 transition-opacity"
+            :class="
+              bloqueada(t)
+                ? 'cursor-default opacity-70'
+                : arrastrando?.id === t.id
+                  ? 'opacity-40 scale-[0.98]'
+                  : 'cursor-grab'
+            "
+            :draggable="!bloqueada(t)"
             :title="t.descripcion || t.titulo"
-            @dragstart="onDragStart(t)"
+            @dragstart="onDragStart(t, $event)"
             @dragend="onDragEnd"
           >
             <div
@@ -73,9 +89,26 @@
             >
               <Icon name="vinculo" class="h-2.5 w-2.5" /> {{ t._vinculo }}
             </div>
-            <div class="flex gap-2 mt-1.5 text-[11px]">
-              <Btn variant="link" size="sm" @click="openModal(t)">Editar</Btn>
-              <Btn variant="link-danger" size="sm" @click="eliminar(t)">Eliminar</Btn>
+            <div class="flex gap-1 mt-1.5">
+              <Btn
+                variant="ghost"
+                size="sm"
+                title="Editar"
+                aria-label="Editar"
+                @click="openModal(t)"
+              >
+                <Icon name="editar" class="h-4 w-4" />
+              </Btn>
+              <Btn
+                variant="ghost"
+                size="sm"
+                class="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                title="Eliminar"
+                aria-label="Eliminar"
+                @click="eliminar(t)"
+              >
+                <Icon name="eliminar" class="h-4 w-4" />
+              </Btn>
             </div>
           </div>
           <div
@@ -126,6 +159,7 @@
               <option value="baja">Baja</option>
               <option value="media">Media</option>
               <option value="alta">Alta</option>
+              <option value="urgente">Urgente</option>
             </Select>
           </Field>
         </div>
@@ -182,7 +216,13 @@ import Input from "../components/Input.vue";
 import Select from "../components/Select.vue";
 import Icon from "../components/Icon.vue";
 
-const ESTADOS = ["pendiente", "en_progreso", "detenida", "completada", "cancelada"];
+const ESTADOS = [
+  "pendiente",
+  "en_progreso",
+  "detenida",
+  "completada",
+  "cancelada",
+];
 const TITULOS = {
   pendiente: "Pendiente",
   en_progreso: "En progreso",
@@ -219,7 +259,6 @@ const empresas = ref([]);
 const oportunidades = ref([]);
 const showModal = ref(false);
 const editing = ref(null);
-const filtros = ref({ alcance: "" });
 const form = ref({
   titulo: "",
   descripcion: "",
@@ -230,9 +269,13 @@ const form = ref({
   entityId: "",
 });
 const arrastrando = ref(null);
+const dropTarget = ref(null);
 
 const columnas = computed(() =>
-  ESTADOS.map((e) => ({ estado: e, titulo: TITULOS[e] })),
+  ESTADOS.filter((e) => e !== "cancelada").map((e) => ({
+    estado: e,
+    titulo: TITULOS[e],
+  })),
 );
 const tareasPorEstado = computed(() => {
   const g = {};
@@ -240,7 +283,8 @@ const tareasPorEstado = computed(() => {
     g[e] = [];
   });
   tareas.value.forEach((t) => {
-    (g[t.estado] || g.pendiente).push(t);
+    if (t.estado === "cancelada") return;
+    if (g[t.estado]) g[t.estado].push(t);
   });
   return g;
 });
@@ -253,9 +297,10 @@ const vinculos = computed(() => {
 });
 
 const colorPrioridad = {
-  alta: "red",
+  urgente: "red",
+  alta: "orange",
   media: "yellow",
-  baja: "zinc",
+  baja: "green",
 };
 
 const formatFecha = (d) => {
@@ -275,7 +320,6 @@ const fetchTareas = async () => {
   cargando.value = true;
   try {
     const params = { limit: 200 };
-    if (filtros.value.alcance) params.alcance = filtros.value.alcance;
     const { data } = await axios.get("/api/tareas", { params });
     const nombres = {};
     [...contactos.value, ...empresas.value, ...oportunidades.value].forEach(
@@ -300,17 +344,35 @@ const fetchTareas = async () => {
   }
 };
 
-const onDragStart = (t) => {
+const bloqueada = (t) => t.estado === "completada";
+
+const onDragStart = (t, event) => {
+  if (bloqueada(t)) return;
   arrastrando.value = t;
+  dropTarget.value = null;
+  if (event?.dataTransfer) {
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", String(t.id));
+  }
 };
 const onDragEnd = () => {
   arrastrando.value = null;
+  dropTarget.value = null;
+};
+
+const onDragOver = (estado) => {
+  if (arrastrando.value) dropTarget.value = estado;
+};
+
+const onDragLeave = (estado) => {
+  if (dropTarget.value === estado) dropTarget.value = null;
 };
 
 const onDrop = async (estado) => {
   const t = arrastrando.value;
   arrastrando.value = null;
-  if (!t || !t.id || t.estado === estado) return;
+  dropTarget.value = null;
+  if (!t || !t.id || t.estado === estado || bloqueada(t)) return;
   const anterior = t.estado;
   t.estado = estado;
   try {
@@ -395,8 +457,8 @@ onMounted(async () => {
     contactos.value = c.data.data || [];
     empresas.value = e.data.data || [];
     oportunidades.value = o.data.data || [];
-  } catch {
-    /* */
+  } catch (e) {
+    console.error(e);
   }
   await fetchTareas();
 });

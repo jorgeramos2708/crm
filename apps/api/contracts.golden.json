@@ -184,6 +184,7 @@
         "orden",
         "esInicial",
         "esFinal",
+        "probabilidad",
         "createdAt",
         "updatedAt"
       ]
@@ -202,6 +203,11 @@
         "probabilidad",
         "ivaIncluido",
         "fechaCierreEstimada",
+        "completadoEn",
+        "estadoCierre",
+        "motivoGanado",
+        "motivoPerdido",
+        "cerradoEn",
         "custom",
         "createdAt",
         "updatedAt"
@@ -241,7 +247,7 @@
     },
     "contact_companies": {
       "exportName": "contactCompanies",
-      "columns": ["contactId", "companyId"]
+      "columns": ["contactId", "companyId", "id"]
     },
     "automatizaciones": {
       "exportName": "automatizaciones",
@@ -282,6 +288,7 @@
         "estado",
         "programadaPara",
         "enviadaEn",
+        "listaId",
         "createdAt",
         "updatedAt"
       ]
@@ -478,7 +485,7 @@
     },
     "equipo_miembros": {
       "exportName": "equipoMiembros",
-      "columns": ["equipoId", "userId"]
+      "columns": ["id", "equipoId", "userId"]
     },
     "vistas_guardadas": {
       "exportName": "vistasGuardadas",

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 
@@ -38,17 +38,30 @@ function mockApi(lista: unknown[] = filas) {
 }
 
 describe("Contactos", () => {
+  let mounted: { unmount: () => void } | null = null;
+
   beforeEach(() => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
     estadoToasts.items.value = [];
   });
 
+  afterEach(() => {
+    mounted?.unmount();
+    mounted = null;
+  });
+
+  function mountContactos() {
+    mounted = mount(Contactos, {
+      global: { stubs: { CustomFields: true, VistasGuardadas: true } },
+      attachTo: document.body,
+    });
+    return mounted;
+  }
+
   it("lista los contactos de la API", async () => {
     mockApi();
-    const w = mount(Contactos, {
-      global: { stubs: { CustomFields: true, VistasGuardadas: true } },
-    });
+    const w = mountContactos();
     await flushPromises();
     expect(w.text()).toContain("Ana López");
     expect(w.text()).toContain("ana@acme.com");
@@ -56,38 +69,51 @@ describe("Contactos", () => {
 
   it("muestra estado vacío sin contactos", async () => {
     mockApi([]);
-    const w = mount(Contactos, {
-      global: { stubs: { CustomFields: true, VistasGuardadas: true } },
-    });
+    const w = mountContactos();
     await flushPromises();
     expect(w.text()).toContain("No hay contactos.");
   });
 
   it("abre el modal con Nuevo Contacto", async () => {
     mockApi([]);
-    const w = mount(Contactos, {
-      global: { stubs: { CustomFields: true, VistasGuardadas: true } },
-    });
+    const w = mountContactos();
     await flushPromises();
     await w
       .findAll("button")
-      .find((b) => b.text() === "+ Nuevo Contacto")!
+      .find((b) => b.attributes("title") === "Nuevo Contacto")!
       .trigger("click");
     expect(w.text()).toContain("Nuevo Contacto");
   });
 
   it("valida el nombre al guardar", async () => {
     mockApi([]);
-    const w = mount(Contactos, {
-      global: { stubs: { CustomFields: true, VistasGuardadas: true } },
-    });
+    const w = mountContactos();
     await flushPromises();
     await w
       .findAll("button")
-      .find((b) => b.text() === "+ Nuevo Contacto")!
+      .find((b) => b.attributes("title") === "Nuevo Contacto")!
       .trigger("click");
     const forms = w.findAll("form");
     await forms[forms.length - 1].trigger("submit");
     expect(estadoToasts.items.value.some((t) => t.tipo === "error")).toBe(true);
+  });
+
+  it("Cancelar cierra el modal sin congelar la UI", async () => {
+    mockApi([]);
+    const w = mountContactos();
+    await flushPromises();
+    await w
+      .findAll("button")
+      .find((b) => b.attributes("title") === "Nuevo Contacto")!
+      .trigger("click");
+    expect(w.text()).toContain("Nuevo Contacto");
+    const cancelar = w.findAll("button").find((b) => b.text() === "Cancelar")!;
+    await cancelar.trigger("click");
+    await flushPromises();
+    await new Promise((r) => setTimeout(r, 350));
+    expect(document.querySelector(".dialog-shell")).toBeNull();
+    expect(w.findAll("button").some((b) => b.text() === "Cancelar")).toBe(
+      false,
+    );
   });
 });

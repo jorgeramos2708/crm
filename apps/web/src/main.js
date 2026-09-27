@@ -21,6 +21,7 @@ import Empresas from "./views/Empresas.vue";
 import Correos from "./views/Correos.vue";
 import Settings from "./views/Settings.vue";
 import { useAuthStore } from "./stores/auth";
+import autoAnimate from "@formkit/auto-animate";
 import "@fontsource-variable/plus-jakarta-sans";
 import "./style.css";
 
@@ -97,6 +98,21 @@ const router = createRouter({
 });
 
 router.beforeEach(async (to, from, next) => {
+  // El navegador entrega location.pathname percent-encoded (ej: /campa%C3%B1as)
+  // y Vue Router no decodifica antes de matchear → 0 matches → pantalla en blanco
+  // en hard reload. Reintentar con el path decodificado.
+  if (!to.matched.length) {
+    try {
+      const decodedPath = decodeURIComponent(to.path);
+      if (decodedPath !== to.path) {
+        next({ path: decodedPath, query: to.query, hash: to.hash });
+        return;
+      }
+    } catch {
+      /* path no válido para decode */
+    }
+  }
+
   const authStore = useAuthStore();
 
   if (to.meta.requiresAuth) {
@@ -119,6 +135,19 @@ router.beforeEach(async (to, from, next) => {
 const app = createApp(App);
 app.use(pinia);
 app.use(router);
+
+// FLIP animation para listas (v-auto-animate). Respeta prefers-reduced-motion.
+app.directive("auto-animate", {
+  mounted(el) {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    el.__aa_ctl = autoAnimate(el);
+  },
+  unmounted(el) {
+    el.__aa_ctl?.destroy?.();
+    delete el.__aa_ctl;
+  },
+});
+
 app.mount("#app");
 
 // PWA: registrar SW solo en producción/build (no en Vitest)

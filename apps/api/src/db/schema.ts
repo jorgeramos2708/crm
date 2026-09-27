@@ -58,6 +58,7 @@ export const pipelineStages = pgTable("pipeline_stages", {
   orden: integer("orden").notNull().default(0),
   esInicial: boolean("es_inicial").notNull().default(false),
   esFinal: boolean("es_final").notNull().default(false),
+  probabilidad: integer("probabilidad").notNull().default(50),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
@@ -66,37 +67,60 @@ export const pipelineStages = pgTable("pipeline_stages", {
     .notNull(),
 });
 
-export const oportunidades = pgTable("oportunidades", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  nombre: varchar("nombre", { length: 200 }).notNull(),
-  descripcion: text("descripcion"),
-  pipelineId: uuid("pipeline_id")
-    .notNull()
-    .references(() => pipelines.id),
-  stageId: uuid("stage_id")
-    .notNull()
-    .references(() => pipelineStages.id),
-  contactoId: uuid("contacto_id"),
-  propietarioId: uuid("propietario_id").references(() => users.id),
-  importe: integer("importe").default(0),
-  probabilidad: integer("probabilidad").default(50),
-  ivaIncluido: boolean("iva_incluido").notNull().default(false),
-  fechaCierreEstimada: timestamp("fecha_cierre_estimada", {
-    withTimezone: true,
+export const oportunidades = pgTable(
+  "oportunidades",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    nombre: varchar("nombre", { length: 200 }).notNull(),
+    descripcion: text("descripcion"),
+    pipelineId: uuid("pipeline_id")
+      .notNull()
+      .references(() => pipelines.id, { onDelete: "cascade" }),
+    stageId: uuid("stage_id")
+      .notNull()
+      .references(() => pipelineStages.id, { onDelete: "cascade" }),
+    contactoId: uuid("contacto_id").references(() => contactos.id, {
+      onDelete: "set null",
+    }),
+    propietarioId: uuid("propietario_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    importe: integer("importe").default(0),
+    probabilidad: integer("probabilidad").default(50),
+    ivaIncluido: boolean("iva_incluido").notNull().default(false),
+    fechaCierreEstimada: timestamp("fecha_cierre_estimada", {
+      withTimezone: true,
+    }),
+    completadoEn: timestamp("completado_en", { withTimezone: true }),
+    estadoCierre: varchar("estado_cierre", { length: 20 }).default("abierto"), // 'abierto' | 'ganado' | 'perdido'
+    motivoGanado: text("motivo_ganado"),
+    motivoPerdido: text("motivo_perdido"),
+    cerradoEn: timestamp("cerrado_en", { withTimezone: true }),
+    custom: jsonb("custom").notNull().default({}),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    pipelineIdx: index("oportunidades_pipeline_idx").on(table.pipelineId),
+    stageIdx: index("oportunidades_stage_idx").on(table.stageId),
+    propietarioIdx: index("oportunidades_propietario_idx").on(
+      table.propietarioId,
+    ),
+    estadoCierreIdx: index("oportunidades_estado_cierre_idx").on(
+      table.estadoCierre,
+    ),
+    cerradaEnIdx: index("oportunidades_cerrada_en_idx").on(table.cerradoEn),
   }),
-  custom: jsonb("custom").notNull().default({}),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-});
+);
 
 export const contactos = pgTable("contactos", {
   id: uuid("id").primaryKey().defaultRandom(),
   nombre: varchar("nombre", { length: 100 }).notNull(),
-  email: varchar("email", { length: 255 }),
+  email: varchar("email", { length: 255 }).unique(),
   telefono: varchar("telefono", { length: 50 }),
   empresa: varchar("empresa", { length: 100 }),
   cargo: varchar("cargo", { length: 100 }),
@@ -124,7 +148,7 @@ export const companies = pgTable("companies", {
 
 export const microsoftConfig = pgTable("microsoft_config", {
   id: uuid("id").primaryKey().defaultRandom(),
-  clientId: varchar("client_id", { length: 255 }).notNull(),
+  clientId: varchar("client_id", { length: 255 }).notNull().unique(),
   clientSecret: varchar("client_secret", { length: 500 }).notNull(),
   tenantId: varchar("tenant_id", { length: 255 }).notNull().default("common"),
   redirectUri: varchar("redirect_uri", { length: 500 }).notNull(),
@@ -138,14 +162,24 @@ export const microsoftConfig = pgTable("microsoft_config", {
     .notNull(),
 });
 
-export const contactCompanies = pgTable("contact_companies", {
-  contactId: uuid("contact_id")
-    .notNull()
-    .references(() => contactos.id, { onDelete: "cascade" }),
-  companyId: uuid("company_id")
-    .notNull()
-    .references(() => companies.id, { onDelete: "cascade" }),
-});
+export const contactCompanies = pgTable(
+  "contact_companies",
+  {
+    contactId: uuid("contact_id")
+      .notNull()
+      .references(() => contactos.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    id: uuid("id").primaryKey().defaultRandom(),
+  },
+  (table) => ({
+    contactCompanyIdx: uniqueIndex("contact_companies_uc").on(
+      table.contactId,
+      table.companyId,
+    ),
+  }),
+);
 
 export const automatizaciones = pgTable("automatizaciones", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -188,6 +222,9 @@ export const emailCampaigns = pgTable("email_campaigns", {
   estado: varchar("estado", { length: 20 }).notNull().default("borrador"),
   programadaPara: timestamp("programada_para", { withTimezone: true }),
   enviadaEn: timestamp("enviada_en", { withTimezone: true }),
+  listaId: uuid("lista_id").references(() => contactLists.id, {
+    onDelete: "set null",
+  }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
@@ -278,7 +315,7 @@ export const emailSubscriptions = pgTable(
   },
   (table) => ({
     tokenIdx: uniqueIndex("email_subscriptions_token_idx").on(table.token),
-    contactoListaIdx: index("email_subscriptions_contacto_lista_idx").on(
+    contactoListaIdx: uniqueIndex("email_subscriptions_contacto_lista_idx").on(
       table.contactoId,
       table.listaId,
     ),
@@ -474,7 +511,7 @@ export const archivos = pgTable(
 
 export const googleConfig = pgTable("google_config", {
   id: uuid("id").primaryKey().defaultRandom(),
-  clientId: varchar("client_id", { length: 255 }).notNull(),
+  clientId: varchar("client_id", { length: 255 }).notNull().unique(),
   clientSecret: varchar("client_secret", { length: 500 }).notNull(),
   redirectUri: varchar("redirect_uri", { length: 500 }).notNull(),
   scopes: jsonb("scopes").notNull().default([]),
@@ -521,14 +558,24 @@ export const equipos = pgTable("equipos", {
     .notNull(),
 });
 
-export const equipoMiembros = pgTable("equipo_miembros", {
-  equipoId: uuid("equipo_id")
-    .notNull()
-    .references(() => equipos.id, { onDelete: "cascade" }),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-});
+export const equipoMiembros = pgTable(
+  "equipo_miembros",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    equipoId: uuid("equipo_id")
+      .notNull()
+      .references(() => equipos.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+  },
+  (table) => ({
+    equipoUserIdx: uniqueIndex("equipo_miembros_uc").on(
+      table.equipoId,
+      table.userId,
+    ),
+  }),
+);
 
 export const vistasGuardadas = pgTable(
   "vistas_guardadas",
@@ -687,6 +734,7 @@ export type NewUser = typeof users.$inferInsert;
 export type Pipeline = typeof pipelines.$inferSelect;
 export type PipelineStage = typeof pipelineStages.$inferSelect;
 export type Oportunidad = typeof oportunidades.$inferSelect;
+export type NewOportunidad = typeof oportunidades.$inferInsert;
 export type Contacto = typeof contactos.$inferSelect;
 export type Company = typeof companies.$inferSelect;
 export type Automatizacion = typeof automatizaciones.$inferSelect;

@@ -73,13 +73,13 @@ const tag = computed(() =>
 const pressed = ref(false);
 
 const variants = {
-  primary:
-    "text-white font-medium",
+  primary: "text-white font-medium",
   secondary:
     "bg-zinc-100 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 hover:opacity-90",
   outline:
     "border border-zinc-300 dark:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-700",
   ghost: "hover:bg-zinc-100 dark:hover:bg-zinc-700",
+  icon: "text-white font-medium",
   link: "hover:underline",
   "link-danger": "text-red-600 hover:underline",
   danger: "bg-red-600 text-white font-medium hover:bg-red-700",
@@ -101,16 +101,21 @@ const classes = computed(() => {
     variants[props.variant] || variants.primary,
   ];
   if (props.variant === "primary") cls.push("btn-primary");
-  if (props.variant === "ghost") cls.push("rounded-xl p-2");
-  else if (!["link", "link-danger"].includes(props.variant))
+  if (props.variant === "icon") {
+    // Tamaño fijo uniforme para todos los botones de acción de icono
+    cls.push("rounded-xl h-9 w-9");
+  } else if (props.variant === "ghost") {
+    cls.push("rounded-xl p-2");
+  } else if (!["link", "link-danger"].includes(props.variant)) {
     cls.push(sizes[props.size] || sizes.md);
+  }
   if (tag.value !== "button" && (props.disabled || props.loading))
     cls.push("pointer-events-none opacity-50");
   return cls;
 });
 
 const btnStyle = computed(() => {
-  if (props.variant === "primary") {
+  if (props.variant === "primary" || props.variant === "icon") {
     return { backgroundColor: "var(--marca, #2563eb)" };
   }
   if (props.variant === "link") {
@@ -122,7 +127,9 @@ const btnStyle = computed(() => {
 
 <style scoped>
 @keyframes spin-fast {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 .animate-spin-fast {
   animation: spin-fast 0.6s linear infinite;

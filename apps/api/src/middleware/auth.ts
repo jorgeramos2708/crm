@@ -1,7 +1,7 @@
-import { FastifyRequest, FastifyReply } from 'fastify';
-import { verifyToken } from '../services/auth.js';
+import { FastifyRequest, FastifyReply } from "fastify";
+import { verifyToken } from "../services/auth.js";
 
-declare module 'fastify' {
+declare module "fastify" {
   interface FastifyRequest {
     user?: {
       id: string;
@@ -12,44 +12,88 @@ declare module 'fastify' {
   }
 }
 
-function getToken(cookies: Record<string, string | undefined> | undefined): string | null {
+function getToken(
+  cookies: Record<string, string | undefined> | undefined,
+): string | null {
   if (!cookies) return null;
   const token = cookies.token;
   if (token === undefined || token === null) return null;
   return token;
 }
 
-export async function authMiddleware(request: FastifyRequest, reply: FastifyReply) {
+export async function authMiddleware(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
   // 1) API pública: Authorization: Bearer crm_...
   const authHeader = request.headers.authorization;
-  if (authHeader?.startsWith('Bearer ')) {
+  if (authHeader?.startsWith("Bearer ")) {
     try {
-      const { verifyApiToken } = await import('../services/webhooks.js');
-      const { db } = await import('../db/index.js');
-      const { users } = await import('../db/schema.js');
-      const { eq } = await import('drizzle-orm');
+      const { verifyApiToken } = await import("../services/webhooks.js");
+      const { db } = await import("../db/index.js");
+      const { users } = await import("../db/schema.js");
+      const { eq } = await import("drizzle-orm");
       const t = await verifyApiToken(authHeader.slice(7));
-      if (!t) return reply.code(401).send({ error: 'API token inválido', code: 'INVALID_TOKEN' });
-      const [u] = await db.select().from(users).where(eq(users.id, t.userId)).limit(1);
-      if (!u || !u.activo) return reply.code(401).send({ error: 'Usuario inválido', code: 'INVALID_TOKEN' });
+      if (!t)
+        return reply
+          .code(401)
+          .send({ error: "API token inválido", code: "INVALID_TOKEN" });
+      const [u] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, t.userId))
+        .limit(1);
+      if (!u || !u.activo)
+        return reply
+          .code(401)
+          .send({ error: "Usuario inválido", code: "INVALID_TOKEN" });
       request.user = { id: u.id, email: u.email, role: u.role, name: u.name };
       return;
     } catch {
-      return reply.code(401).send({ error: 'Token inválido', code: 'INVALID_TOKEN' });
+      return reply
+        .code(401)
+        .send({ error: "Token inválido", code: "INVALID_TOKEN" });
     }
   }
-  // 2) Sesión web: cookie JWT
+  // 2) Sesión web: cookie JWT — también validar contra BD (activo/rol fresco)
   const token = getToken(request.cookies);
   if (!token) {
-    return reply.code(401).send({ error: 'No autorizado', code: 'UNAUTHORIZED' });
+    return reply
+      .code(401)
+      .send({ error: "No autorizado", code: "UNAUTHORIZED" });
   }
   try {
-    const { verifyToken } = await import('../services/auth.js');
+    const { verifyToken } = await import("../services/auth.js");
     // token is guaranteed to be string here due to the check above
     const decoded = verifyToken(token!);
-    request.user = decoded;
+    // Lookup en BD para validar activo y rol/permisos actuales
+    const { db } = await import("../db/index.js");
+    const { users } = await import("../db/schema.js");
+    const { eq } = await import("drizzle-orm");
+    const [u] = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        role: users.role,
+        name: users.name,
+        activo: users.activo,
+      })
+      .from(users)
+      .where(eq(users.id, decoded.id))
+      .limit(1);
+    if (!u || !u.activo) {
+      return reply
+        .code(401)
+        .send({
+          error: "Usuario inactivo o no encontrado",
+          code: "UNAUTHORIZED",
+        });
+    }
+    request.user = { id: u.id, email: u.email, role: u.role, name: u.name };
   } catch {
-    return reply.code(401).send({ error: 'Token inválido', code: 'INVALID_TOKEN' });
+    return reply
+      .code(401)
+      .send({ error: "Token inválido", code: "INVALID_TOKEN" });
   }
 }
 
@@ -59,7 +103,7 @@ export function requireRole(...roles: string[]) {
     if (reply.sent) return;
     const userRole = request.user?.role;
     if (!userRole || !roles.includes(userRole)) {
-      return reply.code(403).send({ error: 'Sin permisos', code: 'FORBIDDEN' });
+      return reply.code(403).send({ error: "Sin permisos", code: "FORBIDDEN" });
     }
   };
 }

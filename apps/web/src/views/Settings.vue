@@ -81,12 +81,7 @@
           </button>
           <div v-show="acordeon === 'usuarios'" class="px-5 pb-5">
             <div class="flex items-center justify-end mb-4">
-              <button
-                @click="openUserModal(null)"
-                class="bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90"
-              >
-                + Nuevo Usuario
-              </button>
+              <Btn variant="icon" @click="openUserModal(null)">+</Btn>
             </div>
             <ul class="divide-y divide-zinc-200 dark:divide-zinc-700 mb-4">
               <li v-for="u in usuarios" :key="u.id" class="py-3">
@@ -98,14 +93,27 @@
                       }}{{ u.activo ? "" : " · inactivo" }}</span
                     >
                   </div>
-                  <div class="flex gap-2 text-xs">
+                  <div class="flex gap-1 text-xs items-center">
                     <Btn variant="link" @click="editarPermisos(u)"
                       >Permisos</Btn
                     >
-                    <Btn variant="link" @click="openUserModal(u)">Editar</Btn>
-                    <Btn variant="link-danger" @click="borrarUsuario(u)"
-                      >Eliminar</Btn
+                    <Btn
+                      variant="ghost"
+                      title="Editar"
+                      aria-label="Editar"
+                      @click="openUserModal(u)"
                     >
+                      <Icon name="editar" class="h-4 w-4" />
+                    </Btn>
+                    <Btn
+                      variant="ghost"
+                      class="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                      title="Eliminar"
+                      aria-label="Eliminar"
+                      @click="borrarUsuario(u)"
+                    >
+                      <Icon name="eliminar" class="h-4 w-4" />
+                    </Btn>
                   </div>
                 </div>
                 <div
@@ -208,7 +216,7 @@
                 placeholder="Nombre del equipo"
                 class="flex-1"
               />
-              <Btn type="submit">Crear</Btn>
+              <Btn type="submit" variant="icon">+</Btn>
             </form>
             <ul class="divide-y divide-zinc-200 dark:divide-zinc-700">
               <li v-for="eq in equipos" :key="eq.id" class="py-3">
@@ -219,8 +227,14 @@
                       >({{ (eq.miembros || []).length }})</span
                     ></span
                   >
-                  <Btn variant="link-danger" @click="borrarEquipo(eq)">
-                    Eliminar
+                  <Btn
+                    variant="ghost"
+                    class="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    title="Eliminar"
+                    aria-label="Eliminar"
+                    @click="borrarEquipo(eq)"
+                  >
+                    <Icon name="eliminar" class="h-4 w-4" />
                   </Btn>
                 </div>
                 <div class="flex flex-wrap gap-1.5 mt-2">
@@ -894,12 +908,15 @@
                 }}{{ f.requerido ? " · requerido" : "" }}</span
               ></span
             >
-            <button
+            <Btn
+              variant="ghost"
+              class="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+              title="Eliminar"
+              aria-label="Eliminar"
               @click="borrarCustomField(f)"
-              class="text-red-600 hover:underline text-xs"
             >
-              Eliminar
-            </button>
+              <Icon name="eliminar" class="h-4 w-4" />
+            </Btn>
           </li>
           <li v-if="!customFields.length" class="py-2 text-sm text-zinc-500">
             Sin campos en {{ cfEntidad }}.
@@ -1147,11 +1164,13 @@
               <div class="flex items-center justify-between">
                 <span class="font-medium">{{ w.nombre }}</span>
                 <Btn
-                  variant="link-danger"
-                  class="text-xs"
+                  variant="ghost"
+                  class="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                  title="Eliminar"
+                  aria-label="Eliminar"
                   @click="borrarWebhook(w)"
                 >
-                  Eliminar
+                  <Icon name="eliminar" class="h-4 w-4" />
                 </Btn>
               </div>
               <div class="text-zinc-500 text-xs break-all">{{ w.url }}</div>

@@ -29,6 +29,12 @@ function mockApi(
 ) {
   mockedGet.mockImplementation((url: string) => {
     if (fail) return Promise.reject(new Error("down"));
+    if (url.startsWith("/api/tareas"))
+      return Promise.resolve({ data: { data: [], total: 0 } });
+    if (url.startsWith("/api/activities"))
+      return Promise.resolve({ data: { data: [], total: 0 } });
+    if (url.startsWith("/api/calendario"))
+      return Promise.resolve({ data: { data: [], fuentes: [] } });
     if (url === "/api/config") return Promise.resolve({ data: {} });
     if (url === "/api/dashboard/stats") return Promise.resolve({ data: stats });
     if (url.startsWith("/api/oportunidades"))

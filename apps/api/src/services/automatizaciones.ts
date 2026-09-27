@@ -7,6 +7,7 @@ import {
   users,
   contactos,
   activities,
+  tareas,
 } from "../db/schema.js";
 import { eq, and } from "drizzle-orm";
 import { sendEmail } from "./email.js";
@@ -148,16 +149,33 @@ async function executeAction(
     }
 
     case "create_task": {
-      const { titulo, descripcion, asignadoA } = params;
-      // Create activity as task
-      await logActivity(
-        "task_created",
-        titulo,
-        "oportunidad",
-        context.oportunidadId || "",
-        context.userId,
-        { descripcion, asignadoA },
-      );
+      const { titulo, descripcion, asignadoA, prioridad, vencimientoDias } =
+        params;
+      if (context.oportunidadId) {
+        const vencimiento = vencimientoDias
+          ? new Date(Date.now() + vencimientoDias * 24 * 60 * 60 * 1000)
+          : undefined;
+        await db.insert(tareas).values({
+          titulo,
+          descripcion: descripcion || "",
+          estado: "pendiente",
+          prioridad: prioridad || "media",
+          vencimiento,
+          entityType: "oportunidad",
+          entityId: context.oportunidadId,
+          asignadoId: asignadoA || context.userId,
+          creadoPor: context.userId,
+        });
+        // Also log activity for audit trail
+        await logActivity(
+          "task_created",
+          titulo,
+          "oportunidad",
+          context.oportunidadId || "",
+          context.userId,
+          { descripcion, asignadoA, prioridad, vencimientoDias },
+        );
+      }
       break;
     }
 

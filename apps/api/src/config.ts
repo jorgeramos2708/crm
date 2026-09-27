@@ -52,4 +52,37 @@ export const env = {
   SMTP_FROM: process.env.SMTP_FROM || "",
 } as const;
 
+const DEFAULT_SESSION_SECRET =
+  "crm-super-secret-change-in-production-min-32-chars";
+const DEFAULT_JWT_SECRET = "jwt-secret-change-in-production-min-32-chars";
+
+if (env.NODE_ENV === "production") {
+  if (
+    !process.env.SESSION_SECRET ||
+    env.SESSION_SECRET === DEFAULT_SESSION_SECRET
+  ) {
+    throw new Error(
+      "SESSION_SECRET must be set to a secure random value in production (min 32 chars)",
+    );
+  }
+  if (!process.env.JWT_SECRET || env.JWT_SECRET === DEFAULT_JWT_SECRET) {
+    throw new Error(
+      "JWT_SECRET must be set to a secure random value in production (min 32 chars)",
+    );
+  }
+  if (
+    !process.env.MICROSOFT_CRYPTO_KEY ||
+    env.MICROSOFT_CRYPTO_KEY.length !== 64
+  ) {
+    throw new Error(
+      "MICROSOFT_CRYPTO_KEY must be set to a 32-byte hex string (64 chars) in production",
+    );
+  }
+  if (!process.env.SMTP_HOST) {
+    console.warn(
+      "[config] SMTP_HOST not set in production — emails will dry-run",
+    );
+  }
+}
+
 export type Env = typeof env;

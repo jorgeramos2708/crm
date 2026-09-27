@@ -42,9 +42,13 @@ export default defineConfig(({ mode }) => {
               workbox: {
                 globPatterns: ["**/*.{js,css,html,svg,ico,woff2}"],
                 navigateFallback: "/index.html",
+                navigateFallbackDenylist: [/^\/api\//],
                 runtimeCaching: [
                   {
-                    urlPattern: /^\/api\/.*/,
+                    // No interceptar navegaciones a /api (redirecciones OAuth/SSO)
+                    urlPattern: ({ url, request }) =>
+                      url.pathname.startsWith("/api/") &&
+                      request.mode !== "navigate",
                     handler: "NetworkOnly",
                   },
                 ],

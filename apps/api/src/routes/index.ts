@@ -238,6 +238,7 @@ interface UpdateOportunidadBody {
   probabilidad?: number;
   ivaIncluido?: boolean;
   fechaCierreEstimada?: string;
+  completadoEn?: string | null;
   propietarioId?: string;
 }
 
@@ -644,8 +645,20 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       accion: "r",
     },
     {
+      method: "GET",
+      re: /^\/api\/email-subscriptions(\/|$)/,
+      modulo: "listas",
+      accion: "r",
+    },
+    {
       method: "POST",
       re: /^\/api\/contact-lists(\/|$)/,
+      modulo: "listas",
+      accion: "w",
+    },
+    {
+      method: "PUT",
+      re: /^\/api\/contact-lists\//,
       modulo: "listas",
       accion: "w",
     },
@@ -820,7 +833,29 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         tipo: "click",
         metadata: { url, userAgent: req.headers["user-agent"], ip: req.ip },
       });
-      return res.redirect(url || "/");
+      // Validar URL para prevenir open redirect: solo URLs del mismo dominio o https/http
+      let safeUrl = "/";
+      if (url) {
+        try {
+          const u = new URL(url);
+          if (["http:", "https:"].includes(u.protocol)) {
+            // Opcional: restringir a dominios permitidos (configurar via env TRACK_ALLOWED_DOMAINS)
+            const allowed =
+              process.env.TRACK_ALLOWED_DOMAINS?.split(",").map((d) =>
+                d.trim().toLowerCase(),
+              ) || [];
+            if (
+              allowed.length === 0 ||
+              allowed.some((d) => u.hostname.endsWith(d))
+            ) {
+              safeUrl = url;
+            }
+          }
+        } catch {
+          safeUrl = "/";
+        }
+      }
+      return res.redirect(safeUrl);
     },
   );
 
@@ -832,6 +867,13 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       tipo: "unsubscribe",
       metadata: { userAgent: req.headers["user-agent"], ip: req.ip },
     });
+    // Actualizar suscripción real si existe (buscar por contactoId)
+    if (parsed.contactoId) {
+      await db
+        .update(emailSubscriptions)
+        .set({ estado: "cancelado", canceladoEn: new Date() })
+        .where(eq(emailSubscriptions.contactoId, parsed.contactoId));
+    }
     return { ok: true, message: "Te has dado de baja correctamente" };
   });
 
@@ -871,28 +913,6 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         .set({ estado: "cancelado", canceladoEn: new Date() })
         .where(eq(emailSubscriptions.id, sub.id));
       return { ok: true, message: "Te has dado de baja correctamente" };
-    },
-  );
-
-  app.get(
-    "/api/email-subscriptions",
-    async (
-      req: FastifyRequest<{
-        Querystring: { contactoId?: string; listaId?: string; estado?: string };
-      }>,
-      res,
-    ) => {
-      const { contactoId, listaId, estado } = req.query;
-      const conditions = [];
-      if (contactoId)
-        conditions.push(eq(emailSubscriptions.contactoId, contactoId));
-      if (listaId) conditions.push(eq(emailSubscriptions.listaId, listaId));
-      if (estado) conditions.push(eq(emailSubscriptions.estado, estado));
-      return db
-        .select()
-        .from(emailSubscriptions)
-        .where(and(...conditions))
-        .orderBy(desc(emailSubscriptions.createdAt));
     },
   );
 
@@ -1112,10 +1132,27 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       res,
     ) => {
       const { code, error, state } = req.query;
+      const FE = process.env.FRONTEND_URL || "http://localhost:8081";
+      // Redirect URI compartido: si el state es de login SSO, va al callback de login
+      if (state) {
+        try {
+          const parsedState = JSON.parse(
+            Buffer.from(state, "base64url").toString(),
+          );
+          if (parsedState?.purpose === "login") {
+            const qs = new URLSearchParams({
+              ...(code ? { code } : {}),
+              ...(state ? { state } : {}),
+              ...(error ? { error } : {}),
+            });
+            return res.redirect(`/api/auth/microsoft/login/callback?${qs}`);
+          }
+        } catch {
+          /* no es JSON → seguir como connect */
+        }
+      }
       if (error) {
-        return res.redirect(
-          `${process.env.FRONTEND_URL || "http://localhost:8081"}/settings?microsoft_error=${error}`,
-        );
+        return res.redirect(`${FE}/settings?microsoft_error=${error}`);
       }
       if (!code) {
         return res
@@ -1135,19 +1172,67 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         const config = await getGlobalConfig();
         if (!config) {
           return res.redirect(
-            `${process.env.FRONTEND_URL || "http://localhost:8081"}/settings?microsoft_error=config_not_found`,
+            `${FE}/settings?microsoft_error=config_not_found`,
           );
         }
         const tokens = await exchangeCodeForTokens(config, code);
         await storeUserTokens(parsedState.userId, tokens);
-        return res.redirect(
-          `${process.env.FRONTEND_URL || "http://localhost:8081"}/settings?microsoft_connected=true`,
-        );
+        return res.redirect(`${FE}/settings?microsoft_connected=true`);
       } catch (err) {
         console.error("Microsoft OAuth error:", err);
         return res.redirect(
-          `${process.env.FRONTEND_URL || "http://localhost:8081"}/settings?microsoft_error=token_exchange_failed`,
+          `${FE}/settings?microsoft_error=token_exchange_failed`,
         );
+      }
+    },
+  );
+
+  //
+  // Google OAuth connect callback (público: registrado en root como Microsoft para que funcione sin sesión)
+  app.get(
+    "/api/auth/google/callback",
+    async (
+      req: FastifyRequest<{
+        Querystring: { code?: string; state?: string; error?: string };
+      }>,
+      res,
+    ) => {
+      const { code, error, state } = req.query;
+      const FE = process.env.FRONTEND_URL || "http://localhost:8081";
+      // Redirect URI compartido: si el state es de login SSO, va al callback de login
+      if (state) {
+        try {
+          const parsedSso = JSON.parse(
+            Buffer.from(state, "base64url").toString(),
+          );
+          if (parsedSso?.purpose === "login") {
+            const qs = new URLSearchParams({
+              ...(code ? { code } : {}),
+              ...(state ? { state } : {}),
+              ...(error ? { error } : {}),
+            });
+            return res.redirect("/api/auth/google/login/callback?" + qs);
+          }
+        } catch {
+          /* no es JSON → seguir como connect */
+        }
+      }
+      if (error) return res.redirect("/settings?google_error=");
+      if (!code || !state)
+        return res.code(400).send({ error: "code y state requeridos" });
+      const parsed = parseGoogleState(state);
+      if (!parsed?.userId)
+        return res.code(400).send({ error: "Estado inválido" });
+      try {
+        const cfg = await getGoogleConfig();
+        if (!cfg)
+          return res.redirect("/settings?google_error=config_not_found");
+        const tokens = await exchangeGoogleCode(cfg, code);
+        await storeGoogleTokens(parsed.userId, tokens);
+        return res.redirect("/settings?google_connected=true");
+      } catch (err) {
+        console.error("Google OAuth error:", err);
+        return res.redirect("/settings?google_error=token_exchange_failed");
       }
     },
   );
@@ -1497,7 +1582,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       },
     );
 
-    // Google OAuth (callback público con state=userId)
+    // Google OAuth (connect requiere auth; callback público está en root)
     app.get(
       "/api/auth/google/connect",
       { preHandler: authMiddleware },
@@ -1507,38 +1592,6 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         if (!authUrl)
           return res.code(400).send({ error: "Google no configurado" });
         res.redirect(authUrl);
-      },
-    );
-
-    app.get(
-      "/api/auth/google/callback",
-      async (
-        req: FastifyRequest<{
-          Querystring: { code?: string; state?: string; error?: string };
-        }>,
-        res,
-      ) => {
-        const { code, error, state } = req.query;
-        const FE = process.env.FRONTEND_URL || "http://localhost:8081";
-        if (error) return res.redirect(`${FE}/settings?google_error=${error}`);
-        if (!code || !state)
-          return res.code(400).send({ error: "code y state requeridos" });
-        const parsed = parseGoogleState(state);
-        if (!parsed?.userId)
-          return res.code(400).send({ error: "Estado inválido" });
-        try {
-          const cfg = await getGoogleConfig();
-          if (!cfg)
-            return res.redirect(`${FE}/settings?google_error=config_not_found`);
-          const tokens = await exchangeGoogleCode(cfg, code);
-          await storeGoogleTokens(parsed.userId, tokens);
-          return res.redirect(`${FE}/settings?google_connected=true`);
-        } catch (err) {
-          console.error("Google OAuth error:", err);
-          return res.redirect(
-            `${FE}/settings?google_error=token_exchange_failed`,
-          );
-        }
       },
     );
 
@@ -1923,6 +1976,32 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         .orderBy(desc(users.createdAt));
     });
 
+    app.get("/api/email-subscriptions", async (req, res) => {
+      const { contactoId, listaId, estado } = req.query as {
+        contactoId?: string;
+        listaId?: string;
+        estado?: string;
+      };
+      const conditions = [];
+      if (contactoId)
+        conditions.push(eq(emailSubscriptions.contactoId, contactoId));
+      if (listaId) conditions.push(eq(emailSubscriptions.listaId, listaId));
+      if (estado) conditions.push(eq(emailSubscriptions.estado, estado));
+      return db
+        .select({
+          id: emailSubscriptions.id,
+          contactoId: emailSubscriptions.contactoId,
+          listaId: emailSubscriptions.listaId,
+          estado: emailSubscriptions.estado,
+          creadoEn: emailSubscriptions.creadoEn,
+          confirmadoEn: emailSubscriptions.confirmadoEn,
+          canceladoEn: emailSubscriptions.canceladoEn,
+        })
+        .from(emailSubscriptions)
+        .where(and(...conditions))
+        .orderBy(desc(emailSubscriptions.createdAt));
+    });
+
     app.post(
       "/api/users",
       { preHandler: requireRole("admin") },
@@ -2176,6 +2255,24 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       );
       if (errors.length)
         return res.code(400).send({ error: errors.join("; ") });
+      // Validar que stageId pertenece al pipelineId
+      if (body.pipelineId && body.stageId) {
+        const [stage] = await db
+          .select()
+          .from(pipelineStages)
+          .where(
+            and(
+              eq(pipelineStages.id, body.stageId),
+              eq(pipelineStages.pipelineId, body.pipelineId),
+            ),
+          )
+          .limit(1);
+        if (!stage) {
+          return res.code(400).send({
+            error: "La etapa no pertenece al pipeline especificado",
+          });
+        }
+      }
       const [opp] = await db
         .insert(oportunidades)
         .values({
@@ -2185,6 +2282,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
           fechaCierreEstimada: body.fechaCierreEstimada
             ? new Date(body.fechaCierreEstimada)
             : undefined,
+          probabilidad: body.probabilidad ?? 50,
         })
         .returning();
       emitEvent("oportunidad.creada", {
@@ -2228,6 +2326,26 @@ export async function registerAuthRoutes(app: FastifyInstance) {
           .limit(1);
         if (!oldOpp) return res.code(404).send({ error: "No encontrada" });
 
+        // Validar stageId pertenece al pipelineId si se está cambiando
+        const targetPipelineId = body.pipelineId ?? oldOpp.pipelineId;
+        if (body.stageId && body.stageId !== oldOpp.stageId) {
+          const [stage] = await db
+            .select()
+            .from(pipelineStages)
+            .where(
+              and(
+                eq(pipelineStages.id, body.stageId),
+                eq(pipelineStages.pipelineId, targetPipelineId),
+              ),
+            )
+            .limit(1);
+          if (!stage) {
+            return res.code(400).send({
+              error: "La etapa no pertenece al pipeline de la oportunidad",
+            });
+          }
+        }
+
         const updateData: Record<string, any> = {
           ...body,
           updatedAt: new Date(),
@@ -2241,12 +2359,73 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         if (body.fechaCierreEstimada) {
           updateData.fechaCierreEstimada = new Date(body.fechaCierreEstimada);
         }
+        if (body.completadoEn !== undefined) {
+          updateData.completadoEn =
+            body.completadoEn === null ? null : new Date(body.completadoEn);
+        }
+
+        // Manejar cierre ganado/perdido
+        if (body.estadoCierre && body.estadoCierre !== oldOpp.estadoCierre) {
+          if (
+            body.estadoCierre === "ganado" ||
+            body.estadoCierre === "perdido"
+          ) {
+            updateData.estadoCierre = body.estadoCierre;
+            updateData.cerradoEn = new Date();
+            if (body.estadoCierre === "ganado") {
+              updateData.motivoGanado = body.motivoGanado ?? null;
+              updateData.probabilidad = 100;
+            } else {
+              updateData.motivoPerdido = body.motivoPerdido ?? null;
+              updateData.probabilidad = 0;
+            }
+            updateData.completadoEn = new Date();
+          } else if (body.estadoCierre === "abierto") {
+            updateData.estadoCierre = "abierto";
+            updateData.motivoGanado = null;
+            updateData.motivoPerdido = null;
+            updateData.cerradoEn = null;
+            updateData.completadoEn = null;
+          }
+        }
+
+        // Si cambia stageId, actualizar probabilidad desde la nueva etapa
+        if (body.stageId && body.stageId !== oldOpp.stageId) {
+          const [newStage] = await db
+            .select()
+            .from(pipelineStages)
+            .where(eq(pipelineStages.id, body.stageId))
+            .limit(1);
+          if (newStage) {
+            updateData.probabilidad = newStage.probabilidad ?? 50;
+          }
+        }
+
+        if (body.fechaCierreEstimada) {
+          updateData.fechaCierreEstimada = new Date(body.fechaCierreEstimada);
+        }
+        if (body.completadoEn !== undefined) {
+          updateData.completadoEn =
+            body.completadoEn === null ? null : new Date(body.completadoEn);
+        }
         const [opp] = await db
           .update(oportunidades)
           .set(updateData)
           .where(eq(oportunidades.id, req.params.id))
           .returning();
         if (!opp) return res.code(404).send({ error: "No encontrada" });
+
+        // Emit evento oportunidad_updated
+        emitEvent("oportunidad.actualizada", {
+          id: opp.id,
+          nombre: opp.nombre,
+          pipelineId: opp.pipelineId,
+          stageId: opp.stageId,
+          importe: opp.importe,
+          probabilidad: opp.probabilidad,
+          estadoCierre: opp.estadoCierre,
+          cambios: Object.keys(body),
+        }).catch(() => {});
 
         // Trigger automatizaciones if stage changed
         if (body.stageId && body.stageId !== oldOpp.stageId) {
@@ -2290,6 +2469,21 @@ export async function registerAuthRoutes(app: FastifyInstance) {
           }).catch(() => {});
         }
 
+        // Trigger automatizaciones si se cerró ganado/perdido
+        if (body.estadoCierre && body.estadoCierre !== oldOpp.estadoCierre) {
+          await processAutomatizaciones({
+            evento: "oportunidad_cerrada",
+            oportunidadId: opp.id,
+            estadoCierre: opp.estadoCierre,
+            motivoGanado: opp.motivoGanado,
+            motivoPerdido: opp.motivoPerdido,
+            userId: req.user?.id,
+            pipelineId: opp.pipelineId,
+            importe: opp.importe,
+            probabilidad: opp.probabilidad,
+          });
+        }
+
         return opp;
       },
     );
@@ -2324,6 +2518,9 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         fechaCierreEstimada: o.fechaCierreEstimada
           ? new Date(o.fechaCierreEstimada).toISOString()
           : "",
+        completadoEn: o.completadoEn
+          ? new Date(o.completadoEn).toISOString()
+          : "",
       }));
       res.header("Content-Type", "text/csv; charset=utf-8");
       res.header(
@@ -2342,6 +2539,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
             "importe",
             "probabilidad",
             "fechaCierreEstimada",
+            "completadoEn",
           ],
           rows,
         ),
@@ -2666,10 +2864,16 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         body.aplicaIva ?? false,
       );
       const year = new Date().getFullYear();
-      const [{ total: existentes }] = await db
-        .select({ total: count() })
-        .from(presupuestos);
-      const folio = `COT-${year}-${String(Number(existentes) + 1).padStart(4, "0")}`;
+      // Usar secuencia atómica por año para evitar race conditions
+      await db.execute(sql`
+        CREATE SEQUENCE IF NOT EXISTS presupuestos_folio_seq_${sql.raw(year.toString())} START 1
+      `);
+      const [{ nextval: seqNum }] = await db
+        .select({
+          nextval: sql`nextval('presupuestos_folio_seq_${sql.raw(year.toString())}')`,
+        })
+        .from(sql`generate_series(1,1)`);
+      const folio = `COT-${year}-${String(Number(seqNum)).padStart(4, "0")}`;
       const [p] = await db
         .insert(presupuestos)
         .values({
@@ -3295,6 +3499,9 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       }
       if (!file)
         return res.code(400).send({ error: "Archivo requerido (campo file)" });
+      const buf = await file.toBuffer();
+      // Leer fields DESPUÉS de toBuffer() para que busboy haya parseado todos los campos
+      // (el orden en multipart puede ser file primero, fields después)
       const fields = (file.fields || {}) as Record<string, any>;
       const entityType = fields.entityType?.value;
       const entityId = fields.entityId?.value;
@@ -3304,7 +3511,6 @@ export async function registerAuthRoutes(app: FastifyInstance) {
             "entityType (contacto|empresa|oportunidad) y entityId requeridos",
         });
       }
-      const buf = await file.toBuffer();
       const safeName = `${Date.now()}-${(file.filename || "archivo").replace(/[^a-zA-Z0-9._-]/g, "_")}`;
       const clave = `${entityType}/${entityId}/${safeName}`;
       try {
@@ -3582,15 +3788,23 @@ export async function registerAuthRoutes(app: FastifyInstance) {
     );
 
     // Dashboard stats
-    app.get("/api/dashboard/stats", async () => {
+    app.get("/api/dashboard/stats", async (req) => {
+      // Scoping por alcance: admin = todo, user = solo propias
+      const isAdmin = req.user?.role === "admin";
+      const ownerCond = isAdmin
+        ? undefined
+        : eq(oportunidades.propietarioId, req.user!.id);
+
       const [totalOpps] = await db
         .select({ count: count() })
-        .from(oportunidades);
+        .from(oportunidades)
+        .where(ownerCond);
       const [totalValor] = await db
         .select({
           sum: sql<number>`coalesce(sum(${oportunidades.importe}), 0)`,
         })
-        .from(oportunidades);
+        .from(oportunidades)
+        .where(ownerCond);
       const [totalStages] = await db
         .select({ count: count() })
         .from(pipelineStages);
@@ -3603,14 +3817,19 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         valorTotal: Number(totalValor.sum || 0),
         totalEtapas: Number(totalStages.count),
         totalUsuarios: Number(totalUsers.count),
+        alcance: isAdmin ? "todos" : "mio",
       };
     });
 
     // Embudo por etapa: conteo, importe y estimado (importe × probabilidad)
     app.get(
       "/api/reportes/embudo",
-      async (req: FastifyRequest<{ Querystring: { pipelineId?: string } }>) => {
-        const { pipelineId } = req.query;
+      async (
+        req: FastifyRequest<{
+          Querystring: { pipelineId?: string; alcance?: string };
+        }>,
+      ) => {
+        const { pipelineId, alcance } = req.query;
         const stageCond = pipelineId
           ? eq(pipelineStages.pipelineId, pipelineId)
           : undefined;
@@ -3619,9 +3838,24 @@ export async function registerAuthRoutes(app: FastifyInstance) {
           .from(pipelineStages)
           .where(stageCond)
           .orderBy(pipelineStages.orden);
-        const oppCond = pipelineId
-          ? eq(oportunidades.pipelineId, pipelineId)
-          : undefined;
+
+        // Scoping por alcance: admin/todos = todo, user/mio = solo propias
+        const isAdmin = req.user?.role === "admin";
+        const scope =
+          alcance === "todos" && isAdmin
+            ? "todos"
+            : alcance === "equipo" && isAdmin
+              ? "equipo"
+              : "mio";
+        const ownerCond =
+          scope === "mio"
+            ? eq(oportunidades.propietarioId, req.user!.id)
+            : undefined;
+
+        const oppCond = and(
+          pipelineId ? eq(oportunidades.pipelineId, pipelineId) : undefined,
+          ownerCond,
+        );
         const opps = await db
           .select({
             id: oportunidades.id,
@@ -3659,6 +3893,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
           estimadoTotal,
           ticketMedio: total ? Math.round(valorTotal / total) : 0,
           etapas,
+          alcance: scope,
         };
       },
     );
@@ -4067,8 +4302,34 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         if (!tpl)
           return res.code(400).send({ error: "Plantilla no encontrada" });
 
-        // Get contact lists or use all contacts for now
-        const contacts = await db.select().from(contactos);
+        // Obtener contactos: si hay listaId, usar miembros de la lista; sino todos
+        // Excluir contactos con suscripción cancelada (estado = 'cancelado')
+        let contacts;
+        if (campaign.listaId) {
+          // Usar miembros de la lista
+          const members = await db
+            .select({
+              id: contactos.id,
+              nombre: contactos.nombre,
+              email: contactos.email,
+            })
+            .from(contactListMembers)
+            .innerJoin(
+              contactos,
+              eq(contactListMembers.contactoId, contactos.id),
+            )
+            .where(eq(contactListMembers.listId, campaign.listaId));
+          contacts = members;
+        } else {
+          // Todos los contactos, pero excluir suscripciones canceladas
+          const subs = await db
+            .select({ contactoId: emailSubscriptions.contactoId })
+            .from(emailSubscriptions)
+            .where(eq(emailSubscriptions.estado, "cancelado"));
+          const canceledIds = new Set(subs.map((s) => s.contactoId));
+          const allContacts = await db.select().from(contactos);
+          contacts = allContacts.filter((c) => !canceledIds.has(c.id));
+        }
 
         let sent = 0;
         for (const contact of contacts) {
@@ -4256,23 +4517,76 @@ export async function registerAuthRoutes(app: FastifyInstance) {
 
     // Email Subscriptions (Double Opt-in) - admin only
     app.post("/api/email-subscriptions", async (req, res) => {
-      const { contactoId, listaId } = req.body as {
-        contactoId: string;
+      const { contactoId, listaId, email, nombre } = req.body as {
+        contactoId?: string;
         listaId?: string;
+        email?: string;
+        nombre?: string;
       };
+      // Si no se proporciona contactoId, crear/obtener contacto por email
+      let finalContactoId = contactoId;
+      if (!finalContactoId && email) {
+        const [existing] = await db
+          .select()
+          .from(contactos)
+          .where(eq(contactos.email, email))
+          .limit(1);
+        if (existing) {
+          finalContactoId = existing.id;
+        } else {
+          const [newContact] = await db
+            .insert(contactos)
+            .values({ nombre: nombre || email, email })
+            .returning();
+          finalContactoId = newContact.id;
+        }
+      }
+      if (!finalContactoId) {
+        return res.code(400).send({ error: "contactoId o email requeridos" });
+      }
       const { randomUUID } = await import("crypto");
       const token = randomUUID();
       const [sub] = await db
         .insert(emailSubscriptions)
         .values({
-          contactoId,
+          contactoId: finalContactoId,
           listaId,
           token,
           estado: "pendiente",
         })
         .returning();
-      // TODO: Send confirmation email with link /api/email-subscriptions/confirm/${token}
-      return res.code(201).send(sub);
+
+      // Enviar correo de confirmación (double opt-in)
+      const FE = process.env.FRONTEND_URL || "http://localhost:8081";
+      const confirmUrl = `${FE}/api/email-subscriptions/confirm/${token}`;
+      const [contact] = await db
+        .select()
+        .from(contactos)
+        .where(eq(contactos.id, finalContactoId))
+        .limit(1);
+      if (contact?.email) {
+        await sendEmail({
+          to: contact.email,
+          subject: "Confirma tu suscripción",
+          html: `
+            <p>Hola ${contact.nombre || ""},</p>
+            <p>Gracias por suscribirte. Por favor confirma tu suscripción haciendo clic en el siguiente enlace:</p>
+            <p><a href="${confirmUrl}">${confirmUrl}</a></p>
+            <p>Si no solicitaste esta suscripción, ignora este correo.</p>
+          `,
+          text: `Confirma tu suscripción: ${confirmUrl}`,
+          from: `"${env.CURRENCY === "MXN" ? "CRM" : "CRM"}" <noreply@${new URL(FE).hostname}>`,
+        });
+        await logActivity(
+          "subscription_confirmation_sent",
+          "Correo de confirmación de suscripción enviado",
+          "contacto",
+          finalContactoId,
+          undefined,
+          { token, listaId },
+        );
+      }
+      return res.code(201).send({ ...sub, token: undefined }); // No devolver token en respuesta
     });
 
     // Email Tracking

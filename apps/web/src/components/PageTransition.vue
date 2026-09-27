@@ -8,15 +8,17 @@
 
 <script setup>
 defineProps({
-  name: { type: String, default: 'page' },
-  mode: { type: String, default: 'out-in' },
+  name: { type: String, default: "page" },
+  mode: { type: String, default: "out-in" },
 });
 </script>
 
 <style>
 .page-enter-active,
 .page-leave-active {
-  transition: opacity 0.2s ease, transform 0.25s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.25s ease;
 }
 .page-enter-from,
 .page-leave-to {

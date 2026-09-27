@@ -1,7 +1,7 @@
 <template>
   <div class="p-6">
     <header class="mb-6 flex justify-end">
-      <Btn @click="openModal(null)">+ Nueva Plantilla</Btn>
+      <Btn @click="openModal(null)" variant="icon">+</Btn>
     </header>
 
     <div class="space-y-4">
@@ -25,17 +25,24 @@
               >
             </div>
           </div>
-          <div class="flex gap-2">
+          <div class="flex gap-1">
             <Btn
-              variant="outline"
-              class="text-zinc-600 dark:text-zinc-400"
+              variant="ghost"
+              title="Editar"
+              aria-label="Editar"
               @click="openModal(tpl)"
             >
-              Editar
+              <Icon name="editar" class="h-4 w-4" />
             </Btn>
-            <Btn variant="danger-soft" @click="eliminarTemplate(tpl)"
-              >Eliminar</Btn
+            <Btn
+              variant="ghost"
+              class="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+              title="Eliminar"
+              aria-label="Eliminar"
+              @click="eliminarTemplate(tpl)"
             >
+              <Icon name="eliminar" class="h-4 w-4" />
+            </Btn>
           </div>
         </div>
       </Card>
@@ -43,14 +50,13 @@
       <Card v-if="cargando && !plantillas.length" class="p-6">
         <Skeleton :filas="3" />
       </Card>
-      <Card
-        v-if="!cargando && plantillas.length === 0"
-        class="p-12 text-center"
-      >
-        <p class="text-zinc-500 dark:text-zinc-400 mb-4">
+      <Card v-if="!cargando && plantillas.length === 0" class="p-12">
+        <EmptyState icon="plantillas">
           No hay plantillas creadas
-        </p>
-        <Btn @click="openModal(null)" size="lg">Crear primera plantilla</Btn>
+          <template #action>
+            <Btn @click="openModal(null)" variant="icon">+</Btn>
+          </template>
+        </EmptyState>
       </Card>
     </div>
 
@@ -141,9 +147,11 @@ import axios from "axios";
 import Skeleton from "../components/Skeleton.vue";
 import Input from "../components/Input.vue";
 import Btn from "../components/Btn.vue";
+import Icon from "../components/Icon.vue";
 import Badge from "../components/Badge.vue";
 import Card from "../components/Card.vue";
 import Modal from "../components/Modal.vue";
+import EmptyState from "../components/EmptyState.vue";
 import Field from "../components/Field.vue";
 import { toast } from "../utils/toast";
 import { confirmar } from "../utils/confirm";

@@ -1,15 +1,22 @@
 <template>
   <div class="p-6">
     <div class="mb-4 flex flex-wrap items-center gap-2">
-      <Input
-        v-model="q"
-        @input="fetchProductos"
-        type="text"
-        placeholder="Buscar por nombre o SKU..."
-        class="flex-1 min-w-[200px]"
-      />
+      <div
+        class="flex items-center gap-2 rounded-lg px-3 py-1.5 flex-1 min-w-[300px]"
+      >
+        <Icon name="chart-column" class="h-4 w-4 text-zinc-400" />
+        <Input
+          v-model="q"
+          @input="fetchProductos"
+          type="text"
+          placeholder="Buscar por nombre o SKU..."
+          class="border-0 bg-transparent focus:ring-0 p-0"
+        />
+      </div>
       <div class="ml-auto">
-        <Btn @click="openModal(null)">+ Nuevo Producto</Btn>
+        <Btn @click="openModal(null)" variant="icon" title="Nuevo Producto">
+          +
+        </Btn>
       </div>
     </div>
 
@@ -52,21 +59,35 @@
               >{{ p.activo ? "Activo" : "Inactivo" }}</Badge
             >
           </Td>
-          <td class="px-6 py-4 text-right text-sm">
-            <Btn variant="link" class="mr-3" @click="openModal(p)">Editar</Btn>
-            <Btn variant="link-danger" @click="eliminar(p)">Eliminar</Btn>
+          <td class="px-6 py-4 text-right text-sm whitespace-nowrap">
+            <Btn
+              variant="ghost"
+              class="mr-1"
+              title="Editar"
+              aria-label="Editar"
+              @click="openModal(p)"
+            >
+              <Icon name="editar" class="h-4 w-4" />
+            </Btn>
+            <Btn
+              variant="ghost"
+              class="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+              title="Eliminar"
+              aria-label="Eliminar"
+              @click="eliminar(p)"
+            >
+              <Icon name="eliminar" class="h-4 w-4" />
+            </Btn>
           </td>
         </tr>
-        <TableState
-          v-if="cargando && !productos.length"
-          :colspan="5"
-          loading
-        />
-        <TableState
-          v-if="!cargando && !productos.length"
-          :colspan="5"
-        >
-          Sin productos en el catálogo.
+        <TableState v-if="cargando && !productos.length" :colspan="5" loading />
+        <TableState v-if="!cargando && !productos.length" :colspan="5">
+          <EmptyState icon="productos">
+            Sin productos en el catálogo.
+            <template #action>
+              <Btn @click="openModal(null)" variant="icon">+</Btn>
+            </template>
+          </EmptyState>
         </TableState>
       </Table>
     </Card>
@@ -133,6 +154,7 @@ import { confirmar } from "../utils/confirm";
 import { formatCurrency, loadCurrency } from "../utils/currency";
 import Input from "../components/Input.vue";
 import Btn from "../components/Btn.vue";
+import Icon from "../components/Icon.vue";
 import Badge from "../components/Badge.vue";
 import Card from "../components/Card.vue";
 import Table from "../components/Table.vue";
@@ -141,6 +163,7 @@ import Field from "../components/Field.vue";
 import Th from "../components/Th.vue";
 import Td from "../components/Td.vue";
 import TableState from "../components/TableState.vue";
+import EmptyState from "../components/EmptyState.vue";
 
 const productos = ref([]);
 const q = ref("");

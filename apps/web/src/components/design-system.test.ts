@@ -1,5 +1,6 @@
-import { describe, it, expect } from "vitest";
-import { mount } from "@vue/test-utils";
+import { describe, it, expect, vi } from "vitest";
+import { mount, flushPromises } from "@vue/test-utils";
+import { nextTick } from "vue";
 import Btn from "./Btn.vue";
 import Badge from "./Badge.vue";
 import Card from "./Card.vue";
@@ -12,6 +13,16 @@ import Th from "./Th.vue";
 import TableState from "./TableState.vue";
 import Td from "./Td.vue";
 import Field from "./Field.vue";
+import CustomFields from "./CustomFields.vue";
+import CommandPalette from "./CommandPalette.vue";
+import Sheet from "./Sheet.vue";
+import DropdownMenu from "./DropdownMenu.vue";
+import DropdownMenuItem from "./DropdownMenuItem.vue";
+import Tooltip from "./Tooltip.vue";
+import GraficaBarras from "./GraficaBarras.vue";
+import GraficaDona from "./GraficaDona.vue";
+import GraficaLinea from "./GraficaLinea.vue";
+import { TooltipProvider } from "reka-ui";
 
 describe("Btn", () => {
   it("renderiza el slot y variante primaria por defecto", () => {
@@ -42,6 +53,18 @@ describe("Btn", () => {
     });
     expect(w.element.tagName).toBe("A");
     expect(w.attributes("href")).toBe("/api/x/export");
+  });
+
+  it("variante icon usa tamaño fijo uniforme sin clases de size", () => {
+    const w = mount(Btn, {
+      props: { variant: "icon", size: "lg" },
+      slots: { default: "+" },
+    });
+    expect(w.classes()).toContain("h-9");
+    expect(w.classes()).toContain("w-9");
+    expect(w.classes()).not.toContain("px-6");
+    expect(w.classes()).not.toContain("py-3");
+    expect(w.attributes("style")).toContain("background-color");
   });
 });
 
@@ -97,6 +120,20 @@ describe("Modal", () => {
   it("no renderiza nada cerrado", () => {
     const w = mount(Modal, { props: { open: false } });
     expect(w.html()).not.toContain("Confirmar");
+  });
+
+  it("cierra al pulsar Cancelar y limpia estilos del body", async () => {
+    const w = mount(Modal, {
+      props: { open: true, title: "Nuevo" },
+      slots: { default: "<p>Cuerpo</p>" },
+      attachTo: document.body,
+    });
+    document.body.style.pointerEvents = "none";
+    await w.setProps({ open: false });
+    await new Promise((r) => setTimeout(r, 350));
+    expect(document.querySelector(".dialog-shell")).toBeNull();
+    expect(document.body.style.pointerEvents).toBe("");
+    w.unmount();
   });
 
   it("muestra título y emite close al pulsar fuera", async () => {
@@ -261,8 +298,10 @@ describe("Modal", () => {
     const w = mount(Modal, {
       props: { open: true, title: "T" },
       slots: { actions: "<button>Ok</button>" },
+      attachTo: document.body,
     });
     expect(w.text()).toContain("Ok");
+    w.unmount();
   });
 });
 
@@ -298,6 +337,24 @@ describe("Field accesibilidad", () => {
   });
 });
 
+describe("CustomFields", () => {
+  it("no entra en bucle al reasignar modelValue equivalente", async () => {
+    const w = mount(CustomFields, {
+      props: { entidad: "contacto", modelValue: {} },
+      global: { stubs: { FechaInput: true } },
+    });
+    await flushPromises();
+    const spy = vi.fn();
+    w.vm.$emit = spy;
+    await w.setProps({ modelValue: {} });
+    await w.setProps({ modelValue: { a: 1 } });
+    await w.setProps({ modelValue: { a: 1 } });
+    await nextTick();
+    expect(spy).not.toHaveBeenCalled();
+    w.unmount();
+  });
+});
+
 describe("Btn link-danger", () => {
   it("usa rojo sin relleno y sin padding de botón", () => {
     const w = mount(Btn, {
@@ -326,5 +383,246 @@ describe("TableState", () => {
     });
     expect(w.text()).toContain("Sin presupuestos.");
     expect(w.find("td").classes()).toContain("text-center");
+  });
+});
+
+describe("CommandPalette", () => {
+  const cmds = [
+    { id: "a", label: "Ir a Contactos", group: "Ventas", to: "/contactos" },
+    { id: "b", label: "Ir a Empresas", group: "Ventas", to: "/empresas" },
+    { id: "c", label: "Cerrar sesión", group: "Acción" },
+  ];
+
+  it("no renderiza nada cerrada", () => {
+    const w = mount(CommandPalette, {
+      props: { open: false, commands: cmds },
+    });
+    expect(w.text()).not.toContain("Ir a Contactos");
+    w.unmount();
+  });
+
+  it("filtra comandos al escribir", async () => {
+    const w = mount(CommandPalette, {
+      props: { open: true, commands: cmds },
+      attachTo: document.body,
+    });
+    await nextTick();
+    const input = w.find("input");
+    expect(input.exists()).toBe(true);
+    await input.setValue("empresas");
+    expect(w.text()).toContain("Ir a Empresas");
+    expect(w.text()).not.toContain("Cerrar sesión");
+    w.unmount();
+  });
+
+  it("ejecuta el comando seleccionado con Enter y emite close", async () => {
+    const w = mount(CommandPalette, {
+      props: { open: true, commands: cmds },
+      attachTo: document.body,
+    });
+    await nextTick();
+    const input = w.find("input");
+    await input.setValue("contactos");
+    await input.trigger("keydown", { key: "Enter" });
+    expect(w.emitted("select")?.[0]?.[0]).toMatchObject({
+      id: "a",
+      to: "/contactos",
+    });
+    expect(w.emitted("close")).toBeTruthy();
+    w.unmount();
+  });
+
+  it("navega con flechas y muestra mensaje sin resultados", async () => {
+    const w = mount(CommandPalette, {
+      props: { open: true, commands: cmds },
+      attachTo: document.body,
+    });
+    await nextTick();
+    const input = w.find("input");
+    await input.trigger("keydown", { key: "ArrowDown" });
+    await input.setValue("zzz-no-existe");
+    expect(w.text()).toContain("Sin resultados");
+    w.unmount();
+  });
+});
+
+describe("Sheet", () => {
+  it("no renderiza nada cerrado", () => {
+    const w = mount(Sheet, { props: { open: false, title: "Panel" } });
+    expect(w.text()).not.toContain("Panel");
+    w.unmount();
+  });
+
+  it("muestra título y emite close al pulsar fuera", async () => {
+    const w = mount(Sheet, {
+      props: { open: true, title: "Panel" },
+      slots: { default: "<p>Contenido</p>" },
+      attachTo: document.body,
+    });
+    expect(w.text()).toContain("Panel");
+    expect(w.text()).toContain("Contenido");
+    const overlay = document.querySelector(".sheet-shell");
+    overlay!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await nextTick();
+    expect(w.emitted("close")).toBeTruthy();
+    w.unmount();
+  });
+
+  it("emite close desde el botón del header", async () => {
+    const w = mount(Sheet, {
+      props: { open: true, title: "Panel" },
+      attachTo: document.body,
+    });
+    const btn = w.find('button[aria-label="Cerrar panel"]');
+    expect(btn.exists()).toBe(true);
+    await btn.trigger("click");
+    expect(w.emitted("close")).toBeTruthy();
+    w.unmount();
+  });
+});
+
+describe("DropdownMenu", () => {
+  it("abre al pulsar el trigger y muestra los items", async () => {
+    const w = mount(DropdownMenu, {
+      slots: {
+        trigger: '<button type="button" class="trigger">Menú</button>',
+        default:
+          "<DropdownMenuItem>Temas</DropdownMenuItem><DropdownMenuItem danger>Salir</DropdownMenuItem>",
+      },
+      global: { components: { DropdownMenuItem } },
+      attachTo: document.body,
+    });
+    await w.find(".trigger").trigger("click");
+    await nextTick();
+    await nextTick();
+    expect(document.body.textContent).toContain("Temas");
+    expect(document.body.textContent).toContain("Salir");
+    w.unmount();
+  });
+
+  it("marca danger en el item peligroso", async () => {
+    const w = mount(DropdownMenu, {
+      slots: {
+        trigger: '<button type="button" class="trigger">Menú</button>',
+        default: "<DropdownMenuItem danger>Eliminar</DropdownMenuItem>",
+      },
+      global: { components: { DropdownMenuItem } },
+      attachTo: document.body,
+    });
+    await w.find(".trigger").trigger("click");
+    await nextTick();
+    await nextTick();
+    const item = document.body.querySelector(".text-red-600");
+    expect(item).toBeTruthy();
+    expect(item!.textContent).toContain("Eliminar");
+    w.unmount();
+  });
+});
+
+describe("Tooltip", () => {
+  it("renderiza el trigger y abre el contenido al enfocar con retardo 0", async () => {
+    const Host = {
+      components: { Tooltip, TooltipProvider },
+      template: `
+        <TooltipProvider :delay-duration="0">
+          <Tooltip content="Cerrar sesión" :delay="0">
+            <button type="button">Salir</button>
+          </Tooltip>
+        </TooltipProvider>
+      `,
+    };
+    const w = mount(Host, { attachTo: document.body });
+    const trigger = w.find("button");
+    expect(trigger.exists()).toBe(true);
+    await trigger.trigger("focus");
+    await new Promise((r) => setTimeout(r, 30));
+    expect(document.body.textContent).toContain("Cerrar sesión");
+    w.unmount();
+  });
+});
+
+describe("GraficaBarras", () => {
+  it("muestra empty state sin datos", () => {
+    const w = mount(GraficaBarras, { props: { datos: [], animar: false } });
+    expect(w.text()).toContain("Sin datos para graficar.");
+    expect(w.find("svg").exists()).toBe(false);
+  });
+
+  it("renderiza barras y aria-label con datos", async () => {
+    const w = mount(GraficaBarras, {
+      props: {
+        datos: [
+          { etiqueta: "Ene", valor: 100, valorFmt: "$100" },
+          { etiqueta: "Feb", valor: 200, valorFmt: "$200" },
+        ],
+        animar: false,
+        ariaLabel: "Ventas mensuales",
+      },
+    });
+    await nextTick();
+    expect(w.find("svg").exists()).toBe(true);
+    expect(w.find("svg").attributes("aria-label")).toBe("Ventas mensuales");
+    expect(w.findAll("rect").length).toBe(2);
+    expect(w.text()).toContain("Ene");
+    expect(w.text()).toContain("Feb");
+  });
+});
+
+describe("GraficaDona", () => {
+  it("muestra empty state sin segmentos", () => {
+    const w = mount(GraficaDona, { props: { datos: [], animar: false } });
+    expect(w.text()).toContain("Sin datos para graficar.");
+    expect(w.find("svg").exists()).toBe(false);
+  });
+
+  it("renderiza la dona con leyenda y porcentajes", async () => {
+    const w = mount(GraficaDona, {
+      props: {
+        datos: [
+          { etiqueta: "Cerrado", count: 7, color: "#22c55e" },
+          { etiqueta: "Abierto", count: 3, color: "#3b82f6" },
+        ],
+        animar: false,
+        centro: "total",
+      },
+    });
+    await nextTick();
+    await new Promise((r) => setTimeout(r, 120));
+    expect(w.find("svg").exists()).toBe(true);
+    expect(w.text()).toContain("Cerrado");
+    expect(w.text()).toContain("Abierto");
+    expect(w.text()).toContain("70%");
+    expect(w.text()).toContain("30%");
+    expect(w.find("svg").text()).toContain("10");
+  });
+});
+
+describe("GraficaLinea", () => {
+  it("muestra empty state sin datos", () => {
+    const w = mount(GraficaLinea, { props: { datos: [] } });
+    expect(w.text()).toContain("Sin datos para graficar.");
+    expect(w.find("svg").exists()).toBe(false);
+  });
+
+  it("renderiza la línea con datos de la serie", async () => {
+    const w = mount(GraficaLinea, {
+      props: {
+        datos: [
+          { etiqueta: "Lun", valor: 5, valorFmt: "5" },
+          { etiqueta: "Mar", valor: 8, valorFmt: "8" },
+          { etiqueta: "Mié", valor: 3, valorFmt: "3" },
+        ],
+        animar: false,
+        ariaLabel: "Actividad semanal",
+      },
+    });
+    await nextTick();
+    expect(w.find("svg").exists()).toBe(true);
+    expect(w.find("svg").attributes("aria-label")).toBe("Actividad semanal");
+    expect(w.find("path.line-path").exists()).toBe(true);
+    expect(w.find("path.line-area").exists()).toBe(true);
+    expect(w.findAll("circle").length).toBe(3);
+    expect(w.text()).toContain("Lun");
+    expect(w.text()).toContain("Mar");
   });
 });

@@ -27,9 +27,7 @@
           aria-label="Logo de Outlook"
           role="img"
         />
-        <span class="text-[11px] font-medium"
-          >Outlook</span
-        >
+        <span class="text-[11px] font-medium">Outlook</span>
       </button>
       <button
         @click="
@@ -51,9 +49,7 @@
           aria-label="Logo de Gmail"
           role="img"
         />
-        <span class="text-[11px] font-medium"
-          >Gmail</span
-        >
+        <span class="text-[11px] font-medium">Gmail</span>
       </button>
     </div>
 

@@ -27,15 +27,12 @@
         </Select>
       </div>
       <div class="flex gap-2 print:hidden">
-        <a
-          href="#"
-          class="inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-lg border border-zinc-300 dark:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-          title="Abrir Metabase en una pestaña nueva"
-          @click.prevent="openMetabase"
-        >
-          Metabase
-        </a>
-        <Btn variant="primary" @click="exportarPdf">Exportar PDF</Btn>
+        <Btn variant="icon" @click="openMetabase" title="Abrir Metabase">
+          <Icon name="reportes" class="h-4 w-4" />
+        </Btn>
+        <Btn variant="icon" @click="exportarPdf" title="Exportar PDF">
+          <Icon name="download" class="h-4 w-4" />
+        </Btn>
       </div>
     </header>
 
@@ -265,7 +262,11 @@
               :key="e.estado"
               class="flex items-center justify-between text-sm"
             >
-              <span class="capitalize">{{ e.estado }}</span>
+              <span>{{
+                e.estado
+                  .replace(/_/g, " ")
+                  .replace(/^./, (c) => c.toUpperCase())
+              }}</span>
               <Badge color="zinc" variant="pill" class="tabular-nums">{{
                 e.count
               }}</Badge>
@@ -277,14 +278,32 @@
                 class="flex items-center justify-between text-sm"
               >
                 <span class="capitalize">Prioridad {{ p.prioridad }}</span>
-                <Badge color="orange" variant="pill" class="tabular-nums">{{
-                  p.count
-                }}</Badge>
+                <Badge
+                  :color="colorPrioridad[p.prioridad] || 'zinc'"
+                  variant="pill"
+                  class="tabular-nums"
+                  >{{ p.count }}</Badge
+                >
               </div>
             </div>
           </div>
         </Card>
       </div>
+
+      <Card class="p-6 mb-4">
+        <h2 class="text-lg font-semibold mb-3">Actividad (30 días)</h2>
+        <GraficaLinea
+          :datos="
+            (actividad.serie || []).map((d) => ({
+              etiqueta: d.fecha || d.etiqueta || '',
+              valor: d.count,
+              valorFmt: String(d.count),
+            }))
+          "
+          color="#3b82f6"
+          aria-label="Serie de actividad de los últimos 30 días"
+        />
+      </Card>
 
       <Card class="p-6">
         <h2 class="text-lg font-semibold mb-3">Actividad reciente</h2>
@@ -329,7 +348,7 @@
               <th class="py-2 pr-3 text-right">Enviados</th>
               <th class="py-2 pr-3 text-right">Aperturas</th>
               <th class="py-2 pr-3 text-right">Clics</th>
-              <th class="py-2 text-right">% open</th>
+              <th class="py-2 text-right">% apertura</th>
             </tr>
           </thead>
           <tbody>
@@ -373,12 +392,14 @@ import Skeleton from "../components/Skeleton.vue";
 import Select from "../components/Select.vue";
 import { toast } from "../utils/toast";
 import Btn from "../components/Btn.vue";
+import Icon from "../components/Icon.vue";
 import Badge from "../components/Badge.vue";
 import Card from "../components/Card.vue";
 import { formatCurrency, loadCurrency, currency } from "../utils/currency";
 import StatCard from "../components/StatCard.vue";
 import GraficaBarras from "../components/GraficaBarras.vue";
 import GraficaDona from "../components/GraficaDona.vue";
+import GraficaLinea from "../components/GraficaLinea.vue";
 
 const tabs = [
   { id: "embudo", label: "Embudo" },
@@ -402,6 +423,12 @@ const mensual = ref([]);
 const vendedores = ref([]);
 const actividad = ref({ total: 0, porTipo: [], serie: [], recientes: [] });
 const tareas = ref({ porEstado: [], porPrioridad: [], vencidas: 0 });
+const colorPrioridad = {
+  urgente: "red",
+  alta: "orange",
+  media: "yellow",
+  baja: "green",
+};
 const campanas = ref([]);
 
 const topSellerValor = computed(() =>
@@ -468,24 +495,12 @@ const setTab = (id) => {
   loadTab();
 };
 
-const fetchFunnel = () => loadTab();
+const openMetabase = () => {
+  window.open("http://localhost:3002", "_blank", "noopener");
+};
 
 const exportarPdf = () => {
   window.print();
-};
-
-const openMetabase = async () => {
-  try {
-    await fetch("http://localhost:3002/api/health", {
-      mode: "no-cors",
-      signal: AbortSignal.timeout(2500),
-    });
-    window.open("http://localhost:3002", "_blank", "noopener");
-  } catch {
-    toast.error(
-      "Metabase no está corriendo. Ejecuta: docker compose --profile bi up -d metabase",
-    );
-  }
 };
 
 onMounted(async () => {
