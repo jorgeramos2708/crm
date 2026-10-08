@@ -26,7 +26,7 @@
           <div v-else class="login-logo-fallback">
             <span class="login-logo-mark">{{ (marca.nombre || "C").charAt(0).toUpperCase() }}</span>
           </div>
-          <h1 class="login-brand-name">{{ marca.nombre }}</h1>
+          <h1 class="login-brand-name">{{ marca.nombre }}<span class="login-brand-suffix"> CRM</span></h1>
           <p class="login-tagline">Inicia sesión para continuar</p>
         </header>
 
@@ -388,11 +388,17 @@ watch(password, () => { if (error.value) error.value = null; });
 }
 
 .login-brand-name {
-  @apply text-3xl font-bold tracking-tight text-[var(--fg)] mb-1;
+  @apply text-4xl font-extrabold tracking-tight mb-1 text-white;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.45);
+}
+
+.login-brand-suffix {
+  @apply font-light tracking-[0.18em] text-white/85;
 }
 
 .login-tagline {
-  @apply text-[var(--fg-muted)] text-base;
+  @apply text-base text-white/70;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.4);
 }
 
 /* Card */
@@ -562,17 +568,18 @@ html.dark .login-card {
 
 /* Divider */
 .login-divider {
-  @apply relative my-6;
+  @apply my-6 flex items-center gap-3;
 }
 
-.login-divider::before {
+.login-divider::before,
+.login-divider::after {
   content: '';
-  @apply absolute left-0 right-0 top-1/2 h-px;
+  @apply h-px flex-1;
   background: var(--card-border);
 }
 
 .login-divider span {
-  @apply relative inline-block px-4 bg-white/95 dark:bg-zinc-900/95 text-xs text-[var(--fg-muted)];
+  @apply text-xs text-[var(--fg-muted)] bg-transparent px-0;
 }
 
 /* SSO Buttons */
