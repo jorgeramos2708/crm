@@ -24,6 +24,8 @@ export class FieldPermissionService {
     tenantId: string,
     role: string,
   ): Promise<FieldPermissionsMap> {
+    // Admin: acceso total (mapa vacío = los filtros dejan pasar todo).
+    if (role === "admin") return {};
     const cacheKey = `${CACHE_PREFIX}${tenantId}:${role}`;
     const cached = await redis.get(cacheKey);
     if (cached) {
@@ -40,7 +42,10 @@ export class FieldPermissionService {
         ),
       );
 
-    const map: FieldPermissionsMap = {};
+    // Base = defaults seguros; las filas de BD los sobreescriben.
+    const map: FieldPermissionsMap = JSON.parse(
+      JSON.stringify(await this.getDefaultPermissions()),
+    );
     for (const p of perms) {
       if (!map[p.entity]) map[p.entity] = {};
       map[p.entity][p.field] = {
@@ -176,28 +181,13 @@ export class FieldPermissionService {
   }
 
   static async getDefaultPermissions(): Promise<FieldPermissionsMap> {
-    // Default deny-write for sensitive fields
+    // Baseline mínima para roles no-admin: solo lo demostrablemente peligroso.
+    // (Una baseline más estricta rompería flujos core como crear contactos
+    // con email; el admin la endurece vía la API de matriz.)
     return {
-      oportunidades: {
-        importe: { canRead: true, canWrite: false },
-        probabilidad: { canRead: true, canWrite: false },
-        estadoCierre: { canRead: true, canWrite: false },
-        motivoGanado: { canRead: true, canWrite: false },
-        motivoPerdido: { canRead: true, canWrite: false },
-        custom: { canRead: true, canWrite: false },
-      },
-      contactos: {
-        email: { canRead: true, canWrite: false },
-        telefono: { canRead: true, canWrite: false },
-        custom: { canRead: true, canWrite: false },
-      },
       users: {
-        email: { canRead: true, canWrite: false },
-        role: { canRead: true, canWrite: false },
         passwordHash: { canRead: false, canWrite: false },
-      },
-      email_campaigns: {
-        listaId: { canRead: true, canWrite: false },
+        role: { canRead: true, canWrite: false },
       },
     };
   }

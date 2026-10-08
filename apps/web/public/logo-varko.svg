@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" role="img" aria-label="Varko CRM Empresarial">
+  <defs>
+    <linearGradient id="varko-bars-h" gradientUnits="userSpaceOnUse" x1="20" y1="0" x2="200" y2="0">
+      <stop offset="0" stop-color="#38bdf8"/>
+      <stop offset="0.5" stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#8b5cf6"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Isotipo: barras ascendentes -->
+  <g transform="translate(34,52) scale(1.15) translate(17,0) skewX(-8)">
+    <rect x="20" y="80" width="44" height="72" rx="10" fill="url(#varko-bars-h)"/>
+    <rect x="78" y="48" width="44" height="104" rx="10" fill="url(#varko-bars-h)"/>
+    <rect x="136" y="16" width="44" height="136" rx="10" fill="url(#varko-bars-h)"/>
+  </g>
+
+  <!-- Logotipo -->
+  <text x="300" y="178" font-family="'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif" font-size="118" font-weight="800" letter-spacing="1" fill="#ffffff">Varko</text>
+  <text x="304" y="238" font-family="'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif" font-size="34" font-weight="500" letter-spacing="14" fill="#cbd5e1">CRM EMPRESARIAL</text>
+</svg>

@@ -64,14 +64,18 @@ export function parseGoogleState(
   }
 }
 
-export async function getGoogleAuthUrl(state: string): Promise<string | null> {
+export async function getGoogleAuthUrl(
+  state: string,
+  redirectUri?: string,
+  scopes?: string[],
+): Promise<string | null> {
   const cfg = await getGoogleConfig();
   if (!cfg) return null;
   const p = new URLSearchParams({
     client_id: cfg.clientId,
-    redirect_uri: cfg.redirectUri,
+    redirect_uri: redirectUri || cfg.redirectUri,
     response_type: "code",
-    scope: cfg.scopes.join(" "),
+    scope: (scopes?.length ? scopes : cfg.scopes).join(" "),
     access_type: "offline",
     prompt: "consent",
     state,
@@ -79,12 +83,16 @@ export async function getGoogleAuthUrl(state: string): Promise<string | null> {
   return `https://accounts.google.com/o/oauth2/v2/auth?${p.toString()}`;
 }
 
-export async function exchangeGoogleCode(cfg: GoogleCfg, code: string) {
+export async function exchangeGoogleCode(
+  cfg: GoogleCfg,
+  code: string,
+  redirectUri?: string,
+) {
   const p = new URLSearchParams({
     client_id: cfg.clientId,
     client_secret: cfg.clientSecret,
     code,
-    redirect_uri: cfg.redirectUri,
+    redirect_uri: redirectUri || cfg.redirectUri,
     grant_type: "authorization_code",
   });
   const res = await fetch("https://oauth2.googleapis.com/token", {

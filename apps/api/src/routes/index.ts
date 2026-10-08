@@ -107,7 +107,12 @@ import {
   loadTenantSSOConfigs,
 } from "../services/sso.js";
 import { registerSCIMRoutes } from "../services/scim.js";
-import { registerFieldPermissionRoutes } from "../middleware/fieldPermissions.js";
+import {
+  registerFieldPermissionRoutes,
+  fieldPermissionMiddleware,
+  createFieldFilter,
+  createWriteFieldFilter,
+} from "../middleware/fieldPermissions.js";
 import { ReportsService } from "../services/reports.js";
 import { MeetingSchedulerService } from "../services/meetingScheduler.js";
 import {
@@ -476,7 +481,10 @@ export async function registerAuthRoutes(app: FastifyInstance) {
     return m && m.default && m.default.setVapidDetails ? m.default : m;
   }
 
-  async function getVapidKeys() {
+  async function getVapidKeys(): Promise<{
+    publicKey: string;
+    privateKey: string;
+  }> {
     if (!vapidKeys) {
       // Persistir en ajustes: las claves en memoria rotarían en cada restart
       // e invalidarían todas las suscripciones push existentes.
@@ -503,11 +511,12 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       }
       if (!vapidKeys) {
         const webPush = await getWebPush();
-        vapidKeys = webPush.generateVAPIDKeys();
+        const fresh = webPush.generateVAPIDKeys();
+        vapidKeys = fresh;
         try {
           for (const [clave, valor] of [
-            ["vapid_public", vapidKeys.publicKey],
-            ["vapid_private", vapidKeys.privateKey],
+            ["vapid_public", fresh.publicKey],
+            ["vapid_private", fresh.privateKey],
           ] as const) {
             await db
               .insert(ajustes)
@@ -522,7 +531,8 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         }
       }
     }
-    return vapidKeys;
+    // Garantizado: alguna rama asignó claves (o lanzó). El `!` es solo para TS.
+    return vapidKeys!;
   }
 
   app.get("/api/push/vapid-key", async () => {
@@ -888,6 +898,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         email: user.email,
         role: user.role,
         name: user.name,
+        v: (user as any).tokenVersion ?? 0,
       });
 
       setAuthCookie(res, token);
@@ -1089,7 +1100,8 @@ export async function registerAuthRoutes(app: FastifyInstance) {
           resourceData?: { id?: string };
         }>;
       };
-      for (const n of body?.value || []) {
+      // Tope de lote: evita amplificación DoS (1 lookup BD + 1 xadd por aviso).
+      for (const n of (body?.value || []).slice(0, 20)) {
         if (!n.subscriptionId) continue;
         const [sub] = await db
           .select()
@@ -1099,9 +1111,11 @@ export async function registerAuthRoutes(app: FastifyInstance) {
           )
           .limit(1);
         if (!sub) continue; // suscripción desconocida: ack silencioso
+        // Estricto: sin clientState en ambos lados o con mismatch se ignora.
+        // (Antes se omitía el check si faltaba en cualquier lado.)
         if (
-          sub.clientState &&
-          n.clientState &&
+          !sub.clientState ||
+          !n.clientState ||
           sub.clientState !== n.clientState
         ) {
           console.warn(
@@ -1133,6 +1147,34 @@ export async function registerAuthRoutes(app: FastifyInstance) {
 
   // Login SSO (sin sesión previa): el state lleva un nonce guardado 10 min en Redis.
   // Solo entran usuarios ya creados por el admin y activos (match por email).
+  // Usa callbacks propios de login derivados de FRONTEND_URL (NO el redirectUri
+  // de conexión): el redirect_uri debe coincidir con el registrado en el IdP
+  // tanto al autorizar como al intercambiar el código.
+  const FE_BASE = process.env.FRONTEND_URL || "http://localhost:8081";
+  const loginRedirectUri = (proveedor: string) =>
+    `${FE_BASE}/api/auth/${proveedor}/login/callback`;
+  const LOGIN_SCOPES_GOOGLE = ["openid", "email", "profile"];
+  const LOGIN_SCOPES_MS = [
+    "openid",
+    "profile",
+    "email",
+    "offline_access",
+    "User.Read",
+  ];
+  // Estado público (sin secretos): el login deshabilita botones no configurados.
+  app.get("/api/auth/sso/status", async () => {
+    const [g] = await db
+      .select({ id: googleConfig.id })
+      .from(googleConfig)
+      .where(eq(googleConfig.activo, true))
+      .limit(1);
+    const [m] = await db
+      .select({ id: microsoftConfig.id })
+      .from(microsoftConfig)
+      .where(eq(microsoftConfig.activo, true))
+      .limit(1);
+    return { google: !!g, microsoft: !!m };
+  });
   app.get("/api/auth/:proveedor/login", async (req, res) => {
     const proveedor = (req.params as any).proveedor as string;
     if (proveedor !== "google" && proveedor !== "microsoft") {
@@ -1150,8 +1192,15 @@ export async function registerAuthRoutes(app: FastifyInstance) {
     ).toString("base64url");
     const url =
       proveedor === "google"
-        ? await getGoogleAuthUrl(state)
-        : await getAuthUrl(state);
+        ? await getGoogleAuthUrl(
+            state,
+            loginRedirectUri("google"),
+            LOGIN_SCOPES_GOOGLE,
+          )
+        : await getAuthUrl(state, {
+            redirectUri: loginRedirectUri("microsoft"),
+            scopes: LOGIN_SCOPES_MS,
+          });
     const FE = process.env.FRONTEND_URL || "http://localhost:8081";
     if (!url) return res.redirect(`${FE}/login?error=sso_no_configurado`);
     res.redirect(url);
@@ -1194,7 +1243,11 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         if (proveedor === "google") {
           const cfg = await getGoogleConfig();
           if (!cfg) return fail("sso_no_configurado");
-          const tokens = await exchangeGoogleCode(cfg, code);
+          const tokens = await exchangeGoogleCode(
+            cfg,
+            code,
+            loginRedirectUri("google"),
+          );
           // token temporal solo para identificar al usuario (no se guarda)
           const me: any = await (async () => {
             const r = await fetch(
@@ -1210,7 +1263,12 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         } else {
           const cfg = await getGlobalConfig();
           if (!cfg) return fail("sso_no_configurado");
-          const tokens = await exchangeCodeForTokens(cfg, code);
+          const tokens = await exchangeCodeForTokens(
+            cfg,
+            code,
+            loginRedirectUri("microsoft"),
+            LOGIN_SCOPES_MS,
+          );
           const me: any = await (async () => {
             const r = await fetch(
               "https://graph.microsoft.com/v1.0/me?$select=mail,userPrincipalName",
@@ -1236,6 +1294,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
           email: user.email,
           role: user.role,
           name: user.name,
+          v: (user as any).tokenVersion ?? 0,
         });
         setAuthCookie(res, token);
         return res.redirect(`${FE}/`);
@@ -2158,6 +2217,66 @@ export async function registerAuthRoutes(app: FastifyInstance) {
   app.register(async (app) => {
     app.addHook("preHandler", authMiddleware);
 
+    // Filtro por campo (defensa en profundidad): tras el auth global, aplica la
+    // matriz de permisos de campo en users/contactos/oportunidades.
+    // Lecturas filtran la respuesta; escrituras a campos denegados => 403.
+    // Cubre también subrutas (export, bulk, timeline, companies).
+    const FIELD_FILTER_RULES: Array<{
+      method: string;
+      re: RegExp;
+      entity: string;
+      op: "read" | "write";
+    }> = [];
+    for (const entity of ["users", "contactos", "oportunidades"]) {
+      FIELD_FILTER_RULES.push(
+        {
+          method: "GET",
+          re: new RegExp(`^/api/${entity}(/|$)`),
+          entity,
+          op: "read",
+        },
+        {
+          method: "POST",
+          re: new RegExp(`^/api/${entity}(/|$)`),
+          entity,
+          op: "write",
+        },
+        {
+          method: "PUT",
+          re: new RegExp(`^/api/${entity}(/|$)`),
+          entity,
+          op: "write",
+        },
+        {
+          method: "PATCH",
+          re: new RegExp(`^/api/${entity}(/|$)`),
+          entity,
+          op: "write",
+        },
+        {
+          method: "DELETE",
+          re: new RegExp(`^/api/${entity}(/|$)`),
+          entity,
+          op: "write",
+        },
+      );
+    }
+    app.addHook("preHandler", async (req, reply) => {
+      if (reply.sent || !(req as any).user) return;
+      const path = req.url.split("?")[0];
+      const rule = FIELD_FILTER_RULES.find(
+        (r) => r.method === req.method && r.re.test(path),
+      );
+      if (!rule) return;
+      await fieldPermissionMiddleware(req as any, reply as any);
+      if (reply.sent) return;
+      const filter =
+        rule.op === "read"
+          ? createFieldFilter(rule.entity)
+          : createWriteFieldFilter(rule.entity);
+      await filter(req as any, reply as any);
+    });
+
     app.get("/api/users", { preHandler: requireRole("admin") }, async () => {
       return db
         .select({
@@ -2233,9 +2352,12 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         const body = stripReadonly(req.body as Record<string, any>);
         delete body.email;
         delete body.passwordHash;
+        delete body.tokenVersion; // solo el servidor la incrementa
         if (body.password) {
           body.passwordHash = await hashPassword(String(body.password));
           delete body.password;
+          // Revoca todas las sesiones existentes del usuario.
+          body.tokenVersion = sql`"token_version" + 1`;
         }
         if (body.role && !["admin", "user"].includes(body.role)) {
           return res.code(400).send({ error: "role inválido" });

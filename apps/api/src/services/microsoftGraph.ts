@@ -50,16 +50,19 @@ function getAuthClient(accessToken: string): Client {
   });
 }
 
-export async function getAuthUrl(state?: string): Promise<string | null> {
+export async function getAuthUrl(
+  state?: string,
+  opts?: { redirectUri?: string; scopes?: string[] },
+): Promise<string | null> {
   const config = await getGlobalConfig();
   if (!config) return null;
 
   const params = new URLSearchParams({
     client_id: config.clientId,
     response_type: "code",
-    redirect_uri: config.redirectUri,
+    redirect_uri: opts?.redirectUri || config.redirectUri,
     response_mode: "query",
-    scope: config.scopes.join(" "),
+    scope: (opts?.scopes?.length ? opts.scopes : config.scopes).join(" "),
     state: state || randomUUID(),
     prompt: "select_account",
   });
@@ -87,6 +90,8 @@ export function buildAuthState(userId: string): string {
 export async function exchangeCodeForTokens(
   config: GraphConfig,
   code: string,
+  redirectUri?: string,
+  scopes?: string[],
 ): Promise<{
   accessToken: string;
   refreshToken: string;
@@ -97,9 +102,9 @@ export async function exchangeCodeForTokens(
     client_id: config.clientId,
     client_secret: config.clientSecret,
     code,
-    redirect_uri: config.redirectUri,
+    redirect_uri: redirectUri || config.redirectUri,
     grant_type: "authorization_code",
-    scope: config.scopes.join(" "),
+    scope: (scopes?.length ? scopes : config.scopes).join(" "),
   });
 
   const response = await fetch(

@@ -3,15 +3,23 @@ import {
   createDecipheriv,
   randomBytes,
   createHmac,
+  timingSafeEqual,
 } from "crypto";
 import { env } from "../config.js";
 
 const PREFIX = "enc:v1:";
+const IS_PROD = (process.env.NODE_ENV || "development") === "production";
 
 function getKey(): Buffer {
   const raw = env.MICROSOFT_CRYPTO_KEY;
   if (/^[0-9a-fA-F]{64}$/.test(raw)) return Buffer.from(raw, "hex");
   if (raw.length >= 16) {
+    // Clave débil: en producción se falla duro, en dev se avisa.
+    if (IS_PROD) {
+      throw new Error(
+        "MICROSOFT_CRYPTO_KEY debe ser hex de 32 bytes en producción",
+      );
+    }
     // eslint-disable-next-line no-console
     console.warn(
       "⚠️ MICROSOFT_CRYPTO_KEY no es hex de 32 bytes; usando clave de desarrollo. Cámbiala en producción.",
@@ -44,7 +52,14 @@ export function encrypt(plain: string): string {
 }
 
 export function decrypt(payload: string): string {
-  if (!payload.startsWith(PREFIX)) return payload; // compat: valores antiguos en claro
+  if (!payload.startsWith(PREFIX)) {
+    // Compat: valores antiguos en claro. Se avisa para migrarlos.
+    // eslint-disable-next-line no-console
+    console.warn(
+      "⚠️ decrypt recibió un valor sin cifrar (legado). Migra el dato a enc:v1.",
+    );
+    return payload;
+  }
   const [ivHex, tagHex, dataHex] = payload.slice(PREFIX.length).split(":");
   const decipher = createDecipheriv(
     "aes-256-gcm",
@@ -82,7 +97,10 @@ export function verifyState(signed: string): string | null {
     const expected = createHmac("sha256", hmacKey())
       .update(payload)
       .digest("hex");
-    if (signature !== expected) return null;
+    // Comparación en tiempo constante (canal lateral de timing).
+    const a = Buffer.from(signature, "utf8");
+    const b = Buffer.from(expected, "utf8");
+    if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
     return payload;
   } catch {
     return null;

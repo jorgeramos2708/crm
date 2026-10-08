@@ -58,6 +58,7 @@ export async function authMiddleware(
           name: users.name,
           tenantId: users.tenantId,
           activo: users.activo,
+          tokenVersion: users.tokenVersion,
         })
         .from(users)
         .where(eq(users.id, t.userId))
@@ -98,6 +99,7 @@ export async function authMiddleware(
         name: users.name,
         activo: users.activo,
         tenantId: users.tenantId,
+        tokenVersion: users.tokenVersion,
       })
       .from(users)
       .where(eq(users.id, decoded.id))
@@ -106,6 +108,13 @@ export async function authMiddleware(
       return reply.code(401).send({
         error: "Usuario inactivo o no encontrado",
         code: "UNAUTHORIZED",
+      });
+    }
+    // Revocación: el token lleva la versión vigente al emitirse.
+    if ((decoded.v ?? 0) !== (u.tokenVersion ?? 0)) {
+      return reply.code(401).send({
+        error: "Sesión revocada, inicia sesión de nuevo",
+        code: "TOKEN_REVOKED",
       });
     }
     request.user = { id: u.id, email: u.email, role: u.role, name: u.name };

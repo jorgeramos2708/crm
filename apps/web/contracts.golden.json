@@ -1,13 +1,14 @@
 {
   "routes": [
     "GET /",
+    "GET /:pathMatch(.*)*",
     "GET /actividades",
+    "GET /agendar/:slug",
     "GET /automatizaciones",
     "GET /calendario",
     "GET /campañas",
     "GET /contactos",
     "GET /correos",
-    "GET /dashboard-builder",
     "GET /empresas",
     "GET /listas",
     "GET /login",
@@ -17,53 +18,11 @@
     "GET /presupuestos",
     "GET /productos",
     "GET /reportes",
+    "GET /reuniones",
     "GET /settings",
     "GET /tareas"
   ],
-  "routeCount": 19,
-  "vueRoutes": [
-    "/login",
-    "/",
-    "/pipeline",
-    "/contactos",
-    "/listas",
-    "/automatizaciones",
-    "/plantillas",
-    "/campañas",
-    "/actividades",
-    "/reportes",
-    "/tareas",
-    "/calendario",
-    "/negocios",
-    "/productos",
-    "/presupuestos",
-    "/empresas",
-    "/correos",
-    "/settings",
-    "/dashboard-builder"
-  ],
-  "nav": [
-    "/contactos|Contactos",
-    "/empresas|Empresas",
-    "/pipeline|Pipeline",
-    "/negocios|Negocios",
-    "/presupuestos|Presupuestos",
-    "/productos|Productos",
-    "/correos|Correos",
-    "/campañas|Campañas",
-    "/plantillas|Plantillas",
-    "/listas|Listas",
-    "/calendario|Calendario",
-    "/tareas|Tareas",
-    "/actividades|Actividades",
-    "/automatizaciones|Automatizaciones",
-    "/reportes|Reportes"
-  ],
-  "colsExact": {
-    "Negocios": ["30%", "20%", "15%", "15%", "10%", "10%"],
-    "Contactos": ["18%", "18%", "13%", "18%", "15%", "18%"],
-    "Productos": ["35%", "20%", "15%", "15%", "15%"]
-  },
+  "routeCount": 21,
   "schema": {
     "tenants": {
       "exportName": "tenants",
@@ -94,6 +53,7 @@
         "name",
         "role",
         "activo",
+        "tokenVersion",
         "tenantId",
         "ssoProvider",
         "ssoSubject",
@@ -746,5 +706,51 @@
         "refreshedAt"
       ]
     }
+  },
+  "vueRoutes": [
+    "/login",
+    "/",
+    "/pipeline",
+    "/contactos",
+    "/listas",
+    "/automatizaciones",
+    "/plantillas",
+    "/campañas",
+    "/actividades",
+    "/reportes",
+    "/tareas",
+    "/calendario",
+    "/negocios",
+    "/productos",
+    "/presupuestos",
+    "/empresas",
+    "/correos",
+    "/settings",
+    "/reuniones",
+    "/agendar/:slug",
+    "/:pathMatch(.*)*"
+  ],
+  "nav": [
+    "/contactos|Contactos",
+    "/empresas|Empresas",
+    "/pipeline|Pipeline",
+    "/negocios|Negocios",
+    "/presupuestos|Presupuestos",
+    "/productos|Productos",
+    "/correos|Correos",
+    "/campañas|Campañas",
+    "/plantillas|Plantillas",
+    "/listas|Listas",
+    "/calendario|Calendario",
+    "/tareas|Tareas",
+    "/actividades|Actividades",
+    "/reuniones|Reuniones",
+    "/automatizaciones|Automatizaciones",
+    "/reportes|Reportes"
+  ],
+  "colsExact": {
+    "Negocios": ["30%", "20%", "15%", "15%", "10%", "10%"],
+    "Contactos": ["18%", "18%", "13%", "18%", "15%", "18%"],
+    "Productos": ["35%", "20%", "15%", "15%", "15%"]
   }
 }

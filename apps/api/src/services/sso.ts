@@ -270,12 +270,10 @@ export async function registerSamlRoutes(app: FastifyInstance): Promise<void> {
         { session: false },
         async (err: Error | null, user: any) => {
           if (err || !user) {
-            return reply
-              .code(401)
-              .send({
-                error: "SAML authentication failed",
-                details: err?.message,
-              });
+            return reply.code(401).send({
+              error: "SAML authentication failed",
+              details: err?.message,
+            });
           }
 
           const token = await generateToken(user);
@@ -351,6 +349,7 @@ async function generateToken(user: any): Promise<string> {
     email: user.email,
     role: user.role,
     tenantId: user.tenantId,
+    v: user.tokenVersion ?? 0,
   });
 }
 

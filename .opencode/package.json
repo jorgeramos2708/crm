@@ -1,0 +1,11 @@
+{
+  "name": "crm-opencode-plugins",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Runtime deps for project opencode plugins",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@opencode-ai/plugin": "^1.18.35",
+    "@opencode/plugin": "^0.0.0-beta-19507"
+  }
+}

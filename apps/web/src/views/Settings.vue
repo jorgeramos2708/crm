@@ -756,6 +756,11 @@
               }}</span>
             </div>
           </form>
+          <div class="mt-4 rounded-lg bg-zinc-50 dark:bg-zinc-800 p-3 text-xs text-zinc-600 dark:text-zinc-400">
+            <p class="font-medium mb-1">URIs a registrar en Google Cloud (las dos):</p>
+            <p class="font-mono break-all">{{ ssoCallbacks.googleConnect }}</p>
+            <p class="font-mono break-all">{{ ssoCallbacks.googleLogin }}</p>
+          </div>
         </div>
 
         <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 p-4">
@@ -841,6 +846,11 @@
               }}</span>
             </div>
           </form>
+          <div class="mt-4 rounded-lg bg-zinc-50 dark:bg-zinc-800 p-3 text-xs text-zinc-600 dark:text-zinc-400">
+            <p class="font-medium mb-1">URIs a registrar en Entra (las dos):</p>
+            <p class="font-mono break-all">{{ ssoCallbacks.msConnect }}</p>
+            <p class="font-mono break-all">{{ ssoCallbacks.msLogin }}</p>
+          </div>
         </div>
       </div>
     </div>
@@ -1685,6 +1695,18 @@ const gSaveMsg = ref("");
 const conectarGoogle = () => {
   window.location.href = "/api/auth/google/connect";
 };
+
+// Callbacks OAuth a registrar en Google Cloud y Entra: conexión de buzones
+// + login SSO. Se derivan del origen actual (= FRONTEND_URL del despliegue).
+const ssoCallbacks = computed(() => {
+  const base = window.location.origin;
+  return {
+    googleConnect: `${base}/api/auth/google/callback`,
+    googleLogin: `${base}/api/auth/google/login/callback`,
+    msConnect: `${base}/api/auth/microsoft/callback`,
+    msLogin: `${base}/api/auth/microsoft/login/callback`,
+  };
+});
 
 const desconectarGoogle = async () => {
   working.value = true;

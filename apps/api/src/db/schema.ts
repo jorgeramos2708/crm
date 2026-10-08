@@ -57,6 +57,9 @@ export const users = pgTable(
     name: varchar("name", { length: 100 }).notNull(),
     role: varchar("role", { length: 20 }).notNull().default("user"),
     activo: boolean("activo").notNull().default(true),
+    // Revocación de sesiones: se incrementa al cambiar el password.
+    // El JWT lleva `v` y el middleware lo compara (mismatch = 401).
+    tokenVersion: integer("token_version").notNull().default(0),
     tenantId: uuid("tenant_id").references(() => tenants.id, {
       onDelete: "set null",
     }),

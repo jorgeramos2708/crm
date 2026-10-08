@@ -3,6 +3,7 @@ import {
   FieldPermissionService,
   FieldPermissionsMap,
 } from "../services/fieldPermissions.js";
+import { requireRole } from "./auth.js";
 
 declare module "fastify" {
   interface FastifyRequest {
@@ -94,16 +95,17 @@ export function createWriteFieldFilter(entity: string) {
 }
 
 export async function registerFieldPermissionRoutes(app: FastifyInstance) {
+  // Matriz de permisos: solo admin (sin esto, cualquier usuario autenticado
+  // podría otorgarse escritura en cualquier campo = escalada de privilegios).
+  const adminOnly = { preHandler: requireRole("admin") };
   app.get(
     "/api/ajustes/field-permissions",
-    async (
-      request: FastifyRequest<{
-        Querystring: { role?: string; entity?: string };
-      }>,
-    ) => {
+    adminOnly,
+    async (request: FastifyRequest) => {
       const tenantId = request.tenantId || "default";
-      const role = request.query?.role || request.user?.role || "user";
-      const entity = request.query?.entity;
+      const query = request.query as { role?: string; entity?: string };
+      const role = query?.role || request.user?.role || "user";
+      const entity = query?.entity;
 
       const permissions = await FieldPermissionService.getForRole(
         tenantId,
@@ -119,6 +121,7 @@ export async function registerFieldPermissionRoutes(app: FastifyInstance) {
 
   app.put(
     "/api/ajustes/field-permissions",
+    adminOnly,
     async (request: FastifyRequest, reply: FastifyReply) => {
       const tenantId = request.tenantId || "default";
       const body = request.body as {
@@ -150,14 +153,14 @@ export async function registerFieldPermissionRoutes(app: FastifyInstance) {
 
   app.delete(
     "/api/ajustes/field-permissions",
-    async (
-      request: FastifyRequest<{
-        Querystring: { role: string; entity: string; field: string };
-      }>,
-      reply: FastifyReply,
-    ) => {
+    adminOnly,
+    async (request: FastifyRequest, reply: FastifyReply) => {
       const tenantId = request.tenantId || "default";
-      const { role, entity, field } = request.query;
+      const { role, entity, field } = request.query as {
+        role: string;
+        entity: string;
+        field: string;
+      };
 
       if (!role || !entity || !field) {
         return reply
@@ -178,6 +181,7 @@ export async function registerFieldPermissionRoutes(app: FastifyInstance) {
 
   app.post(
     "/api/ajustes/field-permissions/bulk",
+    adminOnly,
     async (request: FastifyRequest, reply: FastifyReply) => {
       const tenantId = request.tenantId || "default";
       const body = request.body as {

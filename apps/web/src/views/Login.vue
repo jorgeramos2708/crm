@@ -140,7 +140,8 @@
             <button
               type="button"
               @click="sso('google')"
-              :disabled="loading"
+              :disabled="loading || !ssoStatus.google"
+              :title="ssoStatus.google ? 'Iniciar sesión con Google' : 'Google no configurado: avisa a tu administrador'"
               class="sso-btn sso-google"
             >
               <svg class="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
@@ -154,7 +155,8 @@
             <button
               type="button"
               @click="sso('microsoft')"
-              :disabled="loading"
+              :disabled="loading || !ssoStatus.microsoft"
+              :title="ssoStatus.microsoft ? 'Iniciar sesión con Microsoft' : 'Microsoft no configurado: avisa a tu administrador'"
               class="sso-btn sso-microsoft"
             >
               <svg class="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
@@ -182,6 +184,7 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useAuthStore } from "../stores/auth";
+import axios from "axios";
 import { marca, loadMarca } from "../utils/marca";
 import { toast } from "../utils/toast";
 import { Eye, EyeOff, AlertCircle } from "@lucide/vue";
@@ -289,8 +292,23 @@ const sso = (proveedor) => {
   window.location.href = `/api/auth/${proveedor}/login`;
 };
 
+// Proveedores SSO configurados: deshabilita botones sin credencial global.
+const ssoStatus = ref({ google: false, microsoft: false });
+const loadSsoStatus = async () => {
+  try {
+    const { data } = await axios.get("/api/auth/sso/status");
+    ssoStatus.value = {
+      google: !!data?.google,
+      microsoft: !!data?.microsoft,
+    };
+  } catch {
+    /* botones deshabilitados por defecto */
+  }
+};
+
 onMounted(async () => {
   loadMarca();
+  loadSsoStatus();
   if (route.query.error) {
     error.value = ERRORES_SSO[route.query.error] || "Error iniciando sesión.";
   }
