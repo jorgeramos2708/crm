@@ -1,18 +1,23 @@
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { FastifyReply, FastifyRequest } from 'fastify';
-import { env } from '../config.js';
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { FastifyReply, FastifyRequest } from "fastify";
+import { env } from "../config.js";
 
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, env.BCRYPT_ROUNDS);
 }
 
-export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+export async function verifyPassword(
+  password: string,
+  hash: string,
+): Promise<boolean> {
   return bcrypt.compare(password, hash);
 }
 
 export function generateToken(payload: object): string {
-  return jwt.sign(payload, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN as jwt.SignOptions['expiresIn'] });
+  return jwt.sign(payload, env.JWT_SECRET, {
+    expiresIn: env.JWT_EXPIRES_IN as jwt.SignOptions["expiresIn"],
+  });
 }
 
 export function verifyToken(token: string): any {
@@ -20,15 +25,18 @@ export function verifyToken(token: string): any {
 }
 
 export function setAuthCookie(reply: any, token: string) {
-  reply.setCookie('token', token, {
+  const isProduction = process.env.NODE_ENV === "production";
+  reply.setCookie("token", token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
     maxAge: env.SESSION_TTL_SECONDS,
-    path: '/',
+    path: "/",
+    // Explicitly set domain for localhost in development
+    ...(!isProduction && { domain: "localhost" }),
   });
 }
 
 export function clearAuthCookie(reply: any) {
-  reply.clearCookie('token', { path: '/' });
+  reply.clearCookie("token", { path: "/" });
 }

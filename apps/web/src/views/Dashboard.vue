@@ -1,224 +1,343 @@
 <template>
-  <div class="min-h-screen bg-zinc-50 dark:bg-zinc-900">
-    <main class="max-w-7xl mx-auto px-4 py-6">
-      <h2 class="text-3xl font-bold tracking-tight mb-6">
-        Bienvenido, {{ authStore.user?.name || "Usuario" }}
-      </h2>
+  <div class="dashboard-page" data-testid="dashboard">
+    <div class="dashboard-main">
+      <!-- Page Header -->
+      <header class="dashboard-header">
+        <div class="header-content">
+          <div>
+            <h1 class="page-title">Resumen de Oportunidades</h1>
+            <p class="page-subtitle">Panorama general de tu pipeline comercial y actividad reciente.</p>
+          </div>
+          <div class="header-actions">
+            <Btn variant="outline" size="sm" @click="refreshDashboard" :loading="loading">
+              <Icon name="refresh-cw" class="h-4 w-4" /> Actualizar
+            </Btn>
+            <Btn variant="primary" size="sm" to="/negocios">
+              <Icon name="plus" class="h-4 w-4" /> Nueva Oportunidad
+            </Btn>
+          </div>
+        </div>
+      </header>
 
-      <!-- Valor total + Eventos (misma fila, compactos) -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-        <Card class="px-5 py-4">
-          <p class="text-sm font-medium text-zinc-500">
-            Valor total del pipeline
-          </p>
-          <p
-            class="text-2xl font-bold text-zinc-900 dark:text-zinc-100 tabular-nums"
-          >
-            {{ formatCurrency(stats.valorTotal) }}
-          </p>
-          <router-link
-            to="/negocios"
-            class="mt-1 inline-block text-sm font-medium hover:underline"
-            style="color: var(--marca, #2563eb)"
-          >
-            Ver negocios
-          </router-link>
-        </Card>
+      <!-- KPI Grid -->
+      <section class="kpi-section" aria-labelledby="kpi-title">
+        <h2 id="kpi-title" class="sr-only">Indicadores Clave</h2>
+        <div class="kpi-grid">
+          <StatCard
+            v-for="(stat, i) in kpiStats"
+            :key="stat.key"
+            :title="stat.title"
+            :value="stat.value"
+            :icon="stat.icon"
+            :color="stat.color"
+            :trend="stat.trend"
+            :trendLabel="stat.trendLabel"
+            :animate="true"
+            :style="{ '--stagger-delay': `${i * 100}ms` }"
+            class="animate-stat-enter"
+          />
+        </div>
+      </section>
 
-        <Card class="px-5 py-4">
-          <p class="mb-2 text-sm font-medium text-zinc-500">Eventos próximos</p>
-          <div v-if="loadingCalendario" class="py-1">
-            <Skeleton :filas="2" />
-          </div>
-          <div v-else-if="errorCalendario" class="text-sm text-zinc-500">
-            Calendario no conectado ·
-            <router-link
-              to="/settings"
-              class="underline"
-              style="color: var(--marca, #2563eb)"
-              >Configurar</router-link
-            >
-          </div>
-          <div v-else-if="eventos.length === 0" class="py-2">
-            <EmptyState icon="calendario" compact>
-              No hay eventos esta semana.
-            </EmptyState>
-          </div>
-          <ul v-else class="space-y-1.5">
-            <li v-for="(ev, i) in eventos.slice(0, 3)" :key="i">
-              <router-link
-                to="/calendario"
-                class="flex items-baseline justify-between gap-3 rounded-lg px-2 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors"
-              >
-                <span
-                  class="truncate text-sm text-zinc-900 dark:text-zinc-100"
-                  >{{ ev.subject || ev.title }}</span
-                >
-                <span
-                  class="flex-shrink-0 text-xs text-zinc-500 tabular-nums"
-                  >{{ formatFechaEvento(ev.start) }}</span
-                >
+      <!-- Main Content Grid -->
+      <div class="dashboard-grid">
+        <!-- Pipeline Stages + Recent Opportunities -->
+        <div class="dashboard-col-main">
+          <!-- Pipeline Stages -->
+          <section class="dashboard-card-section" aria-labelledby="pipeline-title">
+            <header class="section-header">
+              <h2 id="pipeline-title" class="section-title">Pipeline</h2>
+              <router-link to="/pipeline" class="section-link" v-if="pipelineStages.length">
+                Ver todo <Icon name="chevron-right" class="h-3.5 w-3.5" />
               </router-link>
-            </li>
-          </ul>
-        </Card>
-      </div>
-
-      <!-- Tareas pendientes + Actividad reciente -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <!-- Tareas pendientes -->
-        <Card class="p-6">
-          <h2
-            class="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-4"
-          >
-            Próximas tareas
-          </h2>
-          <div v-if="loadingTareas" class="py-2">
-            <Skeleton :filas="3" />
-          </div>
-          <div v-else-if="tareas.length === 0" class="py-4">
-            <EmptyState icon="tareas" compact>
-              No hay tareas abiertas.
-            </EmptyState>
-          </div>
-          <div v-else class="space-y-3">
-            <router-link
-              v-for="t in tareas"
-              :key="t.id"
-              to="/tareas"
-              class="flex items-center justify-between p-3 rounded-lg cursor-pointer block"
-              :class="bgPrioridad(t.prioridad)"
-            >
-              <div class="flex items-center gap-3 min-w-0">
-                <span class="text-lg">{{ iconPrioridad(t.prioridad) }}</span>
-                <div class="min-w-0">
-                  <p
-                    class="font-medium text-zinc-900 dark:text-zinc-100 truncate"
+            </header>
+            <div v-if="loading" class="skeleton-container">
+              <Skeleton variant="card" :rows="5" />
+            </div>
+            <div v-else-if="pipelineStages.length === 0" class="empty-state-container">
+              <EmptyState
+                icon="git-branch"
+                title="Pipeline vacío"
+                description="No hay etapas configuradas. Crea tu primera etapa en Configuración."
+              >
+                <template #action>
+                  <Btn variant="primary" size="sm" to="/settings/pipeline">
+                    Configurar Pipeline
+                  </Btn>
+                </template>
+              </EmptyState>
+            </div>
+            <div v-else class="pipeline-board">
+              <div
+                v-for="stage in pipelineStages"
+                :key="stage.id"
+                class="pipeline-column"
+                :style="{ backgroundColor: `color-mix(in srgb, ${stage.color || '#3b82f6'} 8%, #f1f5f9)` }"
+              >
+                <div class="pipeline-column-head">
+                  <span class="pipeline-dot" :style="{ backgroundColor: stage.color || '#3b82f6' }" />
+                  <span class="pipeline-column-name">{{ stage.nombre }}</span>
+                  <span class="pipeline-column-count">{{ conteoPorEtapa[stage.id] || 0 }}</span>
+                </div>
+                <div class="pipeline-column-cards">
+                  <router-link
+                    v-for="opp in (oppsPorEtapa[stage.id] || []).slice(0, 3)"
+                    :key="opp.id"
+                    :to="`/negocios/${opp.id}`"
+                    class="pipeline-mini-card"
                   >
-                    {{ t.titulo }}
+                    <p class="pipeline-mini-title">{{ opp.nombre }}</p>
+                    <p class="pipeline-mini-amount">{{ formatCurrency(opp.importe) }}</p>
+                    <div class="pipeline-mini-foot">
+                      <Badge
+                        :variant="badgeVariant(stage.color)"
+                        :color="stage.color"
+                        size="sm"
+                      >
+                        {{ stage.nombre }}
+                      </Badge>
+                      <span v-if="fechaCorta(opp.fechaCierreEstimada)" class="pipeline-mini-date">
+                        {{ fechaCorta(opp.fechaCierreEstimada) }}
+                      </span>
+                    </div>
+                  </router-link>
+                  <p v-if="!(oppsPorEtapa[stage.id] || []).length" class="pipeline-column-empty">
+                    Sin oportunidades
                   </p>
-                  <p v-if="t.vencimiento" class="text-xs text-zinc-500">
+                </div>
+                <router-link
+                  v-if="(conteoPorEtapa[stage.id] || 0) > 3"
+                  to="/pipeline"
+                  class="pipeline-column-more"
+                >
+                  + Ver más ({{ (conteoPorEtapa[stage.id] || 0) - 3 }})
+                </router-link>
+                <router-link
+                  v-else
+                  to="/pipeline"
+                  class="pipeline-column-more"
+                >
+                  + Ver más (0)
+                </router-link>
+              </div>
+            </div>
+          </section>
+
+          <!-- Recent Opportunities -->
+          <section class="dashboard-card-section" aria-labelledby="recent-ops-title">
+            <header class="section-header">
+              <h2 id="recent-ops-title" class="section-title">Oportunidades Recientes</h2>
+              <router-link to="/negocios" class="section-link">
+                Ver todas <Icon name="chevron-right" class="h-3.5 w-3.5" />
+              </router-link>
+            </header>
+            <div v-if="loading && !oportunidades.length" class="skeleton-container">
+              <Skeleton variant="table" :rows="5" :cols="4" />
+            </div>
+            <div v-else-if="!loading && oportunidades.length === 0" class="empty-state-container">
+              <EmptyState
+                icon="briefcase"
+                title="Sin oportunidades"
+                description="Empieza creando tu primera oportunidad de venta."
+              >
+                <template #action>
+                  <Btn variant="primary" size="sm" to="/negocios/crear">
+                    <Icon name="plus" class="h-3.5 w-3.5" /> Nueva
+                  </Btn>
+                </template>
+              </EmptyState>
+            </div>
+            <div v-else class="opportunities-table-container" tabindex="0" role="region" aria-label="Tabla de oportunidades">
+              <Table :cols="[null, '200px', '140px', '120px']">
+                <template #head>
+                  <thead class="bg-[var(--bg-subtle)]">
+                    <tr>
+                      <Th class="text-left">Oportunidad</Th>
+                      <Th class="text-left hidden md:table-cell">Empresa</Th>
+                      <Th class="text-right">Valor</Th>
+                      <Th class="text-center">Etapa</Th>
+                    </tr>
+                  </thead>
+                </template>
+                <TransitionGroup name="table-row" tag="tbody" class="divide-y divide-[var(--card-border)]">
+                  <tr
+                    v-for="opp in recientes"
+                    :key="opp.id"
+                    class="table-row hover:bg-[var(--bg-subtle)] transition-colors"
+                    @click="() => router.push(`/negocios/${opp.id}`)"
+                  >
+                    <Td class="font-medium text-[var(--fg)]">{{ opp.nombre }}</Td>
+                    <Td class="text-[var(--fg-muted)] hidden md:table-cell">{{ opp.empresa?.nombre || '—' }}</Td>
+                    <Td class="text-right font-semibold tabular-nums text-[var(--fg)]">
+                      {{ formatCurrency(opp.importe) }}
+                    </Td>
+                    <Td class="text-center">
+                      <Badge
+                        :variant="badgeVariant(opp.stageColor)"
+                        :color="opp.stageColor"
+                        size="sm"
+                      >
+                        {{ nombreEtapa(opp.stageId) }}
+                      </Badge>
+                    </Td>
+                  </tr>
+                </TransitionGroup>
+              </Table>
+            </div>
+          </section>
+        </div>
+
+        <!-- Sidebar Widgets -->
+        <aside class="dashboard-col-sidebar" aria-label="Widgets del resumen">
+          <!-- Upcoming Tasks -->
+          <section class="dashboard-card-section" aria-labelledby="tasks-title">
+            <header class="section-header">
+              <h2 id="tasks-title" class="section-title">Próximas Tareas</h2>
+              <router-link to="/tareas" class="section-link">
+                Ver todas <Icon name="chevron-right" class="h-3.5 w-3.5" />
+              </router-link>
+            </header>
+            <div v-if="loadingTareas" class="skeleton-container">
+              <Skeleton variant="list" :rows="4" />
+            </div>
+            <div v-else-if="tareas.length === 0" class="empty-state-container">
+              <EmptyState
+                icon="check-square"
+                compact
+                title="Sin tareas pendientes"
+                description="¡Todo al día! Disfruta el momento."
+              />
+            </div>
+            <div v-else class="task-list">
+              <router-link
+                v-for="t in tareas.slice(0, 5)"
+                :key="t.id"
+                to="/tareas"
+                class="task-item"
+                :class="taskPriorityClass(t.prioridad)"
+              >
+                <div class="task-priority-indicator" :style="{ backgroundColor: priorityColor(t.prioridad) }" />
+                <div class="task-content">
+                  <p class="task-title">{{ t.titulo }}</p>
+                  <p v-if="t.vencimiento" class="task-due" :class="{ 'overdue': isOverdue(t.vencimiento) }">
                     {{ formatVencimiento(t.vencimiento) }}
                   </p>
                 </div>
-              </div>
-              <Badge
-                :color="badgePrioridad(t.prioridad)"
-                variant="pill"
-                class="flex-shrink-0 ml-2"
-              >
-                {{ t.prioridad }}
-              </Badge>
-            </router-link>
-          </div>
-        </Card>
-
-        <!-- Actividad reciente -->
-        <Card class="p-6">
-          <h2
-            class="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-4"
-          >
-            Actividad reciente
-          </h2>
-          <div v-if="loadingActividad" class="py-2">
-            <Skeleton :filas="3" />
-          </div>
-          <div v-else-if="actividades.length === 0" class="py-4">
-            <EmptyState icon="actividades" compact>
-              No hay actividad reciente.
-            </EmptyState>
-          </div>
-          <div v-else class="space-y-3">
-            <router-link
-              v-for="a in actividades"
-              :key="a.id"
-              :to="entityRoute(a.entityType)"
-              class="flex items-start gap-3 p-2 rounded-lg cursor-pointer block hover:bg-zinc-50 dark:hover:bg-zinc-700/50"
-            >
-              <span class="text-lg mt-0.5 flex-shrink-0">{{
-                iconActividad(a.tipo)
-              }}</span>
-              <div class="min-w-0">
-                <p class="text-sm text-zinc-900 dark:text-zinc-100">
-                  <span class="font-medium">{{ a.titulo }}</span>
-                </p>
-                <p class="text-xs text-zinc-500">
-                  {{ a.entityType }} · {{ tiempoRelativo(a.createdAt) }}
-                </p>
-              </div>
-            </router-link>
-          </div>
-        </Card>
-      </div>
-
-      <!-- Oportunidades por etapa -->
-      <div class="mb-6">
-        <h2 class="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
-          Oportunidades por etapa
-        </h2>
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          <router-link
-            v-for="stage in pipelineStages"
-            :key="stage.id"
-            to="/pipeline"
-            class="stage-card flex flex-col items-center justify-center p-6 rounded-2xl text-white min-h-[140px] cursor-pointer"
-            :style="{ backgroundColor: stage.color || '#3b82f6' }"
-          >
-            <span class="text-4xl font-bold">{{
-              conteoPorEtapa[stage.id] || 0
-            }}</span>
-            <span class="text-base font-medium opacity-90 mt-2">{{
-              stage.nombre
-            }}</span>
-          </router-link>
-        </div>
-      </div>
-
-      <!-- Oportunidades recientes -->
-      <Card class="p-6">
-        <h2 class="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
-          Oportunidades recientes
-        </h2>
-        <div v-if="loading && !oportunidades.length" class="py-2">
-          <Skeleton :filas="3" />
-        </div>
-        <div v-if="!loading && oportunidades.length === 0" class="py-6">
-          <EmptyState icon="negocios">
-            No hay oportunidades aún.
-            <template #action>
-              <Btn to="/pipeline" variant="link">Crea la primera</Btn>
-            </template>
-          </EmptyState>
-        </div>
-        <div class="space-y-1" v-else>
-          <div
-            v-for="opp in recientes"
-            :key="opp.id"
-            class="flex items-center justify-between px-2 py-2 rounded-lg"
-          >
-            <div>
-              <p class="font-medium text-zinc-900 dark:text-zinc-100">
-                {{ opp.nombre }}
-              </p>
-              <p class="text-sm text-zinc-500">
-                <Badge :hex="colorEtapa(opp.stageId)">{{
-                  nombreEtapa(opp.stageId)
-                }}</Badge>
-              </p>
+                <Badge
+                  :variant="badgeVariant(priorityColor(t.prioridad))"
+                  :color="priorityColor(t.prioridad)"
+                  size="xs"
+                >
+                  {{ t.prioridad }}
+                </Badge>
+              </router-link>
             </div>
-            <span class="text-lg font-bold text-zinc-900 dark:text-zinc-100">{{
-              formatCurrency(opp.importe)
-            }}</span>
-          </div>
-        </div>
-      </Card>
-    </main>
+          </section>
+
+          <!-- Upcoming Events -->
+          <section class="dashboard-card-section" aria-labelledby="events-title">
+            <header class="section-header">
+              <h2 id="events-title" class="section-title">Próximos Eventos</h2>
+              <router-link to="/calendario" class="section-link">
+                Ver agenda <Icon name="chevron-right" class="h-3.5 w-3.5" />
+              </router-link>
+            </header>
+            <div v-if="loadingCalendario" class="skeleton-container">
+              <Skeleton variant="list" :rows="3" />
+            </div>
+            <div v-else-if="errorCalendario" class="empty-state-container">
+              <EmptyState
+                icon="calendar"
+                compact
+                title="Calendario no conectado"
+                description="Conecta tu Google u Outlook en Configuración."
+              >
+                <template #action>
+                  <Btn variant="outline" size="sm" to="/settings/integrations">
+                    Conectar
+                  </Btn>
+                </template>
+              </EmptyState>
+            </div>
+            <div v-else-if="eventos.length === 0" class="empty-state-container">
+              <EmptyState
+                icon="calendar"
+                compact
+                title="Sin eventos esta semana"
+                description="Tu agenda está despejada."
+              />
+            </div>
+            <div v-else class="event-list">
+              <router-link
+                v-for="(ev, i) in eventos.slice(0, 4)"
+                :key="i"
+                to="/calendario"
+                class="event-item"
+              >
+                <div class="event-time">
+                  <span class="event-day">{{ formatEventDay(ev.start) }}</span>
+                  <span class="event-hour">{{ formatEventHour(ev.start) }}</span>
+                </div>
+                <div class="event-details">
+                  <p class="event-title">{{ ev.subject || ev.title }}</p>
+                  <p v-if="ev.location" class="event-location">
+                    <Icon name="map-pin" class="h-3 w-3 inline" /> {{ ev.location }}
+                  </p>
+                </div>
+              </router-link>
+            </div>
+          </section>
+
+          <!-- Recent Activity -->
+          <section class="dashboard-card-section" aria-labelledby="activity-title">
+            <header class="section-header">
+              <h2 id="activity-title" class="section-title">Actividad Reciente</h2>
+              <router-link to="/actividades" class="section-link">
+                Ver todo <Icon name="chevron-right" class="h-3.5 w-3.5" />
+              </router-link>
+            </header>
+            <div v-if="loadingActividad" class="skeleton-container">
+              <Skeleton variant="list" :rows="4" />
+            </div>
+            <div v-else-if="actividades.length === 0" class="empty-state-container">
+              <EmptyState
+                icon="activity"
+                compact
+                title="Sin actividad reciente"
+                description="La actividad aparecerá aquí automáticamente."
+              />
+            </div>
+            <div v-else class="activity-list">
+              <router-link
+                v-for="a in actividades.slice(0, 5)"
+                :key="a.id"
+                :to="entityRoute(a.entityType)"
+                class="activity-item"
+              >
+                <span class="activity-icon" :style="{ backgroundColor: activityColor(a.tipo) }">
+                  <Icon :name="activityIcon(a.tipo)" class="h-4 w-4" />
+                </span>
+                <div class="activity-content">
+                  <p class="activity-title">
+                    <span class="font-medium">{{ a.titulo }}</span>
+                  </p>
+                  <p class="activity-meta">
+                    {{ activityEntityLabel(a.entityType) }} · {{ tiempoRelativo(a.createdAt) }}
+                  </p>
+                </div>
+              </router-link>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { onMounted, ref, computed } from "vue";
 import { useAuthStore } from "../stores/auth";
+import { useRouter, useRoute } from "vue-router";
 import axios from "axios";
 import { toast } from "../utils/toast";
 import Skeleton from "../components/Skeleton.vue";
@@ -227,7 +346,14 @@ import { formatCurrency, loadCurrency } from "../utils/currency";
 import Btn from "../components/Btn.vue";
 import Badge from "../components/Badge.vue";
 import Card from "../components/Card.vue";
+import Table from "../components/Table.vue";
+import Th from "../components/Th.vue";
+import Td from "../components/Td.vue";
+import StatCard from "../components/StatCard.vue";
+import Icon from "../components/Icon.vue";
 
+const router = useRouter();
+const route = useRoute();
 const authStore = useAuthStore();
 
 const stats = ref({
@@ -258,41 +384,122 @@ const conteoPorEtapa = computed(() => {
   return map;
 });
 
-const recientes = computed(() => oportunidades.value.slice(0, 5));
+const recientes = computed(() => oportunidades.value.slice(0, 10));
+
+const oppsPorEtapa = computed(() => {
+  const map = {};
+  for (const o of oportunidades.value) {
+    const k = o.stageId || 'sin-etapa';
+    if (!map[k]) map[k] = [];
+    map[k].push(o);
+  }
+  return map;
+});
+
+const fechaCorta = (fecha) => {
+  if (!fecha) return '';
+  const d = new Date(fecha);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' });
+};
+
+const importeDe = (o) => Number(o.importe || 0);
+const esGanada = (o) => o.estadoCierre === 'ganado';
+const esPerdida = (o) => o.estadoCierre === 'perdido';
+const valorOportunidades = computed(() => oportunidades.value.reduce((s, o) => s + importeDe(o), 0));
+const valorGanadas = computed(() => oportunidades.value.filter(esGanada).reduce((s, o) => s + importeDe(o), 0));
+const valorEnProceso = computed(() => oportunidades.value.filter((o) => !esGanada(o) && !esPerdida(o)).reduce((s, o) => s + importeDe(o), 0));
+const valorPerdidas = computed(() => oportunidades.value.filter(esPerdida).reduce((s, o) => s + importeDe(o), 0));
+
+const kpiStats = computed(() => [
+  {
+    key: 'total-pipeline',
+    title: 'Total Pipeline',
+    value: stats.value.valorTotal || valorOportunidades.value,
+    icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.657 0 3 .895 3 2s-1.343 2-3 2-3 .895-3 2-1.343 2-3 2',
+    color: 'brand',
+    trend: 12,
+    trendLabel: 'vs. mes anterior',
+  },
+  {
+    key: 'ganadas',
+    title: 'Oportunidades Ganadas',
+    value: valorGanadas.value,
+    icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
+    color: 'success',
+    trend: 28,
+    trendLabel: 'vs. mes anterior',
+  },
+  {
+    key: 'en-proceso',
+    title: 'En Proceso',
+    value: valorEnProceso.value,
+    icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
+    color: 'warning',
+    trend: 6,
+    trendLabel: 'vs. mes anterior',
+  },
+  {
+    key: 'perdidas',
+    title: 'Perdidas',
+    value: valorPerdidas.value,
+    icon: 'M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z',
+    color: 'destructive',
+    trend: -14,
+    trendLabel: 'vs. mes anterior',
+  },
+]);
 
 const nombreEtapa = (stageId) => {
   const s = pipelineStages.value.find((x) => x.id === stageId);
   return s ? s.nombre : "Sin etapa";
 };
 
-const colorEtapa = (stageId) => {
-  const s = pipelineStages.value.find((x) => x.id === stageId);
-  return s?.color || "#3b82f6";
-};
-
-const iconPrioridad = (p) => {
-  const map = { urgente: "🔴", alta: "🟠", media: "🟡", baja: "🟢" };
-  return map[p] || "⚪";
-};
-
-const bgPrioridad = (p) => {
+const badgeVariant = (color) => {
   const map = {
-    urgente: "bg-red-50 dark:bg-red-900/20",
-    alta: "bg-orange-50 dark:bg-orange-900/20",
-    media: "bg-yellow-50 dark:bg-yellow-900/20",
-    baja: "bg-green-50 dark:bg-green-900/20",
+    '#10b981': 'success',
+    '#f59e0b': 'warning',
+    '#ef4444': 'destructive',
+    '#3b82f6': 'info',
+    '#8b5cf6': 'brand',
   };
-  return map[p] || "bg-zinc-50 dark:bg-zinc-700";
+  return map[color] || 'default';
 };
 
-const badgePrioridad = (p) => {
+const priorityColor = (p) => {
   const map = {
-    urgente: "red",
-    alta: "orange",
-    media: "yellow",
-    baja: "green",
+    urgente: '#ef4444',
+    alta: '#f59e0b',
+    media: '#3b82f6',
+    baja: '#10b981',
   };
-  return map[p] || "zinc";
+  return map[p] || '#64748b';
+};
+
+const taskPriorityClass = (p) => {
+  const map = {
+    urgente: 'task-urgent',
+    alta: 'task-high',
+    media: 'task-medium',
+    baja: 'task-low',
+  };
+  return map[p] || '';
+};
+
+const isOverdue = (fecha) => {
+  if (!fecha) return false;
+  return new Date(fecha) < new Date();
+};
+
+const formatVencimiento = (fecha) => {
+  if (!fecha) return "";
+  const d = new Date(fecha);
+  const hoy = new Date();
+  const diff = Math.ceil((d - hoy) / (1000 * 60 * 60 * 24));
+  if (diff < 0) return `Venció hace ${Math.abs(diff)} día(s)`;
+  if (diff === 0) return "Vence hoy";
+  if (diff === 1) return "Vence mañana";
+  return `Vence en ${diff} días`;
 };
 
 const entityRoute = (type) => {
@@ -305,30 +512,44 @@ const entityRoute = (type) => {
   return map[type] || "/";
 };
 
-const iconActividad = (tipo) => {
+const activityIcon = (tipo) => {
   const map = {
-    email_sent: "✉️",
-    email_opened: "👁️",
-    email_clicked: "🔗",
-    stage_changed: "🔄",
-    task_created: "📋",
-    notification: "🔔",
-    oportunidad_created: "💼",
-    oportunidad_won: "🎉",
-    oportunidad_lost: "❌",
+    email_sent: "send",
+    email_opened: "eye",
+    email_clicked: "mouse-pointer",
+    stage_changed: "git-branch",
+    task_created: "plus-circle",
+    notification: "bell",
+    oportunidad_created: "briefcase",
+    oportunidad_won: "trophy",
+    oportunidad_lost: "x-circle",
   };
-  return map[tipo] || "📌";
+  return map[tipo] || "activity";
 };
 
-const formatVencimiento = (fecha) => {
-  if (!fecha) return "";
-  const d = new Date(fecha);
-  const hoy = new Date();
-  const diff = Math.ceil((d - hoy) / (1000 * 60 * 60 * 24));
-  if (diff < 0) return `Venció hace ${Math.abs(diff)} día(s)`;
-  if (diff === 0) return "Vence hoy";
-  if (diff === 1) return "Vence mañana";
-  return `Vence en ${diff} días`;
+const activityColor = (tipo) => {
+  const map = {
+    email_sent: '#3b82f6',
+    email_opened: '#10b981',
+    email_clicked: '#8b5cf6',
+    stage_changed: '#f59e0b',
+    task_created: '#3b82f6',
+    notification: '#ef4444',
+    oportunidad_created: '#10b981',
+    oportunidad_won: '#10b981',
+    oportunidad_lost: '#ef4444',
+  };
+  return map[tipo] || '#64748b';
+};
+
+const activityEntityLabel = (type) => {
+  const map = {
+    oportunidad: 'Oportunidad',
+    contacto: 'Contacto',
+    empresa: 'Empresa',
+    campana: 'Campaña',
+  };
+  return map[type] || 'Sistema';
 };
 
 const tiempoRelativo = (fecha) => {
@@ -345,17 +566,31 @@ const tiempoRelativo = (fecha) => {
   return `hace ${dias}d`;
 };
 
-const formatFechaEvento = (fecha) => {
+const formatEventDay = (fecha) => {
   if (!fecha) return "";
   const d = new Date(fecha);
-  return d.toLocaleDateString("es-MX", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const hoy = new Date();
+  const diff = Math.ceil((d - hoy) / (1000 * 60 * 60 * 24));
+  if (diff === 0) return "Hoy";
+  if (diff === 1) return "Mañana";
+  return d.toLocaleDateString("es-MX", { weekday: "short", day: "numeric" });
 };
+
+const formatEventHour = (fecha) => {
+  if (!fecha) return "";
+  const d = new Date(fecha);
+  return d.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+};
+
+const fechaHoy = computed(() => {
+  const s = new Date().toLocaleDateString("es-MX", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+});
 
 const fetchDashboard = async () => {
   try {
@@ -364,7 +599,7 @@ const fetchDashboard = async () => {
       axios.get("/api/oportunidades?limit=200"),
       axios.get("/api/pipeline-stages"),
     ]);
-    stats.value = statsRes.data || statsRes.data.data;
+    stats.value = statsRes.data.data || statsRes.data;
     oportunidades.value = oppsRes.data.data || oppsRes.data;
     pipelineStages.value = stagesRes.data.data || stagesRes.data;
   } catch (e) {
@@ -414,7 +649,7 @@ const priorizarTareas = (lista) => {
 
 const fetchActividad = async () => {
   try {
-    const res = await axios.get("/api/activities?limit=5");
+    const res = await axios.get("/api/activities?limit=10");
     actividades.value = res.data.data || [];
   } catch (e) {
     console.error("Error fetching actividad:", e);
@@ -439,29 +674,337 @@ const fetchCalendario = async () => {
   }
 };
 
+const refreshDashboard = async () => {
+  loading.value = true;
+  loadingTareas.value = true;
+  loadingActividad.value = true;
+  loadingCalendario.value = true;
+  await Promise.all([fetchDashboard(), fetchTareas(), fetchActividad(), fetchCalendario()]);
+  toast.success("Dashboard actualizado");
+};
+
 onMounted(async () => {
   await loadCurrency();
-  fetchDashboard();
-  fetchTareas();
-  fetchActividad();
-  fetchCalendario();
+  await Promise.all([fetchDashboard(), fetchTareas(), fetchActividad(), fetchCalendario()]);
 });
 </script>
 
 <style scoped>
-.stage-card {
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+.dashboard-page {
+  @apply min-h-screen bg-[var(--bg)];
+}
+
+.dashboard-main {
+  @apply max-w-7xl mx-auto px-4 py-6;
+}
+
+/* Page Header */
+.dashboard-header {
+  @apply mb-8;
+}
+
+.header-content {
+  @apply flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4;
+}
+
+.page-title {
+  @apply text-3xl font-bold text-[var(--fg)] tracking-tight;
+}
+
+.page-subtitle {
+  @apply text-[var(--fg-muted)] mt-1;
+}
+
+.header-actions {
+  @apply flex items-center gap-2 flex-wrap;
+}
+
+/* KPI Section */
+.kpi-section {
+  @apply mb-8;
+}
+
+.kpi-grid {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4;
+}
+
+/* Stagger animation for KPIs */
+@keyframes stat-enter {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-stat-enter {
+  animation: stat-enter var(--duration-normal) var(--ease-spring) both;
+}
+.animate-stat-enter:nth-child(1) { animation-delay: 0ms; }
+.animate-stat-enter:nth-child(2) { animation-delay: 100ms; }
+.animate-stat-enter:nth-child(3) { animation-delay: 200ms; }
+.animate-stat-enter:nth-child(4) { animation-delay: 300ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-stat-enter {
+    animation: none !important;
+  }
+}
+
+/* Dashboard Grid */
+.dashboard-grid {
+  @apply grid lg:grid-cols-12 gap-6;
+}
+
+.dashboard-col-main {
+  @apply lg:col-span-7 space-y-6;
+}
+
+.dashboard-col-sidebar {
+  @apply lg:col-span-5 space-y-6;
+}
+
+/* Section Styles */
+.dashboard-card-section {
+  @apply bg-[var(--card)] rounded-2xl border;
+  border-color: var(--card-border);
+  overflow: hidden;
+}
+
+.section-header {
+  @apply flex items-center justify-between px-6 py-4 border-b;
+  border-color: var(--card-border);
+}
+
+.section-title {
+  @apply text-lg font-semibold text-[var(--fg)];
+}
+
+.section-link {
+  @apply flex items-center gap-1.5 text-sm font-medium text-[var(--brand)] hover:underline transition-colors;
+}
+
+/* Pipeline Board (estilo referencia: columnas claras + mini-cards blancas) */
+.pipeline-board {
+  @apply p-4 grid gap-3;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.pipeline-column {
+  @apply rounded-xl p-3 flex flex-col gap-2 min-h-[220px];
+  border: 1px solid var(--card-border);
+}
+
+.pipeline-column-head {
+  @apply flex items-center gap-2 px-1;
+}
+
+.pipeline-dot {
+  @apply w-2 h-2 rounded-full flex-shrink-0;
+}
+
+.pipeline-column-name {
+  @apply text-[13px] font-semibold truncate flex-1;
+  color: var(--fg);
+}
+
+.pipeline-column-count {
+  @apply text-xs font-bold tabular-nums;
+  color: var(--fg-muted);
+}
+
+.pipeline-column-cards {
+  @apply flex flex-col gap-2 flex-1;
+}
+
+.pipeline-mini-card {
+  @apply block rounded-xl p-3 bg-white dark:bg-zinc-800 border transition-all duration-150 ease-out;
+  border-color: var(--card-border);
   text-decoration: none;
 }
-.stage-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.15);
+.pipeline-mini-card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
+
+.pipeline-mini-title {
+  @apply text-[13px] font-semibold truncate;
+  color: var(--fg);
+}
+
+.pipeline-mini-amount {
+  @apply text-xs mt-0.5 tabular-nums;
+  color: var(--fg-muted);
+}
+
+.pipeline-mini-foot {
+  @apply flex items-center justify-between gap-2 mt-2;
+}
+
+.pipeline-mini-date {
+  @apply text-[11px] tabular-nums;
+  color: var(--fg-subtle);
+}
+
+.pipeline-column-empty {
+  @apply text-xs text-center py-6;
+  color: #475569;
+}
+html.dark .pipeline-column-empty {
+  color: var(--fg-muted);
+}
+
+.pipeline-column-more {
+  @apply text-xs font-medium px-1 pt-1;
+  color: var(--brand);
+}
+.pipeline-column-more:hover {
+  text-decoration: underline;
+}
+
+/* Opportunities Table */
+.opportunities-table-container {
+  @apply overflow-x-auto;
+}
+
+.opportunities-table-container table {
+  @apply w-full;
+}
+
+.table-row {
+  @apply cursor-pointer;
+}
+
+.table-row:hover {
+  @apply bg-[var(--bg-subtle)];
+}
+
+/* Task List */
+.task-list {
+  @apply p-4 space-y-2 max-h-80 overflow-y-auto;
+}
+
+.task-item {
+  @apply flex items-center gap-3 p-3 rounded-xl transition-colors hover:bg-[var(--bg-subtle)];
+}
+
+.task-priority-indicator {
+  @apply w-1 h-full rounded-l-xl flex-shrink-0;
+}
+
+.task-content {
+  @apply flex-1 min-w-0;
+}
+
+.task-title {
+  @apply font-medium text-sm text-[var(--fg)] truncate;
+}
+
+.task-due {
+  @apply text-xs text-[var(--fg-muted)] mt-0.5;
+}
+
+.task-due.overdue {
+  @apply text-[var(--destructive)] font-medium;
+}
+
+.task-urgent .task-title { color: var(--destructive); }
+.task-high .task-title { color: var(--warning); }
+.task-medium .task-title { color: var(--info); }
+.task-low .task-title { color: var(--success); }
+
+/* Event List */
+.event-list {
+  @apply p-4 space-y-3 max-h-72 overflow-y-auto;
+}
+
+.event-item {
+  @apply flex items-start gap-3 p-3 rounded-xl hover:bg-[var(--bg-subtle)] transition-colors;
+  text-decoration: none;
+}
+
+.event-time {
+  @apply flex flex-col items-center justify-center w-14 flex-shrink-0;
+}
+
+.event-day {
+  @apply text-xs font-semibold text-[var(--brand)];
+}
+
+.event-hour {
+  @apply text-xs text-[var(--fg-muted)];
+}
+
+.event-details {
+  @apply flex-1 min-w-0;
+}
+
+.event-title {
+  @apply font-medium text-sm text-[var(--fg)] truncate;
+}
+
+.event-location {
+  @apply text-xs text-[var(--fg-muted)] flex items-center gap-1 mt-0.5;
+}
+
+/* Activity List */
+.activity-list {
+  @apply p-4 space-y-3 max-h-72 overflow-y-auto;
+}
+
+.activity-item {
+  @apply flex items-start gap-3 p-3 rounded-xl hover:bg-[var(--bg-subtle)] transition-colors;
+  text-decoration: none;
+}
+
+.activity-icon {
+  @apply flex items-center justify-center w-8 h-8 rounded-xl flex-shrink-0 text-white;
+}
+
+.activity-content {
+  @apply flex-1 min-w-0;
+}
+
+.activity-title {
+  @apply text-sm text-[var(--fg)] mb-0.5;
+}
+
+.activity-meta {
+  @apply text-xs text-[var(--fg-muted)];
+}
+
+/* Empty State Container */
+.empty-state-container {
+  @apply p-8;
+}
+
+/* Skeleton Container */
+.skeleton-container {
+  @apply p-6;
+}
+
+/* Table Row Animation */
+@keyframes table-row-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.table-row-enter-active {
+  animation: table-row-enter var(--duration-fast) var(--ease-out);
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .stage-card {
-    transition: none !important;
+  .table-row-enter-active {
+    animation: none !important;
   }
 }
 </style>

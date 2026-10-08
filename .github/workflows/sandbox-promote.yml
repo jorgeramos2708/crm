@@ -1,0 +1,135 @@
+name: Sandbox Promotion
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_env:
+        description: "Source environment (staging)"
+        required: true
+        default: "staging"
+        type: choice
+        options:
+          - staging
+          - development
+      target_env:
+        description: "Target environment (prod)"
+        required: true
+        default: "prod"
+        type: choice
+        options:
+          - prod
+          - staging
+      dry_run:
+        description: "Run in dry-run mode (show diff only)"
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  sandbox-promote:
+    name: Promote Sandbox Configuration
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.target_env }}
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build sandbox-cli
+        run: pnpm --filter @crm/sandbox-cli build
+
+      - name: Export sandbox from source
+        id: export
+        env:
+          DATABASE_URL: ${{ secrets[format('{0}_DATABASE_URL', github.event.inputs.source_env)] }}
+          ${{ format('{0}_TENANT_ID', github.event.inputs.source_env) }}: ${{ secrets[format('{0}_TENANT_ID', github.event.inputs.source_env)] }}
+        run: |
+          OUTPUT_FILE="sandbox-${{ github.event.inputs.source_env }}.json"
+          pnpm sandbox:export --env ${{ github.event.inputs.source_env }} --output $OUTPUT_FILE
+          echo "output_file=$OUTPUT_FILE" >> $GITHUB_OUTPUT
+
+      - name: Upload sandbox artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandbox-config
+          path: sandbox-${{ github.event.inputs.source_env }}.json
+          retention-days: 7
+
+      - name: Import sandbox to target (dry-run)
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        id: dry-run
+        env:
+          DATABASE_URL: ${{ secrets[format('{0}_DATABASE_URL', github.event.inputs.target_env)] }}
+          ${{ format('{0}_TENANT_ID', github.event.inputs.target_env) }}: ${{ secrets[format('{0}_TENANT_ID', github.event.inputs.target_env)] }}
+        run: |
+          pnpm sandbox:import --env ${{ github.event.inputs.target_env }} --input sandbox-${{ github.event.inputs.source_env }}.json --dry-run
+
+      - name: Wait for approval (production only)
+        if: ${{ github.event.inputs.target_env == 'prod' && github.event.inputs.dry_run == 'false' }}
+        uses: trstringer/manual-approval@v1
+        with:
+          secret: ${{ github.token }}
+          approvers: ${{ secrets.PROD_APPROVERS }}
+          minimum-approvals: 1
+          issue-title: "Sandbox Promotion to Production - Approval Required"
+          issue-body: |
+            **Sandbox Promotion Request**
+            
+            Source: ${{ github.event.inputs.source_env }}
+            Target: ${{ github.event.inputs.target_env }}
+            
+            This workflow will import sandbox configuration from **${{ github.event.inputs.source_env }}** to **${{ github.event.inputs.target_env }}**.
+            
+            Review the dry-run output above before approving.
+
+      - name: Import sandbox to target (apply)
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        id: import
+        env:
+          DATABASE_URL: ${{ secrets[format('{0}_DATABASE_URL', github.event.inputs.target_env)] }}
+          ${{ format('{0}_TENANT_ID', github.event.inputs.target_env) }}: ${{ secrets[format('{0}_TENANT_ID', github.event.inputs.target_env)] }}
+        run: |
+          pnpm sandbox:import --env ${{ github.event.inputs.target_env }} --input sandbox-${{ github.event.inputs.source_env }}.json --force
+
+      - name: Comment on workflow run
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.workflow_run?.id || 0
+            });
+            // Post summary as workflow run summary
+            core.summary
+              .addHeading('Sandbox Promotion Summary')
+              .addTable([
+                ['Property', 'Value'],
+                ['Source Environment', '${{ github.event.inputs.source_env }}'],
+                ['Target Environment', '${{ github.event.inputs.target_env }}'],
+                ['Dry Run', '${{ github.event.inputs.dry_run }}'],
+                ['Status', '${{ job.status }}'],
+                ['Timestamp', '${{ github.event.workflow_run.created_at || new Date().toISOString() }}'],
+              ])
+              .write()

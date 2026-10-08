@@ -1,15 +1,17 @@
 import "dotenv/config";
 import { db, connectDB, closeDB } from "./db/index.js";
 import { redis, connectRedis, closeRedis } from "./services/redis.js";
-import { microsoftGraphSubscriptions, contactos } from "./db/schema.js";
-import { eq, lt, and, ilike } from "drizzle-orm";
 import {
+  microsoftGraphSubscriptions,
   apiTokens,
   archivos,
   emailCampaigns,
   emailTemplates,
+  emailTracking,
   tareas,
+  contactos,
 } from "./db/schema.js";
+import { eq, lt, and, ilike, sql } from "drizzle-orm";
 import { storage, bucketName } from "./services/storage.js";
 import {
   getUserGraphClient,
@@ -23,6 +25,9 @@ import {
 import { sendEmail } from "./services/email.js";
 import { emitEvent } from "./services/webhooks.js";
 import { QUEUES, createWorker, closeQueues } from "./services/queues.js";
+import { processInboundEmail } from "./services/emailInbound.js";
+import { processSequenceStep } from "./services/emailSequences.js";
+import { ReportSchedulerService } from "./services/reportScheduler.js";
 import os from "os";
 
 const STREAM = "graph:notifications";
@@ -216,21 +221,21 @@ async function renewLoop() {
   }
 }
 
-const CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
-
-// ── BullMQ workers (Fase 2): acciones diferidas + campañas + vencimiento ──
+// ── BullMQ workers: acciones diferidas + campañas + vencimientos + secuencias ──
+// OJO: queues.ts solo expone createWorker/closeQueues; los processors viven aquí
+// para que el worker sea el único consumidor (evita doble procesamiento).
 async function startBullWorkers() {
   // Acción diferida de automatizaciones
   createWorker(QUEUES.ACTION, async (job) => {
-    const { action, context } = job.data;
-    console.log(`⚙️ BullMQ action ${job.id}: ${action?.tipo}`);
+    const { action, context } = job.data as any;
+    console.log(`BullMQ action ${job.id}: ${action?.tipo}`);
     await executeAction(action, context);
   });
 
   // Envío de campaña programada
   createWorker(QUEUES.CAMPAIGN, async (job) => {
-    const { campaignId } = job.data;
-    console.log(`📧 BullMQ campaign send ${campaignId}`);
+    const { campaignId } = job.data as any;
+    console.log(`BullMQ campaign send ${campaignId}`);
     const [campaign] = await db
       .select()
       .from(emailCampaigns)
@@ -282,12 +287,12 @@ async function startBullWorkers() {
       .update(emailCampaigns)
       .set({ estado: "enviada", enviadaEn: new Date(), updatedAt: new Date() })
       .where(eq(emailCampaigns.id, campaign.id));
-    console.log(`📧 Campaña ${campaign.nombre}: ${sent} enviados`);
+    console.log(`Campaña ${campaign.nombre}: ${sent} enviados`);
   });
 
-  // Tarea por vencirse → activity de recordatorio
+  // Tarea por vencerse → activity de recordatorio
   createWorker(QUEUES.TASK_DUE, async (job) => {
-    const { taskId } = job.data;
+    const { taskId } = job.data as any;
     const [t] = await db
       .select()
       .from(tareas)
@@ -302,13 +307,23 @@ async function startBullWorkers() {
       t.asignadoId || undefined,
       { prioridad: t.prioridad, vencimiento: t.vencimiento },
     );
-    console.log(`⏰ Recordatorio tarea ${t.titulo}`);
+    console.log(`Recordatorio tarea ${t.titulo}`);
   });
 
-  console.log("⚙️ BullMQ workers activos (action, campaign, task-due)");
+  // Paso de secuencia de emails (scheduleSequenceStep encola { enrollmentId })
+  createWorker(QUEUES.SEQUENCE, async (job) => {
+    const { enrollmentId, sequenceId, stepIndex } = job.data as any;
+    console.log(
+      `BullMQ sequence step ${sequenceId}/${enrollmentId}#${stepIndex}`,
+    );
+    await processSequenceStep(enrollmentId);
+  });
+
+  console.log("BullMQ workers activos (action, campaign, task-due, sequence)");
 }
 
-// Limpieza diaria: tokens expirados + objetos huérfanos en MinIO (>1h y sin fila en DB)
+const CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
+
 async function cleanupLoop() {
   while (running) {
     try {
@@ -375,8 +390,17 @@ async function main() {
   } catch (err) {
     console.error("Worker BullMQ start error:", (err as Error)?.message || err);
   }
+  // Start report scheduler
+  try {
+    await ReportSchedulerService.startScheduler();
+  } catch (err) {
+    console.error(
+      "Report scheduler start error:",
+      (err as Error)?.message || err,
+    );
+  }
   console.log(
-    `👷 Worker ${CONSUMER} iniciado (consume + renovador + limpieza + bullmq)`,
+    `👷 Worker ${CONSUMER} iniciado (consume + renovador + limpieza + bullmq + reportes)`,
   );
   // Renovación inicial al arrancar (sin bloquear el consumo)
   renewLoop();

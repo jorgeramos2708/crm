@@ -1,7 +1,13 @@
 <template>
   <div class="p-6">
-    <header class="mb-6 flex justify-end">
-      <Btn @click="openModal(null)" variant="icon">+</Btn>
+    <header class="mb-6 flex items-center justify-between">
+      <h1 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Plantillas de Email</h1>
+      <div class="flex gap-2">
+        <Btn @click="openBuilderModal" variant="outline" icon="layout">
+          Constructor Visual
+        </Btn>
+        <Btn @click="openModal(null)" variant="icon">+</Btn>
+      </div>
     </header>
 
     <div class="space-y-4">
@@ -138,6 +144,16 @@
         </div>
       </form>
     </Modal>
+
+    <!-- Modal Constructor Visual (EmailBuilder) -->
+    <Modal
+      :open="showBuilderModal"
+      max-width="full"
+      content-class="h-[90vh] max-h-[90vh] p-0"
+      @close="closeBuilderModal"
+    >
+      <EmailBuilder />
+    </Modal>
   </div>
 </template>
 
@@ -153,12 +169,14 @@ import Card from "../components/Card.vue";
 import Modal from "../components/Modal.vue";
 import EmptyState from "../components/EmptyState.vue";
 import Field from "../components/Field.vue";
+import EmailBuilder from "../components/EmailBuilder.vue";
 import { toast } from "../utils/toast";
 import { confirmar } from "../utils/confirm";
 
 const plantillas = ref([]);
 const cargando = ref(true);
 const showModal = ref(false);
+const showBuilderModal = ref(false);
 const saving = ref(false);
 const editingTemplate = ref(null);
 
@@ -213,6 +231,14 @@ const closeModal = () => {
     variables: [],
   };
   variablesInput.value = "";
+};
+
+const openBuilderModal = () => {
+  showBuilderModal.value = true;
+};
+
+const closeBuilderModal = () => {
+  showBuilderModal.value = false;
 };
 
 const textoAHtml = (texto) => {

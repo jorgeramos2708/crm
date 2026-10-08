@@ -1,111 +1,188 @@
-<!-- Badge (Fase 2): punto de estado o pastilla.
-  variant="dot"  → punto + texto inline, hereda el color de texto (ex: etapa en Dashboard).
-  variant="pill" → pastilla tintada (ex: "En vivo" en Correos).
-  `color`: blue|green|red|purple|orange|zinc. `hex`: color arbitrario del backend (etapas). -->
+<!-- Badge (Premium): indicador de estado con variantes semánticas
+  Variantes: default, success, warning, destructive, info, brand, outline
+  Tamaños: sm, md, lg
+  Props: dot (indicador de punto), removable, clickable -->
 <template>
-  <span v-if="variant !== 'dot'" :class="boxedClasses">
-    <span
-      v-if="dot"
-      class="inline-block h-2 w-2 flex-shrink-0 rounded-full"
-      :class="[dotClass, pulseClass]"
-      :style="dotStyle"
-    />
-    <slot />
-  </span>
-  <span v-else class="inline-flex items-center gap-1.5">
-    <span
-      v-if="dot"
-      class="inline-block flex-shrink-0 rounded-full"
-      :class="[dotSize, dotClass, pulseClass]"
-      :style="dotStyle"
-    />
-    <slot />
+  <span
+    :class="[
+      'badge-base',
+      variantClass,
+      sizeClass,
+      { 'badge-dot': dot },
+      { 'badge-removable': removable },
+      { 'badge-clickable': clickable && !disabled },
+      { 'badge-disabled': disabled },
+    ]"
+    :role="clickable ? 'button' : undefined"
+    :tabindex="clickable ? 0 : undefined"
+    :aria-disabled="disabled"
+    @click="onClick"
+    @keydown.space.prevent="onKeyDown"
+    @keydown.enter.prevent="onKeyDown"
+  >
+    <span class="badge-content flex items-center gap-1">
+      <span v-if="dot" class="badge-dot-indicator" :style="dotStyle" />
+      <slot />
+    </span>
+    <button
+      v-if="removable && !disabled"
+      type="button"
+      class="badge-remove"
+      @click.stop="onRemove"
+      :aria-label="`Eliminar ${$slots.default?.[0]?.children || 'etiqueta'}`"
+    >
+      <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </button>
   </span>
 </template>
 
-<script setup>
-import { computed, ref, watch } from "vue";
+<script setup lang="ts">
+import { computed } from "vue";
 
 const props = defineProps({
-  color: { type: String, default: "zinc" },
-  hex: { type: String, default: "" },
-  variant: { type: String, default: "dot" },
-  pulse: { type: Boolean, default: false },
-  dot: { type: Boolean, default: true },
-  dotSize: { type: String, default: "h-2 w-2" },
-});
-
-const dots = {
-  blue: "bg-blue-500",
-  green: "bg-green-500",
-  red: "bg-red-500",
-  purple: "bg-purple-500",
-  orange: "bg-orange-500",
-  yellow: "bg-yellow-500",
-  zinc: "bg-zinc-400",
-};
-
-const pills = {
-  blue: "bg-blue-100 text-blue-700 dark:bg-blue-400/15 dark:text-blue-300",
-  green: "bg-green-100 text-green-700 dark:bg-green-400/15 dark:text-green-300",
-  red: "bg-red-100 text-red-700 dark:bg-red-400/15 dark:text-red-300",
-  purple:
-    "bg-purple-100 text-purple-700 dark:bg-purple-400/15 dark:text-purple-300",
-  orange:
-    "bg-orange-100 text-orange-700 dark:bg-orange-400/15 dark:text-orange-300",
-  yellow:
-    "bg-yellow-100 text-yellow-700 dark:bg-yellow-400/15 dark:text-yellow-300",
-  zinc: "bg-zinc-200/70 text-zinc-600 dark:bg-white/10 dark:text-zinc-300",
-};
-
-const dotClass = computed(() =>
-  props.hex ? "" : dots[props.color] || dots.zinc,
-);
-const dotStyle = computed(() =>
-  props.hex ? { backgroundColor: props.hex } : undefined,
-);
-const boxedClasses = computed(() => [
-  props.variant === "chip"
-    ? "inline-flex items-center gap-1.5 rounded px-2 py-1 text-xs"
-    : "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
-  pills[props.color] || pills.zinc,
-]);
-
-const pulseClass = computed(() => {
-  if (!props.pulse) return "";
-  return "animate-pulse-badge";
-});
-
-watch(
-  () => props.pulse,
-  (val) => {
-    if (val) {
-      setTimeout(() => {
-        // Auto-reset pulse after animation
-      }, 1000);
-    }
+  variant: {
+    type: String,
+    default: "default",
+    validator: (v) => ["default", "success", "warning", "destructive", "info", "brand", "outline"].includes(v),
   },
-);
+  size: {
+    type: String,
+    default: "md",
+    validator: (v) => ["sm", "md", "lg"].includes(v),
+  },
+  dot: { type: Boolean, default: false },
+  removable: { type: Boolean, default: false },
+  clickable: { type: Boolean, default: false },
+  disabled: { type: Boolean, default: false },
+  color: { type: String, default: "" }, // Custom hex color
+});
+
+const emit = defineEmits(["click", "remove"]);
+
+const variantClass = computed(() => {
+  if (props.color) return "";
+  switch (props.variant) {
+    case "success": return "badge-success";
+    case "warning": return "badge-warning";
+    case "destructive": return "badge-destructive";
+    case "info": return "badge-info";
+    case "brand": return "badge-brand";
+    case "outline": return "badge-outline";
+    default: return "badge-default";
+  }
+});
+
+const sizeClass = computed(() => {
+  switch (props.size) {
+    case "sm": return "badge-sm";
+    case "lg": return "badge-lg";
+    default: return "badge-md";
+  }
+});
+
+const dotStyle = computed(() => {
+  if (!props.color) return {};
+  return { backgroundColor: props.color };
+});
+
+function onClick(e) {
+  if (props.disabled || !props.clickable) return;
+  emit("click", e);
+}
+
+function onKeyDown(e) {
+  if (props.disabled || !props.clickable) return;
+  if (e.code === "Space" || e.code === "Enter") {
+    e.preventDefault();
+    emit("click", e);
+  }
+}
+
+function onRemove(e) {
+  if (props.disabled) return;
+  e.stopPropagation();
+  emit("remove", e);
+}
 </script>
 
 <style scoped>
-@keyframes pulse-badge {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.6;
-    transform: scale(1.1);
-  }
+.badge-base {
+  @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors;
 }
-.animate-pulse-badge {
-  animation: pulse-badge 0.8s ease-in-out;
+
+.badge-sm { @apply px-2 py-0.5 text-[10px] gap-1; }
+.badge-md { @apply px-2.5 py-0.5 text-xs gap-1.5; }
+.badge-lg { @apply px-3 py-1 text-sm gap-2; }
+
+/* Variants */
+.badge-default {
+  @apply bg-[var(--bg-subtle)] border border-[var(--card-border)];
+  color: #475569;
 }
-@media (prefers-reduced-motion: reduce) {
-  .animate-pulse-badge {
-    animation: none !important;
-  }
+html.dark .badge-default {
+  color: var(--fg-muted);
+}
+.badge-success {
+  @apply bg-[var(--success-bg)] text-[var(--success-fg)];
+  html.dark & { @apply bg-[var(--success-bg)] text-[var(--success-fg)]; }
+}
+.badge-warning {
+  @apply bg-[var(--warning-bg)] text-[var(--warning-fg)];
+  html.dark & { @apply bg-[var(--warning-bg)] text-[var(--warning-fg)]; }
+}
+.badge-destructive {
+  @apply bg-[var(--destructive-bg)] text-[var(--destructive-fg)];
+  html.dark & { @apply bg-[var(--destructive-bg)] text-[var(--destructive-fg)]; }
+}
+.badge-info {
+  @apply bg-[var(--info-bg)] text-[var(--info-fg)];
+  html.dark & { @apply bg-[var(--info-bg)] text-[var(--info-fg)]; }
+}
+.badge-brand {
+  @apply bg-[var(--brand)] text-[var(--brand-fg)];
+}
+.badge-outline {
+  @apply bg-transparent text-[var(--fg-muted)] border border-[var(--card-border)];
+}
+
+/* Dot indicator */
+.badge-dot .badge-content {
+  @apply gap-1.5;
+}
+.badge-dot-indicator {
+  @apply h-1.5 w-1.5 rounded-full flex-shrink-0;
+  background-color: currentColor;
+}
+
+/* Removable */
+.badge-removable {
+  @apply pr-1.5;
+}
+.badge-remove {
+  @apply flex items-center justify-center w-5 h-5 rounded-full
+       text-[var(--fg-muted)] hover:text-[var(--fg)]
+       hover:bg-[var(--bg-subtle)] transition-colors duration-fast ease-out
+       focus-ring focus-ring-offset-2;
+  margin-left: 0.25rem;
+}
+
+/* Clickable */
+.badge-clickable {
+  @apply cursor-pointer hover-lift-sm press-scale-sm;
+}
+.badge-clickable:hover {
+  filter: brightness(1.05);
+}
+
+/* Disabled */
+.badge-disabled {
+  @apply opacity-50 pointer-events-none cursor-not-allowed;
+}
+
+/* Custom color */
+[style*="background-color"] {
+  color: var(--brand-fg) !important;
 }
 </style>

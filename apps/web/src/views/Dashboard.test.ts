@@ -60,12 +60,12 @@ describe("Dashboard", () => {
     estadoToasts.items.value = [];
   });
 
-  it("muestra el saludo y el estado vacío", async () => {
+  it("muestra el título Resumen de Oportunidades y estado vacío", async () => {
     mockApi();
     const w = mountDashboard();
     await flushPromises();
-    expect(w.text()).toContain("Bienvenido");
-    expect(w.text()).toContain("No hay oportunidades aún.");
+    expect(w.text()).toContain("Resumen de Oportunidades");
+    expect(w.text()).toContain("Sin oportunidades");
   });
 
   it("lista oportunidades con su etapa y color", async () => {
@@ -86,5 +86,23 @@ describe("Dashboard", () => {
     await flushPromises();
     expect(estadoToasts.items.value.some((t) => t.tipo === "error")).toBe(true);
     silence.mockRestore();
+  });
+
+  it("muestra KPIs con valores del dashboard", async () => {
+    mockApi();
+    const w = mountDashboard();
+    await flushPromises();
+    expect(w.text()).toContain("Total Pipeline");
+    expect(w.text()).toContain("Oportunidades Ganadas");
+    expect(w.text()).toContain("En Proceso");
+    expect(w.text()).toContain("Perdidas");
+  });
+
+  it("muestra sección Pipeline", async () => {
+    mockApi([], [{ id: "s1", nombre: "Nueva", color: "#3b82f6" }]);
+    const w = mountDashboard();
+    await flushPromises();
+    expect(w.text()).toContain("Pipeline");
+    expect(w.text()).toContain("Nueva");
   });
 });

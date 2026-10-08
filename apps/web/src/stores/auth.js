@@ -27,7 +27,10 @@ export const useAuthStore = defineStore("auth", () => {
       user.value = response.data.user;
       return true;
     } catch (err) {
-      error.value = err.response?.data?.message || "Error de autenticación";
+      error.value =
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        "Error de autenticación";
       return false;
     } finally {
       loading.value = false;

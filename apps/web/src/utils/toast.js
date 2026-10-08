@@ -14,9 +14,10 @@ function push(tipo, texto) {
 }
 
 export const toast = {
-  exito: (texto) => push("exito", texto),
-  error: (texto) => push("error", texto),
-  info: (texto) => push("info", texto),
+  exito: (texto, options) => push("exito", texto),
+  error: (texto, options) => push("error", texto),
+  info: (texto, options) => push("info", texto),
+  warning: (texto, options) => push("warning", texto),
 };
 
 export const estadoToasts = { items };

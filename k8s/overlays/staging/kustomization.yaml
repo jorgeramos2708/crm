@@ -1,0 +1,53 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: crm-staging
+
+resources:
+  - ../../base
+  - ingress.yaml
+
+commonLabels:
+  app.kubernetes.io/environment: staging
+
+patches:
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: crm-api
+        namespace: crm-staging
+      spec:
+        replicas: 1
+      - patch: |-
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: crm-web
+            namespace: crm-staging
+          spec:
+            replicas: 1
+        target:
+          kind: Deployment
+          labelSelector: "app=crm-web"
+
+configMapGenerator:
+  - name: crm-config
+    behavior: merge
+    literals:
+      - NODE_ENV=staging
+      - CORS_ORIGIN=https://staging.crm.example.com
+      - GRAPH_PUBLIC_URL=https://api-staging.crm.example.com
+      - FRONTEND_URL=https://staging.crm.example.com
+
+secretGenerator:
+  - name: crm-secrets
+    behavior: merge
+    envs:
+      - ./staging-secrets.env
+
+configMapGenerator:
+  - name: nginx-config
+    behavior: replace
+    files:
+      - nginx.conf=./nginx-staging.conf

@@ -2,7 +2,7 @@
   Columnas por slots: #head para la fila de <th>, default para las filas del <tbody>.
   Los estados (cargando/vacío con su colspan) los pone el llamador. -->
 <template>
-  <div class="overflow-x-auto">
+  <div class="overflow-x-auto" tabindex="0" role="region" aria-label="Tabla de datos">
     <table :class="cols && cols.length ? 'w-full table-fixed' : 'w-full'">
       <colgroup v-if="cols && cols.length">
         <col

@@ -2,10 +2,16 @@
   <div class="min-h-screen bg-zinc-50 dark:bg-zinc-900 p-6">
     <header class="mb-6 flex items-end justify-between flex-wrap gap-3">
       <div class="flex items-center gap-3 flex-wrap">
-        <Select v-model="alcance" @change="fetchData">
+        <Select v-model="alcance" name="alcance" aria-label="Alcance de oportunidades" @change="fetchData">
           <option value="">Todas</option>
           <option value="mio">Mías</option>
           <option value="equipo">Mi equipo</option>
+        </Select>
+        <Select v-model="filtroStage" name="filtroStage" title="Filtrar por etapa" aria-label="Filtrar por etapa">
+          <option value="">Todas las etapas</option>
+          <option v-for="s in stages" :key="s.id" :value="s.id">
+            {{ s.nombre }}
+          </option>
         </Select>
       </div>
       <div class="flex gap-2">
@@ -25,28 +31,38 @@
         </Btn>
       </div>
     </header>
-    <div class="grid grid-cols-5 gap-3">
+    <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3" data-testid="pipeline-board">
       <div
-        v-for="stage in stages"
+        v-for="stage in stagesVisibles"
         :key="stage.id"
-        class="p-3 rounded-xl flex flex-col text-white"
+        data-testid="pipeline-column"
+        :data-stage="stage.id"
+        class="p-3 rounded-xl flex flex-col border"
         :style="{
-          backgroundColor: getStageColor(stage),
+          backgroundColor: `color-mix(in srgb, ${getStageColor(stage)} 9%, #f1f5f9)`,
+          borderColor: 'var(--card-border)',
           minHeight: '400px',
         }"
       >
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="font-medium text-sm">{{ stage.nombre }}</h3>
-          <span class="text-xs font-bold">{{
+        <div class="flex items-center gap-2 mb-3">
+          <span
+            class="w-2 h-2 rounded-full flex-shrink-0"
+            :style="{ backgroundColor: getStageColor(stage) }"
+          />
+          <h2 class="pipeline-column-name font-semibold text-sm text-zinc-900 dark:text-zinc-100 truncate flex-1">{{ stage.nombre }}</h2>
+          <span class="text-xs font-bold tabular-nums text-zinc-600 dark:text-zinc-400">{{
             oportunidadesPorStage[stage.id]?.length || 0
           }}</span>
         </div>
         <div
           v-auto-animate
           class="space-y-1.5 flex-1 overflow-y-auto rounded-lg transition-colors"
+          tabindex="0"
+          role="region"
+          :aria-label="'Columna ' + stage.nombre"
           :class="
             dropTarget === stage.id && draggedOportunidad
-              ? 'ring-2 ring-inset ring-white/70 bg-white/10'
+              ? 'ring-2 ring-inset ring-[#1d4ed8]/50 bg-[#1d4ed8]/5'
               : ''
           "
           @dragover.prevent="onDragOver(stage.id)"
@@ -71,11 +87,11 @@
               <div class="font-medium text-xs truncate max-w-xs">
                 {{ opp.nombre }}
               </div>
-              <span class="text-[10px] px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100">
                 {{ opp.probabilidad ?? 50 }}%
               </span>
             </div>
-            <div class="text-[10px] text-zinc-500">
+            <div class="text-[10px] text-zinc-800 dark:text-zinc-200">
               {{ formatCurrency(opp.importe) }}
             </div>
             <Badge
@@ -107,7 +123,7 @@
           </div>
           <div
             v-if="(oportunidadesPorStage[stage.id] || []).length === 0"
-            class="p-3 text-center text-xs text-white/70"
+            class="p-3 text-center text-xs text-zinc-600 dark:text-zinc-400"
           >
             Sin oportunidades
           </div>
@@ -122,7 +138,7 @@
       </template>
       <form @submit.prevent="crearOportunidad" class="space-y-4">
         <Field label="Pipeline">
-          <Select v-model="nuevaOportunidad.pipelineId" required class="w-full">
+          <Select v-model="nuevaOportunidad.pipelineId" name="pipelineId" required class="w-full">
             <option value="">Seleccionar pipeline</option>
             <option v-for="p in pipelines" :key="p.id" :value="p.id">
               {{ p.nombre }}
@@ -130,7 +146,7 @@
           </Select>
         </Field>
         <Field label="Etapa">
-          <Select v-model="nuevaOportunidad.stageId" required class="w-full">
+          <Select v-model="nuevaOportunidad.stageId" name="stageId" required class="w-full">
             <option value="">Seleccionar etapa</option>
             <option v-for="s in stages" :key="s.id" :value="s.id">
               {{ s.nombre }}
@@ -140,6 +156,7 @@
         <Field label="Nombre">
           <Input
             v-model="nuevaOportunidad.nombre"
+            name="nombre"
             type="text"
             required
             class="w-full"
@@ -149,6 +166,7 @@
           <label class="block text-sm mb-1">Importe</label>
           <input
             v-model.number="nuevaOportunidad.importe"
+            name="importe"
             type="number"
             min="0"
             class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm focus-ring"
@@ -261,6 +279,7 @@ const oportunidades = ref([]);
 const pipelines = ref([]);
 const cargando = ref(true);
 const alcance = ref("");
+const filtroStage = ref("");
 const showNewOportunidad = ref(false);
 const creando = ref(false);
 
@@ -289,6 +308,12 @@ const onImporteFocus = () => {
     nuevaOportunidad.value.importe = "";
   }
 };
+
+const stagesVisibles = computed(() =>
+  filtroStage.value
+    ? stages.value.filter((s) => s.id === filtroStage.value)
+    : stages.value,
+);
 
 const oportunidadesPorStage = computed(() => {
   const grouped = {};

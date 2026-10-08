@@ -18,6 +18,10 @@ interface AuditEvent {
   changedFields?: string[];
   metadata?: Record<string, any>;
   riskLevel?: "low" | "medium" | "high" | "critical";
+  eventId?: string;
+  previousHash?: string;
+  currentHash?: string;
+  timestamp?: Date;
 }
 
 export class AuditService {
@@ -97,7 +101,7 @@ export class AuditService {
           metadata: e.metadata,
           riskLevel: e.riskLevel,
           previousHash: e.previousHash,
-          currentHash: e.currentHash,
+          currentHash: e.currentHash as string,
           timestamp: e.timestamp,
         })),
       );
@@ -192,11 +196,12 @@ export class AuditService {
         });
       }
 
-      if (entry.previousHash !== previousHash) {
+      const prevHash = entry.previousHash ?? "";
+      if (prevHash !== previousHash) {
         broken.push({
           id: entry.id,
           expected: previousHash,
-          actual: entry.previousHash,
+          actual: prevHash,
         });
       }
 
@@ -210,11 +215,12 @@ export class AuditService {
   }
 
   async exportUserData(tenantId: string, userId: string): Promise<any[]> {
-    return this.query({
+    const result = await this.query({
       tenantId,
       actorId: userId,
       limit: 10000,
     });
+    return result.data;
   }
 
   async pseudonymizeUser(tenantId: string, userId: string): Promise<number> {
@@ -268,8 +274,8 @@ export class AuditService {
       topTargets: this.getTopTargets(events),
       integrity: await this.verifyChain(
         tenantId,
-        new Date(events[0]?.timestamp),
-        new Date(events[events.length - 1]?.timestamp),
+        new Date(events[0]?.timestamp ?? Date.now()),
+        new Date(events[events.length - 1]?.timestamp ?? Date.now()),
       ),
     };
   }

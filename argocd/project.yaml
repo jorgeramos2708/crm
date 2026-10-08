@@ -1,0 +1,52 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: crm
+  namespace: argocd
+spec:
+  description: CRM Platform Project
+  sourceRepos:
+    - https://github.com/jorgeramos2708/crm.git
+  destinations:
+    - namespace: crm-staging
+      server: https://kubernetes.default.svc
+    - namespace: crm-production
+      server: https://kubernetes.default.svc
+    - namespace: argocd
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+    - group: rbac.authorization.k8s.io
+      kind: Role
+    - group: rbac.authorization.k8s.io
+      kind: RoleBinding
+  namespaceResourceWhitelist:
+    - group: ''
+      kind: ConfigMap
+    - group: ''
+      kind: Secret
+    - group: ''
+      kind: Service
+    - group: ''
+      kind: ServiceAccount
+    - group: apps
+      kind: Deployment
+    - group: apps
+      kind: StatefulSet
+    - group: ''
+      kind: PersistentVolumeClaim
+    - group: networking.k8s.io
+      kind: Ingress
+    - group: batch
+      kind: CronJob
+  roles:
+    - name: admin
+      policies:
+        - p, proj:crm:admin, applications, *, crm/*, allow
+    - name: developer
+      policies:
+        - p, proj:crm:developer, applications, get, crm/*, allow
+        - p, proj:crm:developer, applications, sync, crm-staging, allow
+        - p, proj:crm:developer, repositories, get, *, allow
+  signatureKeys: []

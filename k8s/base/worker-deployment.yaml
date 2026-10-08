@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crm-worker
+  namespace: crm
+  labels:
+    app: crm-worker
+    app.kubernetes.io/name: crm-worker
+    app.kubernetes.io/component: worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: crm-worker
+  template:
+    metadata:
+      labels:
+        app: crm-worker
+        app.kubernetes.io/name: crm-worker
+    spec:
+      serviceAccountName: crm-worker
+      containers:
+        - name: worker
+          image: crm-worker:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: crm-config
+            - secretRef:
+                name: crm-secrets
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
+          livenessProbe:
+            exec:
+              command: ["node", "-e", "require('./health-check.js')"]
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+          readinessProbe:
+            exec:
+              command: ["node", "-e", "require('./health-check.js')"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: crm-worker
+  namespace: crm
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: crm-worker
+  namespace: crm
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "jobs", "configmaps"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: crm-worker
+  namespace: crm
+subjects:
+  - kind: ServiceAccount
+    name: crm-worker
+    namespace: crm
+roleRef:
+  kind: Role
+  name: crm-worker
+  apiGroup: rbac.authorization.k8s.io

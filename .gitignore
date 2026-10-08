@@ -7,6 +7,20 @@ dist/
 build/
 out/
 **/.turbo/
+# Storybook estático generado (se reconstruye con pnpm build-storybook)
+apps/web/storybook-static/
+
+# Playwright (resultados locales)
+apps/web/test-results/
+apps/web/playwright-report/
+apps/web/blob-report/
+apps/web/*.png
+
+# Temporales de Vite y backups
+*.timestamp-*.mjs
+*.bak
+*.tmp
+*.part1
 
 # Entorno
 .env

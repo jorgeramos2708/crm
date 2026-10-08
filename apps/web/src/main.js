@@ -2,27 +2,30 @@ import { createApp } from "vue";
 import { createPinia } from "pinia";
 import { createRouter, createWebHistory } from "vue-router";
 import App from "./App.vue";
-import Pipeline from "./views/Pipeline.vue";
-import Dashboard from "./views/Dashboard.vue";
 import Login from "./views/Login.vue";
-import Contactos from "./views/Contactos.vue";
-import Listas from "./views/Listas.vue";
-import Automatizaciones from "./views/Automatizaciones.vue";
-import Plantillas from "./views/Plantillas.vue";
-import Campanas from "./views/Campanas.vue";
-import Actividades from "./views/Actividades.vue";
-import Reportes from "./views/Reportes.vue";
-import Tareas from "./views/Tareas.vue";
-import Calendario from "./views/Calendario.vue";
-import Negocios from "./views/Negocios.vue";
-import Productos from "./views/Productos.vue";
-import Presupuestos from "./views/Presupuestos.vue";
-import Empresas from "./views/Empresas.vue";
-import Correos from "./views/Correos.vue";
-import Settings from "./views/Settings.vue";
+// Vistas con lazy-loading: cada ruta genera su propio chunk y reduce el bundle inicial
+const Dashboard = () => import("./views/Dashboard.vue");
+const Pipeline = () => import("./views/Pipeline.vue");
+const Contactos = () => import("./views/Contactos.vue");
+const Listas = () => import("./views/Listas.vue");
+const Automatizaciones = () => import("./views/Automatizaciones.vue");
+const Plantillas = () => import("./views/Plantillas.vue");
+const Campanas = () => import("./views/Campanas.vue");
+const Actividades = () => import("./views/Actividades.vue");
+const Reportes = () => import("./views/Reportes.vue");
+const Tareas = () => import("./views/Tareas.vue");
+const Calendario = () => import("./views/Calendario.vue");
+const Negocios = () => import("./views/Negocios.vue");
+const Productos = () => import("./views/Productos.vue");
+const Presupuestos = () => import("./views/Presupuestos.vue");
+const Empresas = () => import("./views/Empresas.vue");
+const Correos = () => import("./views/Correos.vue");
+const Settings = () => import("./views/Settings.vue");
+const Reuniones = () => import("./views/Reuniones.vue");
+const AgendarReunion = () => import("./views/AgendarReunion.vue");
+const NotFound = () => import("./views/NotFound.vue");
 import { useAuthStore } from "./stores/auth";
 import autoAnimate from "@formkit/auto-animate";
-import "@fontsource-variable/plus-jakarta-sans";
 import "./style.css";
 
 const pinia = createPinia();
@@ -90,6 +93,9 @@ const routes = [
   { path: "/empresas", component: Empresas, meta: { requiresAuth: true } },
   { path: "/correos", component: Correos, meta: { requiresAuth: true } },
   { path: "/settings", component: Settings, meta: { requiresAuth: true } },
+  { path: "/reuniones", component: Reuniones, meta: { requiresAuth: true } },
+  { path: "/agendar/:slug", component: AgendarReunion },
+  { path: "/:pathMatch(.*)*", component: NotFound },
 ];
 
 const router = createRouter({

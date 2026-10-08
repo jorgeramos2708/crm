@@ -106,7 +106,7 @@ describe("Pipeline drag & drop", () => {
     expect(columns.length).toBe(2);
     await columns[1].trigger("dragover", { dataTransfer });
     expect(columns[1].classes()).toContain("ring-2");
-    expect(columns[1].classes()).toContain("ring-white/70");
+    expect(columns[1].classes().join(" ")).toContain("ring-[#1d4ed8]");
 
     await columns[1].trigger("drop", { dataTransfer });
     await flushPromises();

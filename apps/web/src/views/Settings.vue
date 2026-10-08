@@ -1,5 +1,5 @@
 <template>
-  <div class="p-6 max-w-4xl">
+  <div class="p-6 max-w-4xl" data-testid="settings-form">
     <header class="mb-6">
       <p class="text-sm text-zinc-500">Conexiones e integraciones del CRM</p>
     </header>
@@ -28,7 +28,7 @@
         <Icon name="admin" class="h-5 w-5 text-zinc-500" />
         <span class="flex-1">
           <span class="block font-semibold">Administración</span>
-          <span class="block text-xs text-zinc-400 dark:text-zinc-300"
+          <span class="block text-xs text-zinc-500 dark:text-zinc-300"
             >Usuarios, equipos y permisos</span
           >
         </span>
@@ -481,7 +481,7 @@
             </div>
           </div>
           <div class="flex items-center gap-2">
-            <Btn type="submit" :disabled="saving" :loading="saving">
+            <Btn type="submit" :disabled="saving || !marcaCargada" :loading="saving">
               {{ saving ? "Guardando..." : "Guardar" }}
             </Btn>
             <Btn type="button" variant="outline" @click="showPreview = true">
@@ -538,7 +538,7 @@
                 Iniciar Sesión
               </div>
             </div>
-            <p class="mt-3 text-center text-[11px] text-zinc-400">
+            <p class="mt-3 text-center text-[11px] text-zinc-500">
               Vista previa sin guardar
             </p>
           </div>
@@ -581,7 +581,7 @@
       </button>
       <div v-show="acordeon === 'conexiones'" class="px-5 pb-5 space-y-4">
         <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 p-4">
-          <h3 class="font-semibold mb-3">Outlook / Microsoft 365</h3>
+          <h2 class="font-semibold mb-3 text-base">Outlook / Microsoft 365</h2>
 
           <div v-if="status?.connected" class="space-y-3">
             <div class="flex items-center gap-2 text-sm">
@@ -619,7 +619,7 @@
         </div>
 
         <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 p-4">
-          <h3 class="font-semibold mb-3">Gmail / Google Workspace</h3>
+          <h2 class="font-semibold mb-3 text-base">Gmail / Google Workspace</h2>
 
           <div v-if="gStatus?.connected" class="space-y-3">
             <div class="flex items-center gap-2 text-sm">
@@ -686,7 +686,7 @@
       </button>
       <div v-show="acordeon === 'credenciales'" class="px-5 pb-5 space-y-4">
         <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 p-4">
-          <h3 class="font-semibold mb-3">Credencial Google global</h3>
+          <h2 class="font-semibold mb-3 text-base">Credencial Google global</h2>
           <div class="text-sm text-zinc-500 mb-4 space-y-1">
             <p class="font-medium text-zinc-600 dark:text-zinc-400">
               Cómo obtener el Client ID y el Secret:
@@ -759,7 +759,7 @@
         </div>
 
         <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 p-4">
-          <h3 class="font-semibold mb-3">Credencial Microsoft global</h3>
+          <h2 class="font-semibold mb-3 text-base">Credencial Microsoft global</h2>
           <div class="text-sm text-zinc-500 mb-4 space-y-1">
             <p class="font-medium text-zinc-600 dark:text-zinc-400">
               Cómo obtener el Client ID y el Secret:
@@ -1249,14 +1249,21 @@ const marcaForm = ref({
   color: "",
   logo: "",
   fondo: "",
-  temaFondo: "#faf9f7",
-  temaPanel: "#f1eee7",
+  temaFondo: "#f3f6fb",
+  temaPanel: "#e9eef6",
 });
+const marcaCargada = ref(false);
 const marcaLogoPreview = ref("");
 const marcaFondoPreview = ref("");
 const marcaMsg = ref("");
 const showPreview = ref(false);
 const temasPreset = [
+  {
+    nombre: "Varko",
+    fondo: "#f3f6fb",
+    panel: "#e9eef6",
+    primario: "#1d4ed8",
+  },
   {
     nombre: "Alabastro",
     fondo: "#faf9f7",
@@ -1805,12 +1812,14 @@ onMounted(async () => {
       color: data.color || "",
       logo: "",
       fondo: data.fondo || "",
-      temaFondo: (data.tema || {}).fondo || "#faf9f7",
-      temaPanel: (data.tema || {}).panel || "#f1eee7",
+      temaFondo: (data.tema || {}).fondo || "#f3f6fb",
+      temaPanel: (data.tema || {}).panel || "#e9eef6",
     };
     marcaLogoPreview.value = data.logo || "";
     marcaFondoPreview.value = "";
+    marcaCargada.value = true;
   } catch {
+    marcaCargada.value = true;
     /* */
   }
   if (authStore.user?.role === "admin") {

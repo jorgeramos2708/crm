@@ -12,7 +12,9 @@
     "typecheck": "turbo run typecheck",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
     "format:write": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
-    "prepare": "husky"
+    "prepare": "husky",
+    "sandbox:export": "pnpm --filter @crm/sandbox-cli dev export",
+    "sandbox:import": "pnpm --filter @crm/sandbox-cli dev import"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,json,md,css}": [

@@ -45,6 +45,7 @@
         ref="calendarioRef"
         class="fixed z-[60] w-72 rounded-xl border border-zinc-200 bg-white p-3 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
         :style="posStyle"
+        @click="onCalendarClick"
       >
         <div class="mb-2 flex items-center justify-between">
           <button
@@ -337,6 +338,10 @@ const seleccionar = (celda) => {
   emit("update:modelValue", celda.iso);
   texto.value = isoAtexto(celda.iso);
   cerrar();
+};
+
+const onCalendarClick = (e) => {
+  e.stopPropagation();
 };
 
 const hoy = () => {

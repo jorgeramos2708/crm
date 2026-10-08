@@ -13,11 +13,18 @@ export interface SendEmailOptions {
   replyTo?: string;
   campaignId?: string | null;
   contactoId?: string | null;
+  threadId?: string;
+  attachments?: Array<{
+    filename: string;
+    content: Buffer | string;
+    contentType?: string;
+  }>;
 }
 
 export interface SendEmailResult {
   ok: boolean;
   dryRun: boolean;
+  messageId?: string;
 }
 
 let transporter: Transporter | null = null;
@@ -141,6 +148,7 @@ export async function sendEmail(
     html,
     text: opts.text,
     replyTo: opts.replyTo,
+    attachments: opts.attachments,
   });
 
   if (opts.campaignId) {

@@ -1,7 +1,25 @@
 <template>
   <div class="p-6">
-    <header class="mb-6 flex justify-end flex-wrap">
-      <div class="flex gap-2">
+    <header class="mb-6 flex items-end justify-between flex-wrap gap-3">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">Contactos</h1>
+        <p class="text-sm text-zinc-500 dark:text-zinc-400">Personas y sus datos</p>
+      </div>
+      <div class="flex items-center gap-2 flex-wrap">
+        <div class="relative">
+          <input
+            v-model="q"
+            type="search"
+            placeholder="Buscar contactos..."
+            aria-label="Buscar contactos"
+            class="w-56 rounded-xl border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-2 pl-9 text-sm outline-none placeholder:text-zinc-400 focus:border-zinc-900"
+            @input="onBuscar"
+          />
+          <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+          </svg>
+        </div>
+        <div class="flex gap-2">
         <Btn href="/api/contactos/export" variant="icon" title="Exportar CSV">
           <Icon name="download" class="h-4 w-4" />
         </Btn>
@@ -21,6 +39,7 @@
         <Btn @click="openModal(null)" variant="icon" title="Nuevo Contacto">
           +
         </Btn>
+        </div>
       </div>
     </header>
     <p
@@ -35,7 +54,7 @@
       {{ importMsg }}
     </p>
 
-    <Card class="overflow-hidden">
+    <Card class="overflow-hidden" data-testid="contactos-table">
       <Table :cols="['18%', '18%', '13%', '18%', '15%', '18%']">
         <template #head>
           <tr>
@@ -44,7 +63,7 @@
             <Th>Teléfono</Th>
             <Th>Empresa</Th>
             <Th>Cargo</Th>
-            <Th></Th>
+            <Th><span class="sr-only">Acciones</span></Th>
           </tr>
         </template>
         <tr
@@ -110,7 +129,7 @@
         @next="nextPage"
       >
         <template #controls>
-          <Select v-model="sortBy" @change="fetchContactos">
+          <Select v-model="sortBy" aria-label="Ordenar contactos" @change="fetchContactos">
             <option value="createdAt">Recientes</option>
             <option value="nombre">Nombre</option>
             <option value="email">Email</option>
@@ -130,22 +149,23 @@
         <Field label="Nombre" required>
           <Input
             v-model="formData.nombre"
+            name="nombre"
             type="text"
             required
             class="w-full"
           />
         </Field>
         <Field label="Email">
-          <Input v-model="formData.email" type="email" class="w-full" />
+          <Input v-model="formData.email" name="email" type="email" class="w-full" />
         </Field>
         <Field label="Teléfono">
-          <Input v-model="formData.telefono" type="text" class="w-full" />
+          <Input v-model="formData.telefono" name="telefono" type="text" class="w-full" />
         </Field>
         <Field label="Empresa">
-          <Input v-model="formData.empresa" type="text" class="w-full" />
+          <Input v-model="formData.empresa" name="empresa" type="text" class="w-full" />
         </Field>
         <Field label="Cargo">
-          <Input v-model="formData.cargo" type="text" class="w-full" />
+          <Input v-model="formData.cargo" name="cargo" type="text" class="w-full" />
         </Field>
         <CustomFields entidad="contacto" v-model="formData.custom" />
         <div class="flex gap-2 pt-4">
@@ -213,12 +233,22 @@ const formData = ref({
   custom: {},
 });
 
-// Pagination
+// Pagination + búsqueda (q lo filtra el backend)
 const currentPage = ref(1);
 const pageSize = 20;
 const total = ref(0);
 const totalPages = ref(1);
 const sortBy = ref("createdAt");
+const q = ref("");
+let buscarTimer = null;
+
+const onBuscar = () => {
+  if (buscarTimer) clearTimeout(buscarTimer);
+  buscarTimer = setTimeout(() => {
+    currentPage.value = 1;
+    fetchContactos();
+  }, 300);
+};
 
 const fetchContactos = async () => {
   cargando.value = true;
@@ -228,6 +258,7 @@ const fetchContactos = async () => {
         limit: pageSize,
         offset: (currentPage.value - 1) * pageSize,
         sortBy: sortBy.value,
+        q: q.value || undefined,
       },
     });
     const data = response.data.data || response.data;

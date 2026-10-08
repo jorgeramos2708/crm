@@ -9,6 +9,7 @@ declare module "fastify" {
       role: string;
       name: string;
     };
+    tenantId?: string;
   }
 }
 
@@ -21,6 +22,17 @@ function getToken(
   return token;
 }
 
+async function getDefaultTenantId(db: any): Promise<string> {
+  const { tenants } = await import("../db/schema.js");
+  const { eq } = await import("drizzle-orm");
+  const [t] = await db
+    .select({ id: tenants.id })
+    .from(tenants)
+    .where(eq(tenants.estado, "activo"))
+    .limit(1);
+  return t?.id || "";
+}
+
 export async function authMiddleware(
   request: FastifyRequest,
   reply: FastifyReply,
@@ -31,7 +43,7 @@ export async function authMiddleware(
     try {
       const { verifyApiToken } = await import("../services/webhooks.js");
       const { db } = await import("../db/index.js");
-      const { users } = await import("../db/schema.js");
+      const { users, tenants } = await import("../db/schema.js");
       const { eq } = await import("drizzle-orm");
       const t = await verifyApiToken(authHeader.slice(7));
       if (!t)
@@ -39,7 +51,14 @@ export async function authMiddleware(
           .code(401)
           .send({ error: "API token inválido", code: "INVALID_TOKEN" });
       const [u] = await db
-        .select()
+        .select({
+          id: users.id,
+          email: users.email,
+          role: users.role,
+          name: users.name,
+          tenantId: users.tenantId,
+          activo: users.activo,
+        })
         .from(users)
         .where(eq(users.id, t.userId))
         .limit(1);
@@ -48,6 +67,7 @@ export async function authMiddleware(
           .code(401)
           .send({ error: "Usuario inválido", code: "INVALID_TOKEN" });
       request.user = { id: u.id, email: u.email, role: u.role, name: u.name };
+      request.tenantId = u.tenantId || (await getDefaultTenantId(db));
       return;
     } catch {
       return reply
@@ -68,7 +88,7 @@ export async function authMiddleware(
     const decoded = verifyToken(token!);
     // Lookup en BD para validar activo y rol/permisos actuales
     const { db } = await import("../db/index.js");
-    const { users } = await import("../db/schema.js");
+    const { users, tenants } = await import("../db/schema.js");
     const { eq } = await import("drizzle-orm");
     const [u] = await db
       .select({
@@ -77,19 +97,19 @@ export async function authMiddleware(
         role: users.role,
         name: users.name,
         activo: users.activo,
+        tenantId: users.tenantId,
       })
       .from(users)
       .where(eq(users.id, decoded.id))
       .limit(1);
     if (!u || !u.activo) {
-      return reply
-        .code(401)
-        .send({
-          error: "Usuario inactivo o no encontrado",
-          code: "UNAUTHORIZED",
-        });
+      return reply.code(401).send({
+        error: "Usuario inactivo o no encontrado",
+        code: "UNAUTHORIZED",
+      });
     }
     request.user = { id: u.id, email: u.email, role: u.role, name: u.name };
+    request.tenantId = u.tenantId || (await getDefaultTenantId(db));
   } catch {
     return reply
       .code(401)

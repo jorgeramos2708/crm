@@ -113,7 +113,7 @@
           </div>
           <div
             v-if="!(tareasPorEstado[col.estado] || []).length"
-            class="p-3 text-center text-xs text-zinc-400"
+            class="p-3 text-center text-xs text-zinc-600 dark:text-zinc-400"
           >
             Arrastra tareas aquí
           </div>

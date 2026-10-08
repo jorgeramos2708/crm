@@ -333,6 +333,223 @@
       </Card>
     </template>
 
+    <!-- ── Programados ── -->
+    <template v-else-if="tab === 'programados'">
+      <div class="mb-6 flex items-center justify-between flex-wrap gap-3">
+        <h2 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Reportes Programados</h2>
+        <Btn @click="openScheduleModal(null)" variant="primary" icon="plus">
+          Nuevo Programado
+        </Btn>
+      </div>
+
+      <Card class="p-6">
+        <div v-if="loadingSchedules" class="text-sm text-zinc-500">Cargando...</div>
+        <table v-else class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-zinc-500 border-b border-zinc-200 dark:border-zinc-700">
+              <th class="py-2 pr-3">Nombre</th>
+              <th class="py-2 pr-3">Tipo</th>
+              <th class="py-2 pr-3">Formato</th>
+              <th class="py-2 pr-3">Frecuencia (Cron)</th>
+              <th class="py-2 pr-3">Zona Horaria</th>
+              <th class="py-2 pr-3">Próxima ejecución</th>
+              <th class="py-2 pr-3">Destinatarios</th>
+              <th class="py-2 pr-3">Estado</th>
+              <th class="py-2 text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="s in schedules"
+              :key="s.id"
+              class="border-b border-zinc-100 dark:border-zinc-800"
+            >
+              <td class="py-2 pr-3 font-medium">{{ s.name }}</td>
+              <td class="py-2 pr-3">
+                <Badge color="blue" variant="pill">{{ s.reportType }}</Badge>
+              </td>
+              <td class="py-2 pr-3">
+                <Badge color="purple" variant="pill">{{ s.format.toUpperCase() }}</Badge>
+              </td>
+              <td class="py-2 pr-3 font-mono text-xs">{{ s.cron }}</td>
+              <td class="py-2 pr-3">{{ s.timezone }}</td>
+              <td class="py-2 pr-3">
+                <span v-if="s.nextRunAt">{{ formatDateTime(s.nextRunAt) }}</span>
+                <span v-else class="text-zinc-400">—</span>
+              </td>
+              <td class="py-2 pr-3 text-sm">
+                <span v-if="s.recipients.length">{{ s.recipients.join(", ") }}</span>
+                <span v-else class="text-zinc-400">—</span>
+              </td>
+              <td class="py-2 pr-3">
+                <Badge
+                  :color="s.enabled ? 'green' : 'zinc'"
+                  variant="pill"
+                >{{ s.enabled ? 'Activo' : 'Inactivo' }}</Badge>
+              </td>
+              <td class="py-2 text-right">
+                <div class="flex items-center justify-end gap-1">
+                  <Btn
+                    variant="ghost"
+                    size="sm"
+                    icon="play"
+                    @click="runNow(s)"
+                    :disabled="runningSchedule === s.id"
+                    title="Ejecutar ahora"
+                  />
+                  <Btn
+                    variant="ghost"
+                    size="sm"
+                    icon="edit"
+                    @click="openScheduleModal(s)"
+                    title="Editar"
+                  />
+                  <Btn
+                    variant="ghost"
+                    size="sm"
+                    icon="trash"
+                    class="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    @click="deleteSchedule(s)"
+                    title="Eliminar"
+                  />
+                </div>
+              </td>
+            </tr>
+            <tr v-if="!loadingSchedules && !schedules.length">
+              <td colspan="9" class="py-8 text-center text-zinc-500">
+                <p class="mb-2">No hay reportes programados</p>
+                <Btn @click="openScheduleModal(null)" variant="primary" icon="plus">
+                  Crear el primero
+                </Btn>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </Card>
+
+      <!-- Modal Programar Reporte -->
+      <Modal
+        :open="showScheduleModal"
+        max-width="lg"
+        content-class="max-h-[90vh] overflow-y-auto"
+        @close="closeScheduleModal"
+      >
+        <template #title>
+          <h2 class="text-xl font-bold mb-4">
+            {{ editingSchedule ? "Editar Programado" : "Nuevo Reporte Programado" }}
+          </h2>
+        </template>
+        <form @submit.prevent="saveSchedule" class="space-y-4">
+          <Field label="Nombre" required>
+            <Input
+              v-model="scheduleForm.name"
+              type="text"
+              required
+              class="w-full"
+              placeholder="Reporte semanal de embudo"
+            />
+          </Field>
+
+          <Field label="Tipo de reporte" required>
+            <Select
+              v-model="scheduleForm.reportType"
+              :options="reportTypes"
+              @update:modelValue="v => scheduleForm.reportType = v"
+              class="w-full"
+            />
+          </Field>
+
+          <Field label="Configuración (JSON)" required>
+            <Input
+              v-model="scheduleForm.configJson"
+              multiline
+              :rows="6"
+              class="w-full font-mono text-sm"
+              placeholder='{"pipelineId": "uuid", "dateRange": "last_30_days"}'
+              @input="validateConfig"
+            />
+            <p v-if="configError" class="text-xs text-red-600 mt-1">{{ configError }}</p>
+            <p class="text-xs text-zinc-500 mt-1">
+              Configuración específica por tipo. Ej: funnel → pipelineId, dateRange; velocity → dateRange; forecast → monthsAhead
+            </p>
+          </Field>
+
+          <Field label="Formato">
+            <Select
+              v-model="scheduleForm.format"
+              :options="[
+                { value: 'pdf', label: 'PDF' },
+                { value: 'excel', label: 'Excel (CSV)' },
+                { value: 'json', label: 'JSON' },
+              ]"
+              @update:modelValue="v => scheduleForm.format = v"
+              class="w-full"
+            />
+          </Field>
+
+          <Field label="Expresión Cron" required>
+            <Input
+              v-model="scheduleForm.cron"
+              type="text"
+              required
+              class="w-full font-mono text-sm"
+              placeholder="0 9 * * 1"
+            />
+            <p class="text-xs text-zinc-500 mt-1">
+              Formato: minuto hora día-mes mes día-semana. Ej: "0 9 * * 1" = cada lunes a las 9:00
+            </p>
+          </Field>
+
+          <Field label="Zona horaria">
+            <Select
+              v-model="scheduleForm.timezone"
+              :options="timezones"
+              @update:modelValue="v => scheduleForm.timezone = v"
+              class="w-full"
+            />
+          </Field>
+
+          <Field label="Destinatarios (emails separados por coma)">
+            <Input
+              v-model="scheduleForm.recipientsInput"
+              type="text"
+              class="w-full"
+              placeholder="usuario@ejemplo.com, otro@ejemplo.com"
+            />
+            <p class="text-xs text-zinc-500 mt-1">Deja vacío para no enviar por email</p>
+          </Field>
+
+          <Field label="Activo">
+            <div class="flex items-center gap-2">
+              <input
+                type="checkbox"
+                v-model="scheduleForm.enabled"
+                class="w-4 h-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
+              />
+              <label class="text-sm">Habilitar este reporte programado</label>
+            </div>
+          </Field>
+
+          <div class="flex gap-2 pt-4 border-t border-zinc-200 dark:border-zinc-700">
+            <Btn
+              type="button"
+              variant="outline"
+              class="flex-1"
+              @click="closeScheduleModal"
+              >Cancelar</Btn
+            >
+            <Btn
+              type="submit"
+              class="flex-1"
+              :disabled="savingSchedule || configError"
+              :loading="savingSchedule"
+              >{{ savingSchedule ? "Guardando..." : (editingSchedule ? "Guardar" : "Crear") }}</Btn
+            >
+          </div>
+        </form>
+      </Modal>
+    </template>
+
     <!-- ── Campañas ── -->
     <template v-else>
       <Card class="p-6">
@@ -400,12 +617,17 @@ import StatCard from "../components/StatCard.vue";
 import GraficaBarras from "../components/GraficaBarras.vue";
 import GraficaDona from "../components/GraficaDona.vue";
 import GraficaLinea from "../components/GraficaLinea.vue";
+import Modal from "../components/Modal.vue";
+import Field from "../components/Field.vue";
+import Input from "../components/Input.vue";
+import { confirmar } from "../utils/confirm";
 
 const tabs = [
   { id: "embudo", label: "Embudo" },
   { id: "vendedores", label: "Vendedores" },
   { id: "actividad", label: "Actividad" },
   { id: "campanas", label: "Campañas" },
+  { id: "programados", label: "Programados" },
 ];
 
 const tab = ref("embudo");
@@ -430,6 +652,174 @@ const colorPrioridad = {
   baja: "green",
 };
 const campanas = ref([]);
+
+// ── Reportes Programados ──
+const schedules = ref([]);
+const loadingSchedules = ref(false);
+const showScheduleModal = ref(false);
+const editingSchedule = ref(null);
+const savingSchedule = ref(false);
+const runningSchedule = ref(null);
+const configError = ref(null);
+
+const scheduleForm = ref({
+  name: "",
+  reportType: "funnel",
+  configJson: '{"dateRange": "last_30_days"}',
+  format: "pdf",
+  cron: "0 9 * * 1",
+  timezone: "America/Mexico_City",
+  recipientsInput: "",
+  enabled: true,
+});
+
+const reportTypes = [
+  { value: "funnel", label: "Embudo (Funnel)" },
+  { value: "velocity", label: "Velocidad de ventas" },
+  { value: "forecast", label: "Forecast / Previsión" },
+  { value: "rep-performance", label: "Rendimiento de vendedores" },
+  { value: "cohort-retention", label: "Retención de cohortes" },
+];
+
+const timezones = [
+  "America/Mexico_City",
+  "America/Bogota",
+  "America/Lima",
+  "America/Argentina/Buenos_Aires",
+  "America/Santiago",
+  "America/Caracas",
+  "Europe/Madrid",
+  "UTC",
+];
+
+function validateConfig() {
+  try {
+    JSON.parse(scheduleForm.value.configJson);
+    configError.value = null;
+  } catch (e) {
+    configError.value = "JSON inválido: " + e.message;
+  }
+}
+
+const formatDateTime = (dateString) => {
+  return new Date(dateString).toLocaleString("es-MX", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const loadSchedules = async () => {
+  loadingSchedules.value = true;
+  try {
+    const { data } = await axios.get("/api/reportes/schedule");
+    schedules.value = data.data || data;
+  } catch (e) {
+    console.error(e);
+    toast.error("Error al cargar reportes programados");
+  } finally {
+    loadingSchedules.value = false;
+  }
+};
+
+const openScheduleModal = (schedule) => {
+  if (schedule) {
+    editingSchedule.value = schedule;
+    scheduleForm.value = {
+      name: schedule.name,
+      reportType: schedule.reportType,
+      configJson: JSON.stringify(schedule.config, null, 2),
+      format: schedule.format,
+      cron: schedule.cron,
+      timezone: schedule.timezone,
+      recipientsInput: schedule.recipients.join(", "),
+      enabled: schedule.enabled,
+    };
+  } else {
+    editingSchedule.value = null;
+    scheduleForm.value = {
+      name: "",
+      reportType: "funnel",
+      configJson: '{"dateRange": "last_30_days"}',
+      format: "pdf",
+      cron: "0 9 * * 1",
+      timezone: "America/Mexico_City",
+      recipientsInput: "",
+      enabled: true,
+    };
+  }
+  configError.value = null;
+  validateConfig();
+  showScheduleModal.value = true;
+};
+
+const closeScheduleModal = () => {
+  showScheduleModal.value = false;
+  editingSchedule.value = null;
+};
+
+const saveSchedule = async () => {
+  if (configError.value) return;
+  savingSchedule.value = true;
+  try {
+    const payload = {
+      name: scheduleForm.value.name,
+      reportType: scheduleForm.value.reportType,
+      config: JSON.parse(scheduleForm.value.configJson),
+      format: scheduleForm.value.format,
+      cron: scheduleForm.value.cron,
+      timezone: scheduleForm.value.timezone,
+      recipients: scheduleForm.value.recipientsInput
+        .split(",")
+        .map((e) => e.trim())
+        .filter(Boolean),
+      enabled: scheduleForm.value.enabled,
+    };
+    if (editingSchedule.value) {
+      await axios.put(`/api/reportes/schedule/${editingSchedule.value.id}`, payload);
+      toast.success("Reporte programado actualizado");
+    } else {
+      await axios.post("/api/reportes/schedule", payload);
+      toast.success("Reporte programado creado");
+    }
+    closeScheduleModal();
+    await loadSchedules();
+  } catch (e) {
+    console.error(e);
+    toast.error("Error al guardar reporte programado");
+  } finally {
+    savingSchedule.value = false;
+  }
+};
+
+const deleteSchedule = async (schedule) => {
+  if (!(await confirmar(`¿Eliminar el reporte programado "${schedule.name}"?`))) return;
+  try {
+    await axios.delete(`/api/reportes/schedule/${schedule.id}`);
+    toast.success("Reporte programado eliminado");
+    await loadSchedules();
+  } catch (e) {
+    console.error(e);
+    toast.error("Error al eliminar reporte programado");
+  }
+};
+
+const runNow = async (schedule) => {
+  runningSchedule.value = schedule.id;
+  try {
+    // The backend doesn't have a "run now" endpoint yet, but we can trigger it
+    // by temporarily updating the nextRunAt to now
+    await axios.post(`/api/reportes/schedule/${schedule.id}/run`);
+    toast.success("Reporte ejecutado, se enviará en breve");
+  } catch (e) {
+    console.error(e);
+    toast.error("Error al ejecutar reporte");
+  } finally {
+    runningSchedule.value = null;
+  }
+};
 
 const topSellerValor = computed(() =>
   vendedores.value.length ? vendedores.value[0].valorTotal : 0,
@@ -478,6 +868,8 @@ const loadTab = async () => {
       ]);
       actividad.value = ar.data;
       tareas.value = tr.data;
+    } else if (tab.value === "programados") {
+      await loadSchedules();
     } else {
       const { data } = await axios.get("/api/reportes/campanas");
       campanas.value = data.campanas || [];

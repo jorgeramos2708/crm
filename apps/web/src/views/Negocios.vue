@@ -151,6 +151,8 @@
           <input
             v-model.number="form.importe"
             type="number"
+            min="0"
+            step="any"
             class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700"
           />
         </Field>
@@ -192,14 +194,14 @@
         </h2>
       </template>
       <form @submit.prevent="cerrarNegocio" class="space-y-4">
-        <Field label="Motivo (obligatorio)">
-          <Input
-            v-model="closeForm.motivo"
-            type="text"
-            required
-            class="w-full"
-            placeholder="Ej: Cliente firmó contrato / Cliente eligió competencia"
-          />
+<Field :label="closeTipo === 'ganado' ? 'Motivo de ganancia (obligatorio)' : 'Motivo de p�rdida (obligatorio)'">
+            <Input
+              v-model="closeForm.motivo"
+              type="text"
+              required
+              class="w-full"
+              :placeholder="closeTipo === 'ganado' ? 'Ej: Cliente firm� contrato, mejor oferta, etc.' : 'Ej: Cliente eligi� competencia, presupuesto, etc.'"
+            />
         </Field>
         <Field label="Probabilidad final">
           <input
@@ -211,12 +213,12 @@
             class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800"
           />
         </Field>
-        <Field label="Importe final (opcional)">
-          <input
-            v-model.number="closeForm.importe"
-            type="number"
-            min="0"
-            step="1000"
+<Field label="Importe final (opcional)">
+            <input
+              v-model.number="closeForm.importe"
+              type="number"
+              min="0"
+              step="any"
             class="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700"
           />
         </Field>

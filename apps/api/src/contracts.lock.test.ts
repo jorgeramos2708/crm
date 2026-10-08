@@ -32,7 +32,7 @@ function extractSchema(
     const next = src.indexOf("export const", start + 1);
     const block = src.slice(start, next === -1 ? undefined : next);
     const colRe =
-      /(\w+):\s*(?:uuid|varchar|text|timestamp|boolean|integer|jsonb)/g;
+      /(\w+):\s*(?:uuid|varchar|text|timestamp|boolean|integer|jsonb|numeric)/g;
     const columns: string[] = [];
     let c: RegExpExecArray | null;
     while ((c = colRe.exec(block))) columns.push(c[1]);

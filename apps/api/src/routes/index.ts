@@ -36,7 +36,10 @@ import {
   presupuestos,
   permisos,
   ajustes,
+  meetingTypes,
+  meetingSlots,
 } from "../db/schema.js";
+import { leadScoringRules } from "../db/schema.js";
 import {
   eq,
   desc,
@@ -97,6 +100,17 @@ import {
   exchangeGoogleCode,
   storeGoogleTokens,
   getGmailMessages,
+} from "../services/google.js";
+import {
+  registerSamlRoutes,
+  registerOidcRoutes,
+  loadTenantSSOConfigs,
+} from "../services/sso.js";
+import { registerSCIMRoutes } from "../services/scim.js";
+import { registerFieldPermissionRoutes } from "../middleware/fieldPermissions.js";
+import { ReportsService } from "../services/reports.js";
+import { MeetingSchedulerService } from "../services/meetingScheduler.js";
+import {
   sendGmail,
   getGoogleProfile,
   getGoogleCalendar,
@@ -240,6 +254,9 @@ interface UpdateOportunidadBody {
   fechaCierreEstimada?: string;
   completadoEn?: string | null;
   propietarioId?: string;
+  estadoCierre?: "abierto" | "ganado" | "perdido";
+  motivoGanado?: string | null;
+  motivoPerdido?: string | null;
 }
 
 interface CreateContactoBody {
@@ -291,7 +308,7 @@ interface CreateEmailCampaignBody {
   programadaPara?: string;
 }
 
-const TEMA_DEFAULT = { fondo: "#faf9f7", panel: "#f1eee7" };
+const TEMA_DEFAULT = { fondo: "#f3f6fb", panel: "#e9eef6" };
 
 export async function registerAuthRoutes(app: FastifyInstance) {
   app.get("/health", async () => ({
@@ -411,13 +428,26 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       }
       if (body.tema !== undefined && typeof body.tema === "object") {
         const esHex = (v: unknown) => /^#[0-9a-fA-F]{6}$/.test(String(v || ""));
+        // Merge con el valor actual en BD: un campo ausente/inválido conserva
+        // el existente en vez de revertir al default (evita clobber en guardados
+        // parciales o con el formulario aún sin cargar).
+        const actuales = await db
+          .select()
+          .from(ajustes)
+          .where(eq(ajustes.clave, "marca_tema"))
+          .limit(1);
+        const actual = (actuales[0]?.valor || {}) as Record<string, string>;
         const tema = {
           fondo: esHex(body.tema?.fondo)
             ? String(body.tema.fondo)
-            : TEMA_DEFAULT.fondo,
+            : esHex(actual.fondo)
+              ? String(actual.fondo)
+              : TEMA_DEFAULT.fondo,
           panel: esHex(body.tema?.panel)
             ? String(body.tema.panel)
-            : TEMA_DEFAULT.panel,
+            : esHex(actual.panel)
+              ? String(actual.panel)
+              : TEMA_DEFAULT.panel,
         };
         await db
           .insert(ajustes)
@@ -435,6 +465,70 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       return out;
     },
   );
+
+  // ── Push: clave pública VAPID (pública, sin sesión) ──
+  // Se declara aquí, fuera de los bloques con authMiddleware global.
+  let vapidKeys: { publicKey: string; privateKey: string } | null = null;
+
+  async function getWebPush(): Promise<any> {
+    // Compat ESM/CJS: web-push expone la API en `default` al importarse dinámicamente
+    const m: any = await import("web-push");
+    return m && m.default && m.default.setVapidDetails ? m.default : m;
+  }
+
+  async function getVapidKeys() {
+    if (!vapidKeys) {
+      // Persistir en ajustes: las claves en memoria rotarían en cada restart
+      // e invalidarían todas las suscripciones push existentes.
+      const { ajustes } = await import("../db/schema.js");
+      const { db } = await import("../db/index.js");
+      const { eq, inArray } = await import("drizzle-orm");
+      try {
+        const rows = await db
+          .select()
+          .from(ajustes)
+          .where(inArray(ajustes.clave, ["vapid_public", "vapid_private"]));
+        const map: Record<string, string> = {};
+        for (const r of rows) {
+          if (typeof r.valor === "string") map[r.clave] = r.valor;
+        }
+        if (map.vapid_public && map.vapid_private) {
+          vapidKeys = {
+            publicKey: map.vapid_public,
+            privateKey: map.vapid_private,
+          };
+        }
+      } catch {
+        /* si falla la lectura, se generan y se intentan guardar */
+      }
+      if (!vapidKeys) {
+        const webPush = await getWebPush();
+        vapidKeys = webPush.generateVAPIDKeys();
+        try {
+          for (const [clave, valor] of [
+            ["vapid_public", vapidKeys.publicKey],
+            ["vapid_private", vapidKeys.privateKey],
+          ] as const) {
+            await db
+              .insert(ajustes)
+              .values({ clave, valor: valor as any, updatedAt: new Date() })
+              .onConflictDoUpdate({
+                target: [ajustes.clave],
+                set: { valor: valor as any, updatedAt: new Date() },
+              });
+          }
+        } catch {
+          /* sin persistencia sigue funcionando en memoria */
+        }
+      }
+    }
+    return vapidKeys;
+  }
+
+  app.get("/api/push/vapid-key", async () => {
+    const keys = await getVapidKeys();
+    return { publicKey: keys.publicKey };
+  });
 
   // RBAC por módulo (rwx): una sola tabla de reglas. Admin pasa siempre.
   // Mapea método+ruta -> (modulo, accion). Las rutas no listadas conservan su auth previa.
@@ -726,6 +820,15 @@ export async function registerAuthRoutes(app: FastifyInstance) {
 
   app.addHook("preHandler", async (req, reply) => {
     const path = req.url.split("?")[0];
+    // Push público: la clave VAPID no requiere sesión
+    if (path.startsWith("/api/push/")) return;
+    // Double opt-in por token: lo usa el destinatario sin sesión
+    if (
+      path.startsWith("/api/email-subscriptions/confirm/") ||
+      path.startsWith("/api/email-subscriptions/unsubscribe/")
+    ) {
+      return;
+    }
     const rule = PERM_RULES.find(
       (r) => r.method === req.method && r.re.test(path),
     );
@@ -807,13 +910,38 @@ export async function registerAuthRoutes(app: FastifyInstance) {
 
   // Public tracking endpoints (no auth required)
   // trackingId: "campaignId" | "campaignId.contactoId"
+  // Deben responder SIEMPRE 200/302 aunque el trackingId sea basura:
+  // bots y reenvíos golpean estas URLs constantemente.
+  const UUID_RE =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const esUUID = (v: string | null): v is string => !!v && UUID_RE.test(v);
+  async function registrarTracking(
+    campaignId: string | null,
+    contactoId: string | null,
+    tipo: string,
+    metadata: Record<string, any>,
+  ) {
+    if (!esUUID(campaignId)) return;
+    try {
+      await db.insert(emailTracking).values({
+        campaignId,
+        contactoId: esUUID(contactoId) ? contactoId : null,
+        tipo,
+        metadata,
+      });
+    } catch (err) {
+      // FK a campaña inexistente u otro fallo: no romper el píxel/redirect
+      console.warn(
+        `Tracking ${tipo} descartado (${campaignId}):`,
+        (err as Error)?.message || err,
+      );
+    }
+  }
   app.get("/api/track/open/:trackingId", async (req, res) => {
     const parsed = parseTrackingId((req as any).params.trackingId);
-    await db.insert(emailTracking).values({
-      campaignId: parsed.campaignId,
-      contactoId: parsed.contactoId,
-      tipo: "open",
-      metadata: { userAgent: req.headers["user-agent"], ip: req.ip },
+    await registrarTracking(parsed.campaignId, parsed.contactoId, "open", {
+      userAgent: req.headers["user-agent"],
+      ip: req.ip,
     });
     res.header("Content-Type", "image/gif");
     return Buffer.from(
@@ -827,11 +955,10 @@ export async function registerAuthRoutes(app: FastifyInstance) {
     async (req: FastifyRequest<{ Querystring: { url?: string } }>, res) => {
       const { url } = req.query;
       const parsed = parseTrackingId((req as any).params.trackingId);
-      await db.insert(emailTracking).values({
-        campaignId: parsed.campaignId,
-        contactoId: parsed.contactoId,
-        tipo: "click",
-        metadata: { url, userAgent: req.headers["user-agent"], ip: req.ip },
+      await registrarTracking(parsed.campaignId, parsed.contactoId, "click", {
+        url,
+        userAgent: req.headers["user-agent"],
+        ip: req.ip,
       });
       // Validar URL para prevenir open redirect: solo URLs del mismo dominio o https/http
       let safeUrl = "/";
@@ -861,18 +988,28 @@ export async function registerAuthRoutes(app: FastifyInstance) {
 
   app.get("/api/track/unsubscribe/:trackingId", async (req, res) => {
     const parsed = parseTrackingId((req as any).params.trackingId);
-    await db.insert(emailTracking).values({
-      campaignId: parsed.campaignId,
-      contactoId: parsed.contactoId,
-      tipo: "unsubscribe",
-      metadata: { userAgent: req.headers["user-agent"], ip: req.ip },
-    });
+    await registrarTracking(
+      parsed.campaignId,
+      parsed.contactoId,
+      "unsubscribe",
+      {
+        userAgent: req.headers["user-agent"],
+        ip: req.ip,
+      },
+    );
     // Actualizar suscripción real si existe (buscar por contactoId)
-    if (parsed.contactoId) {
-      await db
-        .update(emailSubscriptions)
-        .set({ estado: "cancelado", canceladoEn: new Date() })
-        .where(eq(emailSubscriptions.contactoId, parsed.contactoId));
+    if (esUUID(parsed.contactoId)) {
+      try {
+        await db
+          .update(emailSubscriptions)
+          .set({ estado: "cancelado", canceladoEn: new Date() })
+          .where(eq(emailSubscriptions.contactoId, parsed.contactoId));
+      } catch (err) {
+        console.warn(
+          "Unsubscribe cancel error:",
+          (err as Error)?.message || err,
+        );
+      }
     }
     return { ok: true, message: "Te has dado de baja correctamente" };
   });
@@ -1959,6 +2096,65 @@ export async function registerAuthRoutes(app: FastifyInstance) {
     );
   });
 
+  // ── Reserva pública de reuniones (sin sesión: la usa la página /agendar/:slug) ──
+  // Se declara aquí, fuera del bloque con authMiddleware global.
+  app.get(
+    "/api/reuniones/publico/:slug",
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const { slug } = request.params as { slug: string };
+      const data = await MeetingSchedulerService.getMeetingTypeBySlug(slug);
+      if (!data) return reply.status(404).send({ error: "No encontrado" });
+      return data;
+    },
+  );
+
+  app.get(
+    "/api/reuniones/publico/:slug/slots",
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const { slug } = request.params as { slug: string };
+      const { from, to } = request.query as { from?: string; to?: string };
+      const meetingType =
+        await MeetingSchedulerService.getMeetingTypeBySlug(slug);
+      if (!meetingType)
+        return reply.status(404).send({ error: "No encontrado" });
+      if (!from || !to)
+        return reply.status(400).send({ error: "from y to son requeridos" });
+      const data = await MeetingSchedulerService.getAvailableSlots(
+        meetingType.id,
+        new Date(from),
+        new Date(to),
+      );
+      return data;
+    },
+  );
+
+  app.post(
+    "/api/reuniones/publico/:slug/reservar",
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      try {
+        const { slug } = request.params as { slug: string };
+        const meetingType =
+          await MeetingSchedulerService.getMeetingTypeBySlug(slug);
+        if (!meetingType)
+          return reply.status(404).send({ error: "No encontrado" });
+        const { slotId, ...bookingData } = request.body as any;
+        const email = String(bookingData?.invitadoEmail || "").trim();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+          return reply.status(400).send({ error: "invitadoEmail inválido" });
+        }
+        const data = await MeetingSchedulerService.bookSlot(
+          slotId,
+          bookingData,
+        );
+        return data;
+      } catch (err: any) {
+        return reply
+          .status(400)
+          .send({ error: err?.message || "No se pudo reservar" });
+      }
+    },
+  );
+
   app.register(async (app) => {
     app.addHook("preHandler", authMiddleware);
 
@@ -1999,7 +2195,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         })
         .from(emailSubscriptions)
         .where(and(...conditions))
-        .orderBy(desc(emailSubscriptions.createdAt));
+        .orderBy(desc(emailSubscriptions.creadoEn));
     });
 
     app.post(
@@ -2546,6 +2742,62 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       );
     });
 
+    // Bulk Actions - Oportunidades
+    app.post(
+      "/api/oportunidades/bulk",
+      async (
+        req: FastifyRequest<{
+          Body: { ids: string[]; action: string; payload: any };
+        }>,
+      ) => {
+        const { ids, action, payload } = req.body;
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+          return {
+            succeeded: [],
+            failed: [{ id: "", error: "No IDs provided" }],
+          };
+        }
+
+        const succeeded: string[] = [];
+        const failed: { id: string; error: string }[] = [];
+
+        for (const id of ids) {
+          try {
+            switch (action) {
+              case "delete":
+                await db.delete(oportunidades).where(eq(oportunidades.id, id));
+                break;
+              case "assign":
+                await db
+                  .update(oportunidades)
+                  .set({ propietarioId: payload.propietarioId })
+                  .where(eq(oportunidades.id, id));
+                break;
+              case "change_stage":
+                await db
+                  .update(oportunidades)
+                  .set({ stageId: payload.stageId })
+                  .where(eq(oportunidades.id, id));
+                break;
+              case "add_to_sequence":
+                // TODO: Implement sequence enrollment
+                break;
+              default:
+                throw new Error(`Unknown action: ${action}`);
+            }
+            succeeded.push(id);
+          } catch (error) {
+            failed.push({
+              id,
+              error: error instanceof Error ? error.message : "Unknown error",
+            });
+          }
+        }
+
+        return { succeeded, failed };
+      },
+    );
+
     // Contactos
     const CONTACTO_SORT: Record<string, any> = {
       nombre: contactos.nombre,
@@ -2584,14 +2836,39 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       },
     );
 
+    // Validación de contacto compartida create/update: nombre obligatorio,
+    // email con formato válido si se provee. Nunca se acepta tenantId del cliente.
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    function validarContacto(body: any): string | null {
+      if (body.nombre !== undefined) {
+        const nombre = String(body.nombre ?? "").trim();
+        if (!nombre) return "El nombre es obligatorio";
+        if (nombre.length > 200) return "El nombre supera 200 caracteres";
+      } else if (body._requireNombre) {
+        return "El nombre es obligatorio";
+      }
+      if (
+        body.email !== undefined &&
+        body.email !== null &&
+        String(body.email).trim() !== ""
+      ) {
+        if (!EMAIL_RE.test(String(body.email).trim())) return "Email inválido";
+      }
+      return null;
+    }
     app.post("/api/contactos", async (req, res) => {
       const { custom: customInput, ...rest } = req.body as any;
+      delete (rest as any).tenantId;
+      const errNombre = validarContacto({ ...rest, _requireNombre: true });
+      if (errNombre) return res.code(400).send({ error: errNombre });
+      if (typeof rest.nombre === "string") rest.nombre = rest.nombre.trim();
+      if (typeof rest.email === "string") rest.email = rest.email.trim();
       const { custom, errors } = await sanitizeCustom("contacto", customInput);
       if (errors.length)
         return res.code(400).send({ error: errors.join("; ") });
       const [contacto] = await db
         .insert(contactos)
-        .values({ ...rest, custom })
+        .values({ ...rest, custom, tenantId: req.tenantId ?? "default" })
         .returning();
       emitEvent("contacto.creado", {
         id: contacto.id,
@@ -2621,6 +2898,13 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       ) => {
         const { custom: customInput, ...rawBody } = req.body;
         const body = stripReadonly(rawBody);
+        delete (body as any).tenantId;
+        const errUpd = validarContacto(body);
+        if (errUpd) return res.code(400).send({ error: errUpd });
+        if (typeof (body as any).nombre === "string")
+          (body as any).nombre = (body as any).nombre.trim();
+        if (typeof (body as any).email === "string")
+          (body as any).email = (body as any).email.trim();
         const [current] = await db
           .select()
           .from(contactos)
@@ -2718,6 +3002,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
             telefono: r.telefono || null,
             empresa: r.empresa || null,
             cargo: r.cargo || null,
+            tenantId: req.tenantId ?? "default",
           });
           created++;
         } catch (e: any) {
@@ -2731,6 +3016,68 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         totalErrors: errors.length,
       };
     });
+
+    // Bulk Actions - Contactos
+    app.post(
+      "/api/contactos/bulk",
+      async (
+        req: FastifyRequest<{
+          Body: { ids: string[]; action: string; payload: any };
+        }>,
+      ) => {
+        const { ids, action, payload } = req.body;
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+          return {
+            succeeded: [],
+            failed: [{ id: "", error: "No IDs provided" }],
+          };
+        }
+
+        const succeeded: string[] = [];
+        const failed: { id: string; error: string }[] = [];
+
+        for (const id of ids) {
+          try {
+            switch (action) {
+              case "delete":
+                await db.delete(contactos).where(eq(contactos.id, id));
+                break;
+              case "assign":
+                // Contactos don't have propietarioId, but could have a custom field
+                const existing = await db
+                  .select({ custom: contactos.custom })
+                  .from(contactos)
+                  .where(eq(contactos.id, id))
+                  .limit(1);
+                const currentCustom = existing[0]?.custom || {};
+                await db
+                  .update(contactos)
+                  .set({
+                    custom: {
+                      ...currentCustom,
+                      assignedTo: payload.assignedTo,
+                    },
+                  })
+                  .where(eq(contactos.id, id));
+                break;
+              case "add_to_sequence":
+                // TODO: Implement sequence enrollment
+                break;
+              default:
+                throw new Error(`Unknown action: ${action}`);
+            }
+            succeeded.push(id);
+          } catch (error) {
+            failed.push({
+              id,
+              error: error instanceof Error ? error.message : "Unknown error",
+            });
+          }
+        }
+
+        return { succeeded, failed };
+      },
+    );
 
     // Presupuestos / cotizaciones
     // Descuento = % (0-100) fijo en UI; impuestos = 16% fijo no modificable.
@@ -3458,6 +3805,59 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       return { ok: true };
     });
 
+    // Bulk Actions - Tareas
+    app.post(
+      "/api/tareas/bulk",
+      async (
+        req: FastifyRequest<{
+          Body: { ids: string[]; action: string; payload: any };
+        }>,
+      ) => {
+        const { ids, action, payload } = req.body;
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+          return {
+            succeeded: [],
+            failed: [{ id: "", error: "No IDs provided" }],
+          };
+        }
+
+        const succeeded: string[] = [];
+        const failed: { id: string; error: string }[] = [];
+
+        for (const id of ids) {
+          try {
+            switch (action) {
+              case "delete":
+                await db.delete(tareas).where(eq(tareas.id, id));
+                break;
+              case "assign":
+                await db
+                  .update(tareas)
+                  .set({ asignadoId: payload.asignadoId })
+                  .where(eq(tareas.id, id));
+                break;
+              case "change_state":
+                await db
+                  .update(tareas)
+                  .set({ estado: payload.estado })
+                  .where(eq(tareas.id, id));
+                break;
+              default:
+                throw new Error(`Unknown action: ${action}`);
+            }
+            succeeded.push(id);
+          } catch (error) {
+            failed.push({
+              id,
+              error: error instanceof Error ? error.message : "Unknown error",
+            });
+          }
+        }
+
+        return { succeeded, failed };
+      },
+    );
+
     // Archivos (MinIO): vinculados a contacto, empresa u oportunidad
     const ARCHIVO_ENTIDADES = ["contacto", "empresa", "oportunidad"];
     app.get(
@@ -3543,7 +3943,10 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         .from(archivos)
         .where(eq(archivos.id, (req as any).params.id))
         .limit(1);
-      if (!row) return res.code(404).send({ error: "No encontrado" });
+      // 404 si no existe, es ajeno o es de otro tenant (no revelar existencia)
+      if (!row || (row.userId !== req.user!.id && req.user!.role !== "admin")) {
+        return res.code(404).send({ error: "No encontrado" });
+      }
       try {
         const url = await storage().presignedGetObject(
           bucketName(),
@@ -3728,6 +4131,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         res,
       ) => {
         const { entityType, entityId, limit = "100" } = req.query;
+        const top = Math.min(Math.max(parseInt(String(limit)) || 100, 1), 200);
         if (!entityType || !entityId)
           return res
             .code(400)
@@ -3742,7 +4146,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
             .from(activities)
             .where(cond)
             .orderBy(desc(activities.createdAt))
-            .limit(parseInt(limit)),
+            .limit(top),
           db
             .select()
             .from(tareas)
@@ -3753,7 +4157,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
               ),
             )
             .orderBy(desc(tareas.createdAt))
-            .limit(parseInt(limit)),
+            .limit(top),
           db
             .select()
             .from(archivos)
@@ -3764,7 +4168,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
               ),
             )
             .orderBy(desc(archivos.createdAt))
-            .limit(parseInt(limit)),
+            .limit(top),
         ]);
         const items = [
           ...acts.map((a) => ({
@@ -4161,6 +4565,9 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       };
     });
 
+    const { registerLeadScoringRoutes } = await import("../routes/leadScoring");
+    await registerLeadScoringRoutes(app);
+
     // Automatizaciones
     app.get("/api/automatizaciones", async () =>
       db
@@ -4426,6 +4833,59 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       },
     );
 
+    // Bulk Actions - Email Campaigns
+    app.post(
+      "/api/email-campaigns/bulk",
+      async (
+        req: FastifyRequest<{
+          Body: { ids: string[]; action: string; payload: any };
+        }>,
+      ) => {
+        const { ids, action, payload } = req.body;
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+          return {
+            succeeded: [],
+            failed: [{ id: "", error: "No IDs provided" }],
+          };
+        }
+
+        const succeeded: string[] = [];
+        const failed: { id: string; error: string }[] = [];
+
+        for (const id of ids) {
+          try {
+            switch (action) {
+              case "delete":
+                await db
+                  .delete(emailCampaigns)
+                  .where(eq(emailCampaigns.id, id));
+                break;
+              case "send":
+                await db
+                  .update(emailCampaigns)
+                  .set({ estado: "enviando", enviadaEn: new Date() })
+                  .where(eq(emailCampaigns.id, id));
+                // TODO: Actually queue the campaign send
+                break;
+              case "duplicate":
+                // TODO: Implement duplication
+                break;
+              default:
+                throw new Error(`Unknown action: ${action}`);
+            }
+            succeeded.push(id);
+          } catch (error) {
+            failed.push({
+              id,
+              error: error instanceof Error ? error.message : "Unknown error",
+            });
+          }
+        }
+
+        return { succeeded, failed };
+      },
+    );
+
     // Contact Lists
     app.get("/api/contact-lists", async () =>
       db.select().from(contactLists).orderBy(desc(contactLists.createdAt)),
@@ -4516,78 +4976,88 @@ export async function registerAuthRoutes(app: FastifyInstance) {
     );
 
     // Email Subscriptions (Double Opt-in) - admin only
-    app.post("/api/email-subscriptions", async (req, res) => {
-      const { contactoId, listaId, email, nombre } = req.body as {
-        contactoId?: string;
-        listaId?: string;
-        email?: string;
-        nombre?: string;
-      };
-      // Si no se proporciona contactoId, crear/obtener contacto por email
-      let finalContactoId = contactoId;
-      if (!finalContactoId && email) {
-        const [existing] = await db
+    // Alta manual de suscripciones: solo admin (crea contactos y dispara emails).
+    app.post(
+      "/api/email-subscriptions",
+      { preHandler: requireRole("admin") },
+      async (req, res) => {
+        const { contactoId, listaId, email, nombre } = req.body as {
+          contactoId?: string;
+          listaId?: string;
+          email?: string;
+          nombre?: string;
+        };
+        // Si no se proporciona contactoId, crear/obtener contacto por email
+        let finalContactoId = contactoId;
+        if (!finalContactoId && email) {
+          const [existing] = await db
+            .select()
+            .from(contactos)
+            .where(eq(contactos.email, email))
+            .limit(1);
+          if (existing) {
+            finalContactoId = existing.id;
+          } else {
+            const [newContact] = await db
+              .insert(contactos)
+              .values({
+                nombre: nombre || email,
+                email,
+                tenantId: req.tenantId ?? "default",
+              })
+              .returning();
+            finalContactoId = newContact.id;
+          }
+        }
+        if (!finalContactoId) {
+          return res.code(400).send({ error: "contactoId o email requeridos" });
+        }
+        const { randomUUID } = await import("crypto");
+        const token = randomUUID();
+        const [sub] = await db
+          .insert(emailSubscriptions)
+          .values({
+            tenantId: req.tenantId ?? "default",
+            contactoId: finalContactoId,
+            listaId,
+            token,
+            estado: "pendiente",
+          })
+          .returning();
+
+        // Enviar correo de confirmación (double opt-in)
+        const FE = process.env.FRONTEND_URL || "http://localhost:8081";
+        const confirmUrl = `${FE}/api/email-subscriptions/confirm/${token}`;
+        const [contact] = await db
           .select()
           .from(contactos)
-          .where(eq(contactos.email, email))
+          .where(eq(contactos.id, finalContactoId))
           .limit(1);
-        if (existing) {
-          finalContactoId = existing.id;
-        } else {
-          const [newContact] = await db
-            .insert(contactos)
-            .values({ nombre: nombre || email, email })
-            .returning();
-          finalContactoId = newContact.id;
-        }
-      }
-      if (!finalContactoId) {
-        return res.code(400).send({ error: "contactoId o email requeridos" });
-      }
-      const { randomUUID } = await import("crypto");
-      const token = randomUUID();
-      const [sub] = await db
-        .insert(emailSubscriptions)
-        .values({
-          contactoId: finalContactoId,
-          listaId,
-          token,
-          estado: "pendiente",
-        })
-        .returning();
-
-      // Enviar correo de confirmación (double opt-in)
-      const FE = process.env.FRONTEND_URL || "http://localhost:8081";
-      const confirmUrl = `${FE}/api/email-subscriptions/confirm/${token}`;
-      const [contact] = await db
-        .select()
-        .from(contactos)
-        .where(eq(contactos.id, finalContactoId))
-        .limit(1);
-      if (contact?.email) {
-        await sendEmail({
-          to: contact.email,
-          subject: "Confirma tu suscripción",
-          html: `
+        if (contact?.email) {
+          await sendEmail({
+            to: contact.email,
+            subject: "Confirma tu suscripción",
+            html: `
             <p>Hola ${contact.nombre || ""},</p>
             <p>Gracias por suscribirte. Por favor confirma tu suscripción haciendo clic en el siguiente enlace:</p>
             <p><a href="${confirmUrl}">${confirmUrl}</a></p>
             <p>Si no solicitaste esta suscripción, ignora este correo.</p>
           `,
-          text: `Confirma tu suscripción: ${confirmUrl}`,
-          from: `"${env.CURRENCY === "MXN" ? "CRM" : "CRM"}" <noreply@${new URL(FE).hostname}>`,
-        });
-        await logActivity(
-          "subscription_confirmation_sent",
-          "Correo de confirmación de suscripción enviado",
-          "contacto",
-          finalContactoId,
-          undefined,
-          { token, listaId },
-        );
-      }
-      return res.code(201).send({ ...sub, token: undefined }); // No devolver token en respuesta
-    });
+            text: `Confirma tu suscripción: ${confirmUrl}`,
+            from: `"${env.CURRENCY === "MXN" ? "CRM" : "CRM"}" <noreply@${new URL(FE).hostname}>`,
+          });
+          await logActivity(
+            "subscription_confirmation_sent",
+            "Correo de confirmación de suscripción enviado",
+            "contacto",
+            finalContactoId,
+            undefined,
+            { token, listaId },
+          );
+        }
+        return res.code(201).send({ ...sub, token: undefined }); // No devolver token en respuesta
+      },
+    );
 
     // Email Tracking
     app.get(
@@ -4722,6 +5192,526 @@ export async function registerAuthRoutes(app: FastifyInstance) {
           )
           .orderBy(desc(activities.createdAt))
           .limit(parseInt(limit));
+      },
+    );
+
+    // SSO Routes (SAML/OIDC)
+    await registerSamlRoutes(app);
+    await registerOidcRoutes(app);
+
+    // SCIM Routes (require separate auth via bearer token)
+    await registerSCIMRoutes(app);
+
+    // Load tenant SSO configs on startup
+    await loadTenantSSOConfigs(app);
+
+    // Field Permission Routes
+    await registerFieldPermissionRoutes(app);
+
+    // Reports Routes
+    app.get(
+      "/api/reportes/funnel",
+      async (request: FastifyRequest, reply: FastifyReply) => {
+        const tenantId = request.tenantId || "default";
+        const { pipelineId, period = "30d" } = request.query as {
+          pipelineId?: string;
+          period?: string;
+        };
+        const data = await ReportsService.getFunnelMetrics(tenantId, {
+          pipelineId,
+          period,
+        });
+        return data;
+      },
+    );
+
+    app.get(
+      "/api/reportes/velocity",
+      async (request: FastifyRequest, reply: FastifyReply) => {
+        const tenantId = request.tenantId || "default";
+        const { period = "12w" } = request.query as { period?: string };
+        const data = await ReportsService.getVelocity(tenantId, { period });
+        return data;
+      },
+    );
+
+    app.get(
+      "/api/reportes/forecast",
+      async (request: FastifyRequest, reply: FastifyReply) => {
+        const tenantId = request.tenantId || "default";
+        const { period = "6m" } = request.query as { period?: string };
+        const data = await ReportsService.getForecast(tenantId, { period });
+        return data;
+      },
+    );
+
+    app.get(
+      "/api/reportes/rep-performance",
+      async (request: FastifyRequest, reply: FastifyReply) => {
+        const tenantId = request.tenantId || "default";
+        const { period = "4w" } = request.query as { period?: string };
+        const data = await ReportsService.getRepPerformance(tenantId, {
+          period,
+        });
+        return data;
+      },
+    );
+
+    app.get(
+      "/api/reportes/cohort-retention",
+      async (request: FastifyRequest, reply: FastifyReply) => {
+        const tenantId = request.tenantId || "default";
+        const { months = "12" } = request.query as { months?: string };
+        const data = await ReportsService.getCohortRetention(tenantId, {
+          months: parseInt(months),
+        });
+        return data;
+      },
+    );
+
+    app.get(
+      "/api/reportes/schedule",
+      async (request: FastifyRequest, reply: FastifyReply) => {
+        const tenantId = request.tenantId || "default";
+        const data = await ReportsService.listSchedules(
+          tenantId,
+          request.user?.id,
+        );
+        return data;
+      },
+    );
+
+    app.post(
+      "/api/reportes/schedule",
+      async (request: FastifyRequest, reply: FastifyReply) => {
+        try {
+          const tenantId = request.tenantId || "default";
+          const data = await ReportsService.createSchedule({
+            ...(request.body as any),
+            tenantId,
+            userId: request.user?.id,
+          });
+          return reply.code(201).send(data);
+        } catch (err: any) {
+          return reply
+            .code(400)
+            .send({ error: err?.message || "Datos inválidos" });
+        }
+      },
+    );
+
+    // Ownership: un schedule solo lo ve/modifica su dueño o un admin del mismo tenant.
+    // Se responde 404 (no 403) para no revelar existencia ajena.
+    async function schedulePropio(
+      request: FastifyRequest,
+      reply: FastifyReply,
+      id: string,
+    ) {
+      const data = await ReportsService.getSchedule(id);
+      const tenantId = request.tenantId || "default";
+      const isAdmin = request.user?.role === "admin";
+      if (
+        !data ||
+        data.tenantId !== tenantId ||
+        (!isAdmin && data.userId !== request.user?.id)
+      ) {
+        reply.code(404).send({ error: "No encontrado" });
+        return null;
+      }
+      return data;
+    }
+    app.get(
+      "/api/reportes/schedule/:id",
+      async (request: FastifyRequest, reply: FastifyReply) => {
+        const { id } = request.params as { id: string };
+        const data = await schedulePropio(request, reply, id);
+        if (!data) return;
+        return data;
+      },
+    );
+
+    app.put(
+      "/api/reportes/schedule/:id",
+      async (request: FastifyRequest, reply: FastifyReply) => {
+        try {
+          const { id } = request.params as { id: string };
+          const own = await schedulePropio(request, reply, id);
+          if (!own) return;
+          const { tenantId, userId, ...body } = request.body as any;
+          void tenantId;
+          void userId;
+          const data = await ReportsService.updateSchedule(id, body);
+          if (!data) return reply.code(404).send({ error: "No encontrado" });
+          return data;
+        } catch (err: any) {
+          return reply
+            .code(400)
+            .send({ error: err?.message || "Datos inválidos" });
+        }
+      },
+    );
+
+    app.delete(
+      "/api/reportes/schedule/:id",
+      async (request: FastifyRequest, reply: FastifyReply) => {
+        const { id } = request.params as { id: string };
+        const own = await schedulePropio(request, reply, id);
+        if (!own) return;
+        await ReportsService.deleteSchedule(id);
+        return { ok: true };
+      },
+    );
+
+    app.post(
+      "/api/reportes/refresh",
+      async (request: FastifyRequest, reply: FastifyReply) => {
+        const tenantId = request.tenantId || "default";
+        const data = await ReportsService.refreshAll(tenantId);
+        return data;
+      },
+    );
+
+    // ── Meeting Scheduler ──
+    app.get(
+      "/api/reuniones/tipos",
+      async (request: FastifyRequest, reply: FastifyReply) => {
+        const tenantId = request.tenantId || "default";
+        const userId = request.user?.id;
+        const { soloActivos } = request.query as { soloActivos?: string };
+        const data = await MeetingSchedulerService.listMeetingTypes(
+          tenantId,
+          userId,
+          soloActivos === "true",
+        );
+        return { data };
+      },
+    );
+
+    // Los tipos los gestiona el admin (la UI los oculta al resto: "reuniones"
+    // no está en MODULOS). Lecturas autenticadas con scope de tenant (404 si es ajeno).
+    async function tipoPropio(
+      request: FastifyRequest,
+      reply: FastifyReply,
+      id: string,
+    ) {
+      const data = await MeetingSchedulerService.getMeetingType(id);
+      const tenantId = request.tenantId || "default";
+      if (!data || (data as any).tenantId !== tenantId) {
+        reply.status(404).send({ error: "No encontrado" });
+        return null;
+      }
+      return data;
+    }
+    const EMAIL_REUNION = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+    app.get(
+      "/api/reuniones/tipos/:id",
+      async (request: FastifyRequest, reply: FastifyReply) => {
+        const { id } = request.params as { id: string };
+        const data = await tipoPropio(request, reply, id);
+        if (!data) return;
+        return data;
+      },
+    );
+
+    app.post(
+      "/api/reuniones/tipos",
+      { preHandler: requireRole("admin") },
+      async (request: FastifyRequest, reply: FastifyReply) => {
+        const tenantId = request.tenantId || "default";
+        const userId = request.user?.id;
+        if (!userId) return reply.status(401).send({ error: "No autenticado" });
+        const body = request.body as any;
+        const slug = String(body?.slug || "").trim();
+        if (!slug) return reply.status(400).send({ error: "slug requerido" });
+        const existente =
+          await MeetingSchedulerService.getMeetingTypeBySlug(slug);
+        if (existente && (existente as any).tenantId === tenantId) {
+          return reply.status(409).send({ error: "slug en uso" });
+        }
+        try {
+          const data = await MeetingSchedulerService.createMeetingType(
+            { ...body, slug },
+            userId,
+            tenantId,
+          );
+          return reply.code(201).send(data);
+        } catch (err: any) {
+          return reply
+            .status(400)
+            .send({ error: err?.message || "Datos inválidos" });
+        }
+      },
+    );
+
+    app.put(
+      "/api/reuniones/tipos/:id",
+      { preHandler: requireRole("admin") },
+      async (request: FastifyRequest, reply: FastifyReply) => {
+        const { id } = request.params as { id: string };
+        const own = await tipoPropio(request, reply, id);
+        if (!own) return;
+        const { tenantId, userId, ...body } = request.body as any;
+        void tenantId;
+        void userId;
+        if (body.slug !== undefined && !String(body.slug).trim()) {
+          return reply.status(400).send({ error: "slug requerido" });
+        }
+        const data = await MeetingSchedulerService.updateMeetingType(id, body);
+        if (!data) return reply.status(404).send({ error: "No encontrado" });
+        return data;
+      },
+    );
+
+    app.delete(
+      "/api/reuniones/tipos/:id",
+      { preHandler: requireRole("admin") },
+      async (request: FastifyRequest, reply: FastifyReply) => {
+        const { id } = request.params as { id: string };
+        const own = await tipoPropio(request, reply, id);
+        if (!own) return;
+        await MeetingSchedulerService.deleteMeetingType(id);
+        return { ok: true };
+      },
+    );
+
+    app.post(
+      "/api/reuniones/tipos/:id/generar-slots",
+      { preHandler: requireRole("admin") },
+      async (request: FastifyRequest, reply: FastifyReply) => {
+        const { id } = request.params as { id: string };
+        const own = await tipoPropio(request, reply, id);
+        if (!own) return;
+        const { inicio, fin, daysAhead } = request.body as {
+          inicio: string;
+          fin: string;
+          daysAhead?: number;
+        };
+        if (
+          !inicio ||
+          !fin ||
+          Number.isNaN(new Date(inicio).getTime()) ||
+          Number.isNaN(new Date(fin).getTime())
+        ) {
+          return reply
+            .status(400)
+            .send({ error: "inicio y fin válidos requeridos" });
+        }
+        const data = await MeetingSchedulerService.generateSlots(
+          { meetingTypeId: id, inicio: new Date(inicio), fin: new Date(fin) },
+          daysAhead,
+        );
+        return data;
+      },
+    );
+
+    app.get(
+      "/api/reuniones/tipos/:id/slots",
+      async (request: FastifyRequest, reply: FastifyReply) => {
+        const { id } = request.params as { id: string };
+        const own = await tipoPropio(request, reply, id);
+        if (!own) return;
+        const { from, to } = request.query as { from: string; to: string };
+        if (!from || !to)
+          return reply.status(400).send({ error: "from y to son requeridos" });
+        const data = await MeetingSchedulerService.getAvailableSlots(
+          id,
+          new Date(from),
+          new Date(to),
+        );
+        return { data };
+      },
+    );
+
+    app.post(
+      "/api/reuniones/slots/:slotId/reservar",
+      async (request: FastifyRequest, reply: FastifyReply) => {
+        try {
+          const { slotId } = request.params as { slotId: string };
+          const email = String(
+            (request.body as any)?.invitadoEmail || "",
+          ).trim();
+          if (!EMAIL_REUNION.test(email)) {
+            return reply.status(400).send({ error: "invitadoEmail inválido" });
+          }
+          const data = await MeetingSchedulerService.bookSlot(
+            slotId,
+            request.body as any,
+          );
+          return data;
+        } catch (err: any) {
+          return reply
+            .status(400)
+            .send({ error: err?.message || "No se pudo reservar" });
+        }
+      },
+    );
+
+    app.post(
+      "/api/reuniones/slots/:slotId/cancelar",
+      async (request: FastifyRequest, reply: FastifyReply) => {
+        const { slotId } = request.params as { slotId: string };
+        const data = await MeetingSchedulerService.cancelSlot(slotId);
+        return data;
+      },
+    );
+
+    app.get(
+      "/api/reuniones/mis-reservas",
+      async (request: FastifyRequest, reply: FastifyReply) => {
+        const userId = request.user?.id;
+        if (!userId) return reply.status(401).send({ error: "No autenticado" });
+        const data = await MeetingSchedulerService.getUserBookings(userId);
+        return { data };
+      },
+    );
+
+    // ── Push Notifications (requieren sesión; la clave pública está en /api/push/vapid-key público) ──
+    app.post(
+      "/api/push/subscribe",
+      async (request: FastifyRequest, reply: FastifyReply) => {
+        const userId = request.user?.id;
+        const tenantId = request.tenantId || "default";
+        if (!userId) return reply.status(401).send({ error: "No autenticado" });
+
+        const { endpoint, keys } = request.body as {
+          endpoint: string;
+          keys: { p256dh: string; auth: string };
+        };
+
+        // Store in DB
+        const { pushSubscriptions } = await import("../db/schema.js");
+        const { db } = await import("../db/index.js");
+        const { eq, and } = await import("drizzle-orm");
+
+        // Check if already exists
+        const [existing] = await db
+          .select()
+          .from(pushSubscriptions)
+          .where(eq(pushSubscriptions.endpoint, endpoint))
+          .limit(1);
+
+        if (existing) {
+          await db
+            .update(pushSubscriptions)
+            .set({
+              p256dh: keys.p256dh,
+              auth: keys.auth,
+              userId,
+              tenantId,
+              updatedAt: new Date(),
+            })
+            .where(eq(pushSubscriptions.endpoint, endpoint));
+        } else {
+          await db.insert(pushSubscriptions).values({
+            endpoint,
+            p256dh: keys.p256dh,
+            auth: keys.auth,
+            userId,
+            tenantId,
+          });
+        }
+
+        return { ok: true };
+      },
+    );
+
+    app.post(
+      "/api/push/unsubscribe",
+      async (request: FastifyRequest, reply: FastifyReply) => {
+        const userId = request.user?.id;
+        if (!userId) return reply.status(401).send({ error: "No autenticado" });
+
+        const { endpoint } = request.body as { endpoint: string };
+
+        const { pushSubscriptions } = await import("../db/schema.js");
+        const { db } = await import("../db/index.js");
+        const { eq, and } = await import("drizzle-orm");
+
+        await db
+          .delete(pushSubscriptions)
+          .where(
+            and(
+              eq(pushSubscriptions.endpoint, endpoint),
+              eq(pushSubscriptions.userId, userId),
+            ),
+          );
+
+        return { ok: true };
+      },
+    );
+
+    // Send push notification (admin only)
+    app.post(
+      "/api/push/send",
+      async (request: FastifyRequest, reply: FastifyReply) => {
+        const userId = request.user?.id;
+        if (!userId || request.user?.role !== "admin")
+          return reply.status(403).send({ error: "Solo admins" });
+
+        const { userIds, title, body, data, icon } = request.body as {
+          userIds?: string[];
+          title: string;
+          body: string;
+          data?: any;
+          icon?: string;
+        };
+
+        const { pushSubscriptions } = await import("../db/schema.js");
+        const { db } = await import("../db/index.js");
+        const { eq, inArray } = await import("drizzle-orm");
+
+        const conditions =
+          userIds && userIds.length > 0
+            ? inArray(pushSubscriptions.userId, userIds)
+            : undefined;
+
+        const subscriptions = await db
+          .select()
+          .from(pushSubscriptions)
+          .where(conditions);
+
+        const webPush = await getWebPush();
+        const vapid = await getVapidKeys();
+        webPush.setVapidDetails(
+          "mailto:admin@crm.local",
+          vapid.publicKey,
+          vapid.privateKey,
+        );
+
+        const results = await Promise.allSettled(
+          subscriptions.map(async (sub) => {
+            try {
+              await webPush.sendNotification(
+                {
+                  endpoint: sub.endpoint,
+                  keys: { p256dh: sub.p256dh, auth: sub.auth },
+                },
+                JSON.stringify({
+                  title,
+                  body,
+                  data,
+                  icon: icon || "/icon.svg",
+                }),
+              );
+              return { endpoint: sub.endpoint, success: true };
+            } catch (error: any) {
+              if (error.statusCode === 410 || error.statusCode === 404) {
+                // Subscription expired, remove it
+                await db
+                  .delete(pushSubscriptions)
+                  .where(eq(pushSubscriptions.endpoint, sub.endpoint));
+              }
+              return {
+                endpoint: sub.endpoint,
+                success: false,
+                error: error.message,
+              };
+            }
+          }),
+        );
+
+        return { results };
       },
     );
   });

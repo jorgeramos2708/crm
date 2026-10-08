@@ -4,6 +4,8 @@
   <div class="relative inline-block">
     <select
       v-model="model"
+      :name="name || undefined"
+      :aria-label="ariaLabel || undefined"
       :required="required"
       :disabled="disabled"
       class="select-field"
@@ -44,6 +46,8 @@ const model = defineModel();
 const focused = ref(false);
 
 const props = defineProps({
+  name: { type: String, default: "" },
+  ariaLabel: { type: String, default: "" },
   size: { type: String, default: "md" },
   required: { type: Boolean, default: false },
   disabled: { type: Boolean, default: false },

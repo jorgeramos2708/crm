@@ -1,59 +1,30 @@
-<template>
-  <TransitionGroup
-    name="toast"
-    tag="div"
-    class="pointer-events-none fixed bottom-5 right-5 z-[80] flex w-80 max-w-[calc(100vw-2.5rem)] flex-col gap-2"
-  >
-    <div
-      v-for="t in estadoToasts.items.value"
-      :key="t.id"
-      role="status"
-      class="pointer-events-auto flex items-start gap-2.5 rounded-xl border bg-white px-4 py-3 text-sm shadow-lg dark:bg-zinc-800 relative overflow-hidden"
-      :class="borde[t.tipo]"
-    >
-      <div
-        class="absolute bottom-0 left-0 h-0.5 bg-current opacity-70"
-        :style="{ width: t.progreso + '%', transition: 'width 0.1s linear' }"
-      />
-      <Badge
-        :color="colorPorTipo[t.tipo]"
-        dot-size="h-2.5 w-2.5"
-        class="mt-0.5 flex-shrink-0"
-      />
-      <span class="text-zinc-700 dark:text-zinc-200">{{ t.texto }}</span>
-    </div>
-  </TransitionGroup>
-</template>
-
 <script setup>
-import { estadoToasts } from "../utils/toast";
-import Badge from "./Badge.vue";
+import { useToast } from "../composables/useToast";
+import ToastItem from "./Toast.vue";
 
-const borde = {
-  exito: "border-green-200 dark:border-green-800",
-  error: "border-red-200 dark:border-red-800",
-  info: "border-zinc-200 dark:border-zinc-700",
-};
-const colorPorTipo = {
-  exito: "green",
-  error: "red",
-  info: "zinc",
-};
+const { toasts } = useToast();
+
+function handleDismiss(id) {
+  const { dismiss } = useToast();
+  dismiss(id);
+}
+
+function handleUndo(id) {
+  const { dismiss } = useToast();
+  dismiss(id);
+}
 </script>
 
-<style scoped>
-.toast-enter-active,
-.toast-leave-active {
-  transition:
-    opacity 0.3s ease,
-    transform 0.3s ease;
-}
-.toast-enter-from,
-.toast-leave-to {
-  opacity: 0;
-  transform: translateX(120%);
-}
-.toast-move {
-  transition: transform 0.3s ease;
-}
-</style>
+<template>
+  <Teleport to="body">
+    <div class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full px-4 pointer-events-none">
+      <ToastItem
+        v-for="toast in toasts"
+        :key="toast.id"
+        :toast="toast"
+        @dismiss="handleDismiss"
+        @undo="handleUndo"
+      />
+    </div>
+  </Teleport>
+</template>

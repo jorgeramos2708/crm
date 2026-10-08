@@ -1,0 +1,64 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: crm-production
+
+resources:
+  - ../../base
+  - ingress.yaml
+
+commonLabels:
+  app.kubernetes.io/environment: production
+
+patches:
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: crm-api
+        namespace: crm-production
+      spec:
+        replicas: 3
+      - patch: |-
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: crm-web
+            namespace: crm-production
+          spec:
+            replicas: 3
+        target:
+          kind: Deployment
+          labelSelector: "app=crm-web"
+      - patch: |-
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: crm-worker
+            namespace: crm-production
+          spec:
+            replicas: 2
+        target:
+          kind: Deployment
+          labelSelector: "app=crm-worker"
+
+configMapGenerator:
+  - name: crm-config
+    behavior: merge
+    literals:
+      - NODE_ENV=production
+      - CORS_ORIGIN=https://crm.example.com
+      - GRAPH_PUBLIC_URL=https://api.crm.example.com
+      - FRONTEND_URL=https://crm.example.com
+
+secretGenerator:
+  - name: crm-secrets
+    behavior: merge
+    envs:
+      - ./production-secrets.env
+
+configMapGenerator:
+  - name: nginx-config
+    behavior: replace
+    files:
+      - nginx.conf=./nginx-production.conf

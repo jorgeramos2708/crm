@@ -12,7 +12,7 @@
     <p v-if="estadoConfirm.detalle.value" class="mt-1 text-xs text-zinc-500">
       {{ estadoConfirm.detalle.value }}
     </p>
-    <template #actions>
+    <template #footer>
       <Btn
         variant="outline"
         class="flex-1"

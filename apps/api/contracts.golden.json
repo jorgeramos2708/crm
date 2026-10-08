@@ -19,6 +19,7 @@
     "DELETE /api/oportunidades/:id",
     "DELETE /api/presupuestos/:id",
     "DELETE /api/productos/:id",
+    "DELETE /api/reportes/schedule/:id",
     "DELETE /api/tareas/:id",
     "DELETE /api/users/:id",
     "DELETE /api/vistas/:id",
@@ -81,9 +82,16 @@
     "GET /api/productos",
     "GET /api/reportes/actividad",
     "GET /api/reportes/campanas",
+    "GET /api/reportes/cohort-retention",
     "GET /api/reportes/embudo",
+    "GET /api/reportes/forecast",
+    "GET /api/reportes/funnel",
     "GET /api/reportes/mensual",
+    "GET /api/reportes/rep-performance",
+    "GET /api/reportes/schedule",
+    "GET /api/reportes/schedule/:id",
     "GET /api/reportes/tareas",
+    "GET /api/reportes/velocity",
     "GET /api/reportes/vendedores",
     "GET /api/stream",
     "GET /api/tareas",
@@ -108,10 +116,12 @@
     "POST /api/contact-lists",
     "POST /api/contact-lists/:id/members",
     "POST /api/contactos",
+    "POST /api/contactos/bulk",
     "POST /api/contactos/import",
     "POST /api/custom-fields",
     "POST /api/email-campaigns",
     "POST /api/email-campaigns/:id/send",
+    "POST /api/email-campaigns/bulk",
     "POST /api/email-subscriptions",
     "POST /api/email-templates",
     "POST /api/equipos",
@@ -123,11 +133,15 @@
     "POST /api/microsoft/subscriptions/:id/renew",
     "POST /api/microsoft/vincular",
     "POST /api/oportunidades",
+    "POST /api/oportunidades/bulk",
     "POST /api/pipeline-stages",
     "POST /api/pipelines",
     "POST /api/presupuestos",
     "POST /api/productos",
+    "POST /api/reportes/refresh",
+    "POST /api/reportes/schedule",
     "POST /api/tareas",
+    "POST /api/tareas/bulk",
     "POST /api/users",
     "POST /api/vistas",
     "POST /api/webhooks",
@@ -144,12 +158,33 @@
     "PUT /api/oportunidades/:id",
     "PUT /api/presupuestos/:id",
     "PUT /api/productos/:id",
+    "PUT /api/reportes/schedule/:id",
     "PUT /api/tareas/:id",
     "PUT /api/users/:id",
     "PUT /api/users/:id/permisos"
   ],
-  "routeCount": 147,
+  "routeCount": 162,
   "schema": {
+    "tenants": {
+      "exportName": "tenants",
+      "columns": [
+        "id",
+        "nombre",
+        "subdominio",
+        "dominioPersonalizado",
+        "plan",
+        "estado",
+        "fechaActivacion",
+        "fechaVencimiento",
+        "configuracion",
+        "stripeCustomerId",
+        "stripeSubscriptionId",
+        "scimToken",
+        "ssoConfig",
+        "creadoEn",
+        "actualizadoEn"
+      ]
+    },
     "users": {
       "exportName": "users",
       "columns": [
@@ -159,6 +194,10 @@
         "name",
         "role",
         "activo",
+        "tenantId",
+        "ssoProvider",
+        "ssoSubject",
+        "ssoAttributes",
         "createdAt",
         "updatedAt"
       ]
@@ -217,12 +256,14 @@
       "exportName": "contactos",
       "columns": [
         "id",
+        "tenantId",
         "nombre",
         "email",
         "telefono",
         "empresa",
         "cargo",
         "custom",
+        "leadScore",
         "createdAt",
         "updatedAt"
       ]
@@ -293,6 +334,50 @@
         "updatedAt"
       ]
     },
+    "email_threads": {
+      "exportName": "emailThreads",
+      "columns": [
+        "id",
+        "tenantId",
+        "subject",
+        "participants",
+        "lastMessageAt",
+        "messageCount",
+        "isRead",
+        "isArchived",
+        "assignedTo",
+        "labels",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "email_messages": {
+      "exportName": "emailMessages",
+      "columns": [
+        "id",
+        "threadId",
+        "tenantId",
+        "messageId",
+        "inReplyTo",
+        "references",
+        "fromEmail",
+        "fromName",
+        "toEmails",
+        "ccEmails",
+        "bccEmails",
+        "subject",
+        "bodyText",
+        "bodyHtml",
+        "direction",
+        "status",
+        "sentAt",
+        "receivedAt",
+        "readAt",
+        "trackingId",
+        "headers",
+        "createdAt"
+      ]
+    },
     "activities": {
       "exportName": "activities",
       "columns": [
@@ -326,17 +411,73 @@
         "createdAt"
       ]
     },
+    "push_subscriptions": {
+      "exportName": "pushSubscriptions",
+      "columns": [
+        "id",
+        "tenantId",
+        "userId",
+        "endpoint",
+        "p256dh",
+        "auth",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
     "email_subscriptions": {
       "exportName": "emailSubscriptions",
       "columns": [
         "id",
+        "tenantId",
         "contactoId",
         "listaId",
         "estado",
         "token",
         "confirmadoEn",
         "canceladoEn",
-        "createdAt"
+        "creadoEn"
+      ]
+    },
+    "lead_scoring_rules": {
+      "exportName": "leadScoringRules",
+      "columns": [
+        "id",
+        "tenantId",
+        "userId",
+        "nombre",
+        "descripcion",
+        "activo",
+        "reglas",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "email_sequences": {
+      "exportName": "emailSequences",
+      "columns": [
+        "id",
+        "tenantId",
+        "nombre",
+        "descripcion",
+        "evento",
+        "condiciones",
+        "acciones",
+        "activo",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "email_sequence_enrollments": {
+      "exportName": "emailSequenceEnrollments",
+      "columns": [
+        "id",
+        "sequenceId",
+        "contactoId",
+        "pasoActual",
+        "estado",
+        "proximoEnvioEn",
+        "creadoEn",
+        "actualizadoEn"
       ]
     },
     "microsoft_graph_tokens": {
@@ -533,6 +674,177 @@
     "ajustes": {
       "exportName": "ajustes",
       "columns": ["clave", "valor", "updatedAt"]
+    },
+    "audit_log": {
+      "exportName": "auditLog",
+      "columns": [
+        "id",
+        "tenantId",
+        "eventId",
+        "eventType",
+        "eventCategory",
+        "actorType",
+        "actorId",
+        "actorIp",
+        "actorUserAgent",
+        "targetType",
+        "targetId",
+        "before",
+        "after",
+        "changedFields",
+        "metadata",
+        "riskLevel",
+        "previousHash",
+        "currentHash",
+        "timestamp"
+      ]
+    },
+    "field_permissions": {
+      "exportName": "fieldPermissions",
+      "columns": [
+        "id",
+        "tenantId",
+        "role",
+        "entity",
+        "field",
+        "canRead",
+        "canWrite",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "report_schedules": {
+      "exportName": "reportSchedules",
+      "columns": [
+        "id",
+        "tenantId",
+        "userId",
+        "name",
+        "reportType",
+        "config",
+        "format",
+        "cron",
+        "timezone",
+        "recipients",
+        "enabled",
+        "lastRunAt",
+        "nextRunAt",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "meeting_types": {
+      "exportName": "meetingTypes",
+      "columns": [
+        "id",
+        "tenantId",
+        "userId",
+        "nombre",
+        "descripcion",
+        "duracionMin",
+        "bufferAntesMin",
+        "bufferDespuesMin",
+        "diasAntelacionMin",
+        "diasAntelacionMax",
+        "zonaHoraria",
+        "preguntas",
+        "activo",
+        "slug",
+        "creadoEn",
+        "actualizadoEn"
+      ]
+    },
+    "meeting_slots": {
+      "exportName": "meetingSlots",
+      "columns": [
+        "id",
+        "meetingTypeId",
+        "inicio",
+        "fin",
+        "reservadoPor",
+        "invitadoNombre",
+        "invitadoEmail",
+        "invitadoTelefono",
+        "respuestas",
+        "estado",
+        "creadoEn",
+        "actualizadoEn"
+      ]
+    },
+    "mv_funnel_metrics": {
+      "exportName": "mvFunnelMetrics",
+      "columns": [
+        "tenantId",
+        "pipelineId",
+        "stageId",
+        "stageName",
+        "stageOrder",
+        "enteredCount",
+        "exitedCount",
+        "conversionRate",
+        "avgDaysInStage",
+        "periodStart",
+        "periodEnd",
+        "refreshedAt"
+      ]
+    },
+    "mv_velocity": {
+      "exportName": "mvVelocity",
+      "columns": [
+        "tenantId",
+        "userId",
+        "userName",
+        "week",
+        "dealsClosed",
+        "revenue",
+        "avgCycleDays",
+        "refreshedAt"
+      ]
+    },
+    "mv_forecast": {
+      "exportName": "mvForecast",
+      "columns": [
+        "tenantId",
+        "userId",
+        "userName",
+        "month",
+        "weightedPipeline",
+        "dealCount",
+        "refreshedAt"
+      ]
+    },
+    "mv_rep_performance": {
+      "exportName": "mvRepPerformance",
+      "columns": [
+        "tenantId",
+        "userId",
+        "userName",
+        "periodStart",
+        "periodEnd",
+        "dealsCreated",
+        "dealsWon",
+        "dealsLost",
+        "revenueWon",
+        "avgDealSize",
+        "winRate",
+        "avgCycleDays",
+        "activitiesCount",
+        "emailsSent",
+        "callsMade",
+        "refreshedAt"
+      ]
+    },
+    "mv_cohort_retention": {
+      "exportName": "mvCohortRetention",
+      "columns": [
+        "tenantId",
+        "cohortMonth",
+        "periodNumber",
+        "cohortSize",
+        "retainedCount",
+        "retentionRate",
+        "refreshedAt"
+      ]
     }
   }
 }

@@ -141,11 +141,11 @@ services:
     restart: unless-stopped
     command: sh -c "npm install && npx tsx src/worker.ts"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001/health"]
+      test: ["CMD-SHELL", "ps aux | grep -q '[w]orker.ts'"]
       interval: 15s
       timeout: 5s
       retries: 3
-      start_period: 15s
+      start_period: 30s
 
   web:
     build:
@@ -159,7 +159,7 @@ services:
     ports:
       - "8081:80"
     environment:
-      VITE_APP_NAME: CRM
+      VITE_APP_NAME: Varko
     depends_on:
       - api
     restart: unless-stopped

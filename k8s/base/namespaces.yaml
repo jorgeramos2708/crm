@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: crm
+  labels:
+    app.kubernetes.io/name: crm
+    app.kubernetes.io/part-of: crm-platform
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: crm-staging
+  labels:
+    app.kubernetes.io/name: crm
+    app.kubernetes.io/environment: staging
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: crm-production
+  labels:
+    app.kubernetes.io/name: crm
+    app.kubernetes.io/environment: production

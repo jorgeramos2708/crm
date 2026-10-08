@@ -4,6 +4,7 @@ import { env } from "../config.js";
 const QUEUE_ACTION = "automatizaciones-action";
 const QUEUE_CAMPAIGN = "email-campaign-send";
 const QUEUE_TASK_DUE = "tarea-vencimiento";
+const QUEUE_SEQUENCE = "email-sequence-step";
 
 function redisOptions() {
   const url = new URL(env.REDIS_URL);
@@ -28,6 +29,7 @@ const defaultJobOptions: JobsOptions = {
 let actionQueue: Queue | null = null;
 let campaignQueue: Queue | null = null;
 let taskQueue: Queue | null = null;
+let sequenceQueue: Queue | null = null;
 
 export function getActionQueue(): Queue {
   if (!actionQueue) {
@@ -57,6 +59,16 @@ export function getTaskQueue(): Queue {
     });
   }
   return taskQueue;
+}
+
+export function getSequenceQueue(): Queue {
+  if (!sequenceQueue) {
+    sequenceQueue = new Queue(QUEUE_SEQUENCE, {
+      connection: redisOptions(),
+      defaultJobOptions,
+    });
+  }
+  return sequenceQueue;
 }
 
 export async function scheduleAction(
@@ -90,6 +102,22 @@ export async function scheduleCampaignSend(
   return job.id!;
 }
 
+export async function scheduleSequenceStep(
+  sequenceId: string,
+  enrollmentId: string,
+  stepIndex: number,
+  when: Date,
+): Promise<string | null> {
+  const ms = when.getTime() - Date.now();
+  if (ms <= 0) return null;
+  const job = await getSequenceQueue().add(
+    "process-sequence-step",
+    { sequenceId, enrollmentId, stepIndex },
+    { delay: ms, jobId: `seq-${sequenceId}-${enrollmentId}-${stepIndex}` },
+  );
+  return job.id!;
+}
+
 export async function scheduleTaskDueReminder(
   taskId: string,
   when: Date,
@@ -111,13 +139,14 @@ export async function cancelJob(queue: Queue, jobId: string): Promise<void> {
 
 export async function closeQueues(): Promise<void> {
   await Promise.all(
-    [actionQueue, campaignQueue, taskQueue]
+    [actionQueue, campaignQueue, taskQueue, sequenceQueue]
       .filter(Boolean)
       .map((q) => q!.close()),
   );
   actionQueue = null;
   campaignQueue = null;
   taskQueue = null;
+  sequenceQueue = null;
 }
 
 type Processor = (job: Job) => Promise<void>;
@@ -134,4 +163,11 @@ export const QUEUES = {
   ACTION: QUEUE_ACTION,
   CAMPAIGN: QUEUE_CAMPAIGN,
   TASK_DUE: QUEUE_TASK_DUE,
+  SEQUENCE: QUEUE_SEQUENCE,
 } as const;
+
+export async function startBullWorkers(): Promise<void> {
+  // Workers are started in worker.ts by importing createWorker and creating workers there
+  // This function exists for compatibility with worker.ts
+  console.log("BullMQ workers will be started by worker.ts");
+}

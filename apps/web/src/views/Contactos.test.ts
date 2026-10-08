@@ -71,7 +71,7 @@ describe("Contactos", () => {
     mockApi([]);
     const w = mountContactos();
     await flushPromises();
-    expect(w.text()).toContain("No hay contactos.");
+    expect(w.text()).toContain("Crea el primero");
   });
 
   it("abre el modal con Nuevo Contacto", async () => {
@@ -82,7 +82,9 @@ describe("Contactos", () => {
       .findAll("button")
       .find((b) => b.attributes("title") === "Nuevo Contacto")!
       .trigger("click");
-    expect(w.text()).toContain("Nuevo Contacto");
+    await flushPromises();
+    // Modal is teleported to body
+    expect(document.body.innerHTML).toContain("Nuevo Contacto");
   });
 
   it("valida el nombre al guardar", async () => {
@@ -93,8 +95,15 @@ describe("Contactos", () => {
       .findAll("button")
       .find((b) => b.attributes("title") === "Nuevo Contacto")!
       .trigger("click");
-    const forms = w.findAll("form");
-    await forms[forms.length - 1].trigger("submit");
+    await flushPromises();
+    const modalForm = document.body.querySelector("form");
+    expect(modalForm).not.toBeNull();
+    if (modalForm) {
+      modalForm.dispatchEvent(
+        new Event("submit", { bubbles: true, cancelable: true }),
+      );
+    }
+    await flushPromises();
     expect(estadoToasts.items.value.some((t) => t.tipo === "error")).toBe(true);
   });
 
@@ -106,13 +115,21 @@ describe("Contactos", () => {
       .findAll("button")
       .find((b) => b.attributes("title") === "Nuevo Contacto")!
       .trigger("click");
-    expect(w.text()).toContain("Nuevo Contacto");
-    const cancelar = w.findAll("button").find((b) => b.text() === "Cancelar")!;
-    await cancelar.trigger("click");
+    await flushPromises();
+    // Check modal is open in body
+    expect(document.body.innerHTML).toContain("Nuevo Contacto");
+    // Find Cancelar button in body
+    const buttons = Array.from(document.body.querySelectorAll("button"));
+    const cancelarBtn = buttons.find((b) => b.textContent === "Cancelar");
+    expect(cancelarBtn).not.toBeNull();
+    cancelarBtn?.click();
     await flushPromises();
     await new Promise((r) => setTimeout(r, 350));
-    expect(document.querySelector(".dialog-shell")).toBeNull();
-    expect(w.findAll("button").some((b) => b.text() === "Cancelar")).toBe(
+    expect(document.body.querySelector(".modal-shell")).toBeNull();
+    const remainingButtons = Array.from(
+      document.body.querySelectorAll("button"),
+    );
+    expect(remainingButtons.some((b) => b.textContent === "Cancelar")).toBe(
       false,
     );
   });

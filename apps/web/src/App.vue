@@ -6,14 +6,14 @@
       <!-- Sidebar escritorio -->
       <aside
         v-if="authStore.isAuthenticated"
-        class="hidden lg:flex flex-col min-h-screen bg-zinc-100 dark:bg-zinc-800 border-r border-zinc-200 dark:border-zinc-700"
+        class="varko-sidebar hidden lg:flex flex-col min-h-screen"
         :class="[
           collapsed ? 'w-[76px]' : 'w-[272px]',
           'transition-all duration-300 ease-in-out',
         ]"
       >
         <div
-          class="border-b border-zinc-200 dark:border-zinc-700"
+          class="sidebar-divider border-b"
           :class="[
             collapsed ? 'px-2 py-3' : 'px-4 h-16',
             'transition-all duration-300 ease-in-out',
@@ -31,14 +31,15 @@
             />
             <span
               v-else
-              class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-zinc-900 text-zinc-50 dark:bg-zinc-100 dark:text-zinc-900 text-base font-bold"
-              >{{ (marca.nombre || "C").charAt(0).toUpperCase() }}</span
+              class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl text-base font-bold"
+              style="background: linear-gradient(135deg, var(--brand), var(--brand-hover)); color: #fff"
+              >{{ (marca.nombre || "V").charAt(0).toUpperCase() }}</span
             >
             <div v-if="!collapsed" class="min-w-0 flex-1">
-              <p class="truncate text-[15px] font-semibold leading-5">
+              <p class="sidebar-brand-name truncate text-[15px] font-semibold leading-5">
                 {{ marca.nombre }}
               </p>
-              <p class="truncate text-xs text-zinc-500">Espacio de trabajo</p>
+              <p class="sidebar-brand-tag truncate text-xs">Espacio de trabajo</p>
             </div>
             <Tooltip
               :content="collapsed ? 'Expandir menú' : 'Contraer menú'"
@@ -46,7 +47,8 @@
             >
               <button
                 @click="setCollapsed(!collapsed)"
-                class="rounded-lg border border-zinc-200 dark:border-zinc-700 p-1.5 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-700 hover:text-zinc-800 dark:hover:text-zinc-100"
+                class="varko-collapse-btn"
+                :aria-label="collapsed ? 'Expandir menú' : 'Contraer menú'"
               >
                 <svg
                   class="h-4 w-4"
@@ -77,11 +79,9 @@
           <router-link
             to="/"
             :title="collapsed ? 'Resumen' : ''"
-            class="mb-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors"
+            class="varko-nav-link mb-1"
             :class="[
-              isActive('/')
-                ? 'bg-zinc-900 text-zinc-50 dark:bg-zinc-100 dark:text-zinc-900 font-medium'
-                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100',
+              isActive('/') ? 'varko-nav-link-active' : '',
               collapsed ? 'justify-center px-0' : '',
             ]"
           >
@@ -93,12 +93,8 @@
             <button
               v-if="!collapsed"
               @click="toggleGroup(group.label)"
-              class="mt-2 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors"
-              :class="
-                groupActive(group)
-                  ? 'text-zinc-900 dark:text-zinc-100 font-medium'
-                  : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700'
-              "
+              class="varko-nav-link mt-2 w-full"
+              :class="groupActive(group) ? 'varko-nav-link-active' : ''"
             >
               <Icon :name="group.icon" class="h-5 w-5" />
               <span class="flex-1 text-left">{{ group.label }}</span>
@@ -119,7 +115,7 @@
             </button>
             <div
               v-if="collapsed"
-              class="mx-3 mb-1 mt-3 border-t border-zinc-200 dark:border-zinc-700 transition-opacity duration-200"
+              class="sidebar-divider mx-3 mb-1 mt-3 border-t transition-opacity duration-200"
             ></div>
             <Transition name="accordion" appear>
               <div
@@ -131,11 +127,9 @@
                   :key="item.to"
                   :to="item.to"
                   :title="item.desc || item.name"
-                  class="mb-0.5 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors"
+                  class="varko-nav-link mb-0.5"
                   :class="[
-                    isActive(item.to)
-                      ? 'bg-zinc-900 text-zinc-50 dark:bg-zinc-100 dark:text-zinc-900 font-medium'
-                      : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100',
+                    isActive(item.to) ? 'varko-nav-link-active' : '',
                     collapsed ? 'justify-center px-0' : 'ml-4',
                   ]"
                 >
@@ -147,22 +141,28 @@
           </template>
 
           <div
-            class="mx-3 mb-1 mt-3 border-t border-zinc-200 dark:border-zinc-700"
+            class="sidebar-divider mx-3 mb-1 mt-3 border-t"
           ></div>
           <router-link
             to="/settings"
             :title="collapsed ? 'Configuración' : ''"
-            class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors"
+            class="varko-nav-link"
             :class="[
-              isActive('/settings')
-                ? 'bg-zinc-900 text-zinc-50 dark:bg-zinc-100 dark:text-zinc-900 font-medium'
-                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100',
+              isActive('/settings') ? 'varko-nav-link-active' : '',
               collapsed ? 'justify-center px-0' : '',
             ]"
           >
             <Icon name="ajustes" class="h-5 w-5" />
             <span v-if="!collapsed">Configuración</span>
           </router-link>
+          <div v-if="!collapsed" class="varko-status-card mx-1 mb-1 mt-3">
+            <p class="flex items-center gap-2 text-xs font-semibold text-white">
+              <span class="varko-status-dot"></span> Sistema en línea
+            </p>
+            <p class="mt-1 text-[11px] leading-4" style="color: var(--sidebar-muted)">
+              Sincronizado con API y worker
+            </p>
+          </div>
         </nav>
       </aside>
 
@@ -170,6 +170,8 @@
       <button
         v-if="authStore.isAuthenticated"
         @click="mobileMenuOpen = !mobileMenuOpen"
+        aria-label="Abrir menú"
+        data-testid="mobile-menu-btn"
         class="lg:hidden fixed left-4 top-4 z-50 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-2 shadow-sm"
       >
         <svg
@@ -286,7 +288,7 @@
       <main class="min-w-0 flex-1">
         <header
           v-if="authStore.isAuthenticated"
-          class="sticky top-0 z-30 backdrop-blur border-b border-zinc-200 dark:border-zinc-700"
+          class="varko-topbar sticky top-0 z-30 border-b border-zinc-200 dark:border-zinc-700"
           :style="{ backgroundColor: headerBg }"
         >
           <div
@@ -307,9 +309,9 @@
             <div class="flex items-center gap-2">
               <button
                 @click="paletteAbierta = true"
-                class="flex items-center gap-2 rounded-xl border border-zinc-200 dark:border-zinc-700 px-2.5 py-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-700 hover:text-zinc-800 dark:hover:text-zinc-100"
+                class="varko-search-pill"
                 aria-label="Abrir paleta de comandos"
-                title="Buscar"
+                title="Buscar (Ctrl+K)"
               >
                 <svg
                   class="h-4 w-4"
@@ -324,6 +326,8 @@
                     d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z"
                   />
                 </svg>
+                <span class="hidden md:inline">Buscar...</span>
+                <kbd class="hidden md:inline rounded-md border border-zinc-300 dark:border-zinc-600 px-1.5 text-[11px]">⌘K</kbd>
               </button>
               <Tooltip
                 :content="
@@ -335,6 +339,7 @@
                 <button
                   @click="toggleTheme"
                   class="rounded-xl p-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-700 hover:text-zinc-800 dark:hover:text-zinc-100"
+                  :aria-label="theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
                 >
                   <svg
                     v-if="theme === 'dark'"
@@ -409,8 +414,11 @@
             <component :is="Component" />
           </PageTransition>
         </router-view>
+        <OfflineIndicator />
+        <PWAInstallPrompt />
+        <PushPermissionPrompt />
         <ConfirmDialog />
-        <Toasts />
+        <ToastContainer />
         <CommandPalette
           :open="paletteAbierta"
           :commands="paletteCommands"
@@ -423,12 +431,15 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted, onUnmounted } from "vue";
+import { computed, ref, onMounted, onUnmounted, inject } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useAuthStore } from "./stores/auth";
 import { marca, loadMarca } from "./utils/marca";
 import ConfirmDialog from "./components/ConfirmDialog.vue";
-import Toasts from "./components/Toasts.vue";
+import ToastContainer from "./components/ToastContainer.vue";
+import OfflineIndicator from "./components/OfflineIndicator.vue";
+import PWAInstallPrompt from "./components/PWAInstallPrompt.vue";
+import PushPermissionPrompt from "./components/PushPermissionPrompt.vue";
 import Icon from "./components/Icon.vue";
 import PageTransition from "./components/PageTransition.vue";
 import CommandPalette from "./components/CommandPalette.vue";
@@ -450,27 +461,17 @@ try {
   /* noop */
 }
 
-const theme = ref("light");
-try {
-  const saved = localStorage.getItem("crm-theme");
-  theme.value =
-    saved ||
-    (window.matchMedia("(prefers-color-scheme: dark)").matches
-      ? "dark"
-      : "light");
-} catch {
-  theme.value = "light";
-}
+const themeProvider = inject("theme", {
+  theme: ref("light"),
+  toggleTheme: () => {},
+  setTheme: () => {},
+  isDark: () => false,
+});
 
-const toggleTheme = () => {
-  theme.value = theme.value === "dark" ? "light" : "dark";
-  document.documentElement.classList.toggle("dark", theme.value === "dark");
-  try {
-    localStorage.setItem("crm-theme", theme.value);
-  } catch {
-    /* noop */
-  }
-};
+const theme = themeProvider.theme;
+const toggleTheme = themeProvider.toggleTheme;
+const setTheme = themeProvider.setTheme;
+const isDark = themeProvider.isDark;
 
 const navGroups = [
   {
@@ -566,20 +567,27 @@ const navGroups = [
         desc: "Eventos de Outlook y Google",
         icon: "calendario",
       },
-      {
-        mod: "tareas",
-        to: "/tareas",
-        name: "Tareas",
-        desc: "Pendientes vinculados",
-        icon: "tareas",
-      },
-      {
-        mod: "actividades",
-        to: "/actividades",
-        name: "Actividades",
-        desc: "Historial de acciones",
-        icon: "actividades",
-      },
+{
+  mod: "tareas",
+  to: "/tareas",
+  name: "Tareas",
+  desc: "Pendientes vinculados",
+  icon: "tareas",
+},
+{
+  mod: "actividades",
+  to: "/actividades",
+  name: "Actividades",
+  desc: "Historial de acciones",
+  icon: "actividades",
+},
+{
+  mod: "reuniones",
+  to: "/reuniones",
+  name: "Reuniones",
+  desc: "Programador de citas",
+  icon: "calendario",
+},
     ],
   },
   {

@@ -1,7 +1,7 @@
 <!-- Th (Fase 3): celda de cabecera de Table. -->
 <template>
   <th
-    class="text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
+    class="text-xs font-medium uppercase tracking-wider text-zinc-600 dark:text-zinc-400"
     :class="[
       compact ? 'px-3 py-2' : 'px-6 py-3',
       align === 'right'
