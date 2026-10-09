@@ -2382,6 +2382,18 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         if (body.role && !["admin", "user"].includes(body.role)) {
           return res.code(400).send({ error: "role inválido" });
         }
+        // No degradar al último administrador activo (lockout del sistema).
+        if (body.role && body.role !== "admin") {
+          const admins = await db
+            .select({ id: users.id })
+            .from(users)
+            .where(and(eq(users.role, "admin"), eq(users.activo, true)));
+          if (admins.length <= 1 && admins[0]?.id === (req as any).params.id) {
+            return res.code(400).send({
+              error: "No se puede degradar al último administrador activo",
+            });
+          }
+        }
         const [u] = await db
           .update(users)
           .set({ ...body, updatedAt: new Date() })
@@ -2401,6 +2413,23 @@ export async function registerAuthRoutes(app: FastifyInstance) {
           return res
             .code(400)
             .send({ error: "No puedes eliminar tu propio usuario" });
+        }
+        // No eliminar al último administrador activo.
+        const [target] = await db
+          .select({ id: users.id, role: users.role, activo: users.activo })
+          .from(users)
+          .where(eq(users.id, (req as any).params.id))
+          .limit(1);
+        if (target && target.role === "admin" && target.activo) {
+          const admins = await db
+            .select({ id: users.id })
+            .from(users)
+            .where(and(eq(users.role, "admin"), eq(users.activo, true)));
+          if (admins.length <= 1) {
+            return res.code(400).send({
+              error: "No se puede eliminar al último administrador activo",
+            });
+          }
         }
         await db
           .delete(permisos)
