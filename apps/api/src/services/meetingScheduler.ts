@@ -228,7 +228,7 @@ export class MeetingSchedulerService {
       invitadoTelefono?: string;
       respuestas?: Record<string, any>;
     },
-    opts?: { meetingTypeId?: string; tenantId?: string },
+    opts?: { meetingTypeId?: string; tenantId?: string; userId?: string },
   ) {
     const [slot] = await db
       .select()
@@ -262,7 +262,8 @@ export class MeetingSchedulerService {
       .set({
         ...bookingData,
         estado: "reservado",
-        reservadoPor: sql`null`, // será llenado si hay usuario logueado
+        // Quién reservó (null en booking público anónimo).
+        reservadoPor: opts?.userId ?? sql`null`,
         actualizadoEn: new Date(),
       })
       .where(

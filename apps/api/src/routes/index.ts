@@ -114,6 +114,7 @@ import {
   createFieldFilter,
   createWriteFieldFilter,
 } from "../middleware/fieldPermissions.js";
+import { FieldPermissionService } from "../services/fieldPermissions.js";
 import { ReportsService } from "../services/reports.js";
 import { MeetingSchedulerService } from "../services/meetingScheduler.js";
 import {
@@ -2247,39 +2248,26 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       entity: string;
       op: "read" | "write";
     }> = [];
-    for (const entity of ["users", "contactos", "oportunidades"]) {
-      FIELD_FILTER_RULES.push(
-        {
-          method: "GET",
-          re: new RegExp(`^/api/${entity}(/|$)`),
-          entity,
-          op: "read",
-        },
-        {
-          method: "POST",
-          re: new RegExp(`^/api/${entity}(/|$)`),
-          entity,
-          op: "write",
-        },
-        {
-          method: "PUT",
-          re: new RegExp(`^/api/${entity}(/|$)`),
-          entity,
-          op: "write",
-        },
-        {
-          method: "PATCH",
-          re: new RegExp(`^/api/${entity}(/|$)`),
-          entity,
-          op: "write",
-        },
-        {
-          method: "DELETE",
-          re: new RegExp(`^/api/${entity}(/|$)`),
-          entity,
-          op: "write",
-        },
-      );
+    // Nota: la entidad matriz de empresas cubre /api/companies/* (alias histórico).
+    const FIELD_FILTER_TARGETS: Array<{ entity: string; res: RegExp[] }> = [
+      { entity: "users", res: [/^\/api\/users(\/|$)/] },
+      { entity: "contactos", res: [/^\/api\/contactos(\/|$)/] },
+      { entity: "oportunidades", res: [/^\/api\/oportunidades(\/|$)/] },
+      {
+        entity: "empresas",
+        res: [/^\/api\/empresas(\/|$)/, /^\/api\/companies(\/|$)/],
+      },
+    ];
+    for (const t of FIELD_FILTER_TARGETS) {
+      for (const re of t.res) {
+        FIELD_FILTER_RULES.push(
+          { method: "GET", re, entity: t.entity, op: "read" },
+          { method: "POST", re, entity: t.entity, op: "write" },
+          { method: "PUT", re, entity: t.entity, op: "write" },
+          { method: "PATCH", re, entity: t.entity, op: "write" },
+          { method: "DELETE", re, entity: t.entity, op: "write" },
+        );
+      }
     }
     app.addHook("preHandler", async (req, reply) => {
       if (reply.sent || !(req as any).user) return;
@@ -2296,6 +2284,14 @@ export async function registerAuthRoutes(app: FastifyInstance) {
           : createWriteFieldFilter(rule.entity);
       await filter(req as any, reply as any);
     });
+
+    // Aplica la matriz de campos a filas planas antes de serializar CSV
+    // (el hook solo intercepta JSON via reply.send).
+    const filtrarExport = (entity: string, req: any, rows: any[]) => {
+      const perms = (req as any).fieldPermissions;
+      if (!perms) return rows;
+      return FieldPermissionService.filterFields(rows, entity, perms, "read");
+    };
 
     app.get("/api/users", { preHandler: requireRole("admin") }, async () => {
       return db
@@ -2880,15 +2876,19 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         .from(oportunidades)
         .orderBy(desc(oportunidades.createdAt))
         .limit(5000);
-      const rows = data.map((o) => ({
-        ...o,
-        fechaCierreEstimada: o.fechaCierreEstimada
-          ? new Date(o.fechaCierreEstimada).toISOString()
-          : "",
-        completadoEn: o.completadoEn
-          ? new Date(o.completadoEn).toISOString()
-          : "",
-      }));
+      const rows = filtrarExport(
+        "oportunidades",
+        req,
+        data.map((o) => ({
+          ...o,
+          fechaCierreEstimada: o.fechaCierreEstimada
+            ? new Date(o.fechaCierreEstimada).toISOString()
+            : "",
+          completadoEn: o.completadoEn
+            ? new Date(o.completadoEn).toISOString()
+            : "",
+        })),
+      );
       res.header("Content-Type", "text/csv; charset=utf-8");
       res.header(
         "Content-Disposition",
@@ -3161,7 +3161,10 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       res.header("Content-Type", "text/csv; charset=utf-8");
       res.header("Content-Disposition", 'attachment; filename="contactos.csv"');
       return res.send(
-        toCsv(["nombre", "email", "telefono", "empresa", "cargo"], data),
+        toCsv(
+          ["nombre", "email", "telefono", "empresa", "cargo"],
+          filtrarExport("contactos", req, data),
+        ),
       );
     });
 
@@ -3725,7 +3728,9 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         .limit(5000);
       res.header("Content-Type", "text/csv; charset=utf-8");
       res.header("Content-Disposition", 'attachment; filename="empresas.csv"');
-      return res.send(toCsv(["nombre", "dominio"], data));
+      return res.send(
+        toCsv(["nombre", "dominio"], filtrarExport("empresas", req, data)),
+      );
     });
 
     // Campos personalizados: lectura para todos, gestión solo admin
@@ -5811,7 +5816,10 @@ export async function registerAuthRoutes(app: FastifyInstance) {
           const data = await MeetingSchedulerService.bookSlot(
             slotId,
             request.body as any,
-            { tenantId: (request as any).tenantId },
+            {
+              tenantId: (request as any).tenantId,
+              userId: (request as any).user?.id,
+            },
           );
           return data;
         } catch (err: any) {
