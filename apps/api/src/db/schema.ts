@@ -1104,6 +1104,11 @@ export const meetingSlots = pgTable(
     inicioIdx: index("meeting_slots_inicio_idx").on(table.inicio),
     estadoIdx: index("meeting_slots_estado_idx").on(table.estado),
     reservadoIdx: index("meeting_slots_reservado_idx").on(table.reservadoPor),
+    // Anti doble-generación concurrente: (tipo, inicio) único.
+    tipoInicioUx: uniqueIndex("meeting_slots_tipo_inicio_ux").on(
+      table.meetingTypeId,
+      table.inicio,
+    ),
   }),
 );
 

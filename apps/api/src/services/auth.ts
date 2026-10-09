@@ -14,9 +14,19 @@ export async function verifyPassword(
   return bcrypt.compare(password, hash);
 }
 
-export function generateToken(payload: object): string {
+const SESSION_TTL_REMEMBER = 30 * 24 * 3600; // 30 días
+
+export function sessionTtlSeconds(remember?: boolean): number {
+  return remember ? SESSION_TTL_REMEMBER : env.SESSION_TTL_SECONDS;
+}
+
+export function generateToken(
+  payload: object,
+  expiresIn?: string | number,
+): string {
   return jwt.sign(payload, env.JWT_SECRET, {
-    expiresIn: env.JWT_EXPIRES_IN as jwt.SignOptions["expiresIn"],
+    expiresIn: (expiresIn ??
+      env.JWT_EXPIRES_IN) as jwt.SignOptions["expiresIn"],
   });
 }
 
@@ -24,13 +34,13 @@ export function verifyToken(token: string): any {
   return jwt.verify(token, env.JWT_SECRET);
 }
 
-export function setAuthCookie(reply: any, token: string) {
+export function setAuthCookie(reply: any, token: string, maxAge?: number) {
   const isProduction = process.env.NODE_ENV === "production";
   reply.setCookie("token", token, {
     httpOnly: true,
     secure: isProduction,
     sameSite: isProduction ? "none" : "lax",
-    maxAge: env.SESSION_TTL_SECONDS,
+    maxAge: maxAge ?? env.SESSION_TTL_SECONDS,
     path: "/",
     // Explicitly set domain for localhost in development
     ...(!isProduction && { domain: "localhost" }),

@@ -186,10 +186,19 @@ export class MeetingSchedulerService {
     }
 
     if (slotsToCreate.length > 0) {
-      await db.insert(meetingSlots).values(slotsToCreate);
+      // onConflictDoNothing: cierra la carrera entre el SELECT de existentes
+      // y el INSERT (doble-click / doble request concurrente).
+      const inserted = await db
+        .insert(meetingSlots)
+        .values(slotsToCreate)
+        .onConflictDoNothing({
+          target: [meetingSlots.meetingTypeId, meetingSlots.inicio],
+        })
+        .returning({ id: meetingSlots.id });
+      return { created: inserted.length };
     }
 
-    return { created: slotsToCreate.length };
+    return { created: 0 };
   }
 
   static async getAvailableSlots(
@@ -219,6 +228,7 @@ export class MeetingSchedulerService {
       invitadoTelefono?: string;
       respuestas?: Record<string, any>;
     },
+    opts?: { meetingTypeId?: string; tenantId?: string },
   ) {
     const [slot] = await db
       .select()
@@ -229,7 +239,24 @@ export class MeetingSchedulerService {
     if (!slot || slot.estado !== "disponible") {
       throw new Error("Slot no disponible");
     }
+    // El slot debe pertenecer al tipo agendado (ruta pública) o al tenant
+    // (rutas autenticadas). Sin esto, cualquier slotId enumerable es reservable.
+    if (opts?.meetingTypeId && slot.meetingTypeId !== opts.meetingTypeId) {
+      throw new Error("Slot no disponible");
+    }
+    if (opts?.tenantId) {
+      const [tipo] = await db
+        .select({ tenantId: meetingTypes.tenantId })
+        .from(meetingTypes)
+        .where(eq(meetingTypes.id, slot.meetingTypeId))
+        .limit(1);
+      if (!tipo || tipo.tenantId !== opts.tenantId) {
+        throw new Error("Slot no disponible");
+      }
+    }
 
+    // UPDATE condicional: cierra la carrera entre el SELECT y el UPDATE.
+    // Solo una reserva concurrente afecta una fila; las demás ven 0 filas.
     const [updated] = await db
       .update(meetingSlots)
       .set({
@@ -238,8 +265,13 @@ export class MeetingSchedulerService {
         reservadoPor: sql`null`, // será llenado si hay usuario logueado
         actualizadoEn: new Date(),
       })
-      .where(eq(meetingSlots.id, slotId))
+      .where(
+        and(eq(meetingSlots.id, slotId), eq(meetingSlots.estado, "disponible")),
+      )
       .returning();
+    if (!updated) {
+      throw new Error("Slot no disponible");
+    }
 
     // Get meeting type for email
     const [meetingType] = await db
@@ -268,16 +300,16 @@ export class MeetingSchedulerService {
         .limit(1);
 
       await sendEmail({
-        to: slot.invitadoEmail ?? "",
+        to: updated.invitadoEmail ?? "",
         subject: `Confirmación: ${meetingType.nombre}`,
         html: `
-          <p>Hola ${slot.invitadoNombre},</p>
+          <p>Hola ${updated.invitadoNombre},</p>
           <p>Tu reunión <strong>${meetingType.nombre}</strong> ha sido confirmada.</p>
-          <p><strong>Fecha:</strong> ${new Date(slot.inicio).toLocaleString()}</p>
+          <p><strong>Fecha:</strong> ${new Date(updated.inicio).toLocaleString()}</p>
           <p><strong>Duración:</strong> ${meetingType.duracionMin} minutos</p>
           <p>Nos vemos pronto,<br>${owner?.name ?? "El equipo"}</p>
         `,
-        text: `Confirmación: ${meetingType.nombre} - ${new Date(slot.inicio).toLocaleString()}`,
+        text: `Confirmación: ${meetingType.nombre} - ${new Date(updated.inicio).toLocaleString()}`,
       });
 
       // Notify owner
@@ -285,7 +317,7 @@ export class MeetingSchedulerService {
         await sendEmail({
           to: owner.email,
           subject: `Nueva reserva: ${meetingType.nombre}`,
-          html: `<p>${slot.invitadoNombre} (${slot.invitadoEmail}) ha reservado ${meetingType.nombre} para el ${new Date(slot.inicio).toLocaleString()}.</p>`,
+          html: `<p>${updated.invitadoNombre} (${updated.invitadoEmail}) ha reservado ${meetingType.nombre} para el ${new Date(updated.inicio).toLocaleString()}.</p>`,
         });
       }
     }
@@ -293,7 +325,22 @@ export class MeetingSchedulerService {
     return updated;
   }
 
-  static async cancelSlot(slotId: string) {
+  static async cancelSlot(slotId: string, tenantId?: string) {
+    // Scoping por tenant: el slot debe pertenecer a un tipo del tenant.
+    if (tenantId) {
+      const rows = await db
+        .select({ id: meetingSlots.id })
+        .from(meetingSlots)
+        .innerJoin(
+          meetingTypes,
+          eq(meetingSlots.meetingTypeId, meetingTypes.id),
+        )
+        .where(
+          and(eq(meetingSlots.id, slotId), eq(meetingTypes.tenantId, tenantId)),
+        )
+        .limit(1);
+      if (!rows.length) throw new Error("Slot no encontrado");
+    }
     const [slot] = await db
       .update(meetingSlots)
       .set({ estado: "cancelado", actualizadoEn: new Date() })

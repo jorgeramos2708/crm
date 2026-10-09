@@ -59,6 +59,7 @@ import {
   generateToken,
   setAuthCookie,
   clearAuthCookie,
+  sessionTtlSeconds,
 } from "../services/auth.js";
 import { authMiddleware, requireRole } from "../middleware/auth.js";
 import {
@@ -874,6 +875,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       const { email, password } = req.body as {
         email: string;
         password: string;
+        remember?: boolean;
       };
 
       const [user] = await db
@@ -893,15 +895,20 @@ export async function registerAuthRoutes(app: FastifyInstance) {
           .send({ error: "Usuario inactivo", code: "USER_INACTIVE" });
       }
 
-      const token = generateToken({
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        name: user.name,
-        v: (user as any).tokenVersion ?? 0,
-      });
+      const remember = (req.body as { remember?: boolean }).remember === true;
+      const ttl = sessionTtlSeconds(remember);
+      const token = generateToken(
+        {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          name: user.name,
+          v: (user as any).tokenVersion ?? 0,
+        },
+        ttl,
+      );
 
-      setAuthCookie(res, token);
+      setAuthCookie(res, token, ttl);
 
       const { passwordHash, ...userSafe } = user;
       const permisosMap = await getPermisosMap(user.id, user.role);
@@ -1162,7 +1169,10 @@ export async function registerAuthRoutes(app: FastifyInstance) {
     "User.Read",
   ];
   // Estado público (sin secretos): el login deshabilita botones no configurados.
+  // Incluye los callbacks exactos que el IdP debe tener registrados
+  // (construidos con FRONTEND_URL, igual que loginRedirectUri).
   app.get("/api/auth/sso/status", async () => {
+    const FE = process.env.FRONTEND_URL || "http://localhost:8081";
     const [g] = await db
       .select({ id: googleConfig.id })
       .from(googleConfig)
@@ -1173,7 +1183,16 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       .from(microsoftConfig)
       .where(eq(microsoftConfig.activo, true))
       .limit(1);
-    return { google: !!g, microsoft: !!m };
+    return {
+      google: !!g,
+      microsoft: !!m,
+      callbacks: {
+        googleConnect: `${FE}/api/auth/google/callback`,
+        googleLogin: `${FE}/api/auth/google/login/callback`,
+        msConnect: `${FE}/api/auth/microsoft/callback`,
+        msLogin: `${FE}/api/auth/microsoft/login/callback`,
+      },
+    };
   });
   app.get("/api/auth/:proveedor/login", async (req, res) => {
     const proveedor = (req.params as any).proveedor as string;
@@ -2204,6 +2223,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         const data = await MeetingSchedulerService.bookSlot(
           slotId,
           bookingData,
+          { meetingTypeId: meetingType.id },
         );
         return data;
       } catch (err: any) {
@@ -2882,28 +2902,74 @@ export async function registerAuthRoutes(app: FastifyInstance) {
 
         const succeeded: string[] = [];
         const failed: { id: string; error: string }[] = [];
+        // NOTA: oportunidades no tiene tenantId (el tenant vive en el
+        // contacto/empresa); se espeja la semántica single (sin check de
+        // propietario) + existencia. Endurecer a ownership es decisión de
+        // producto (rompería flujos de managers).
+        const inScope = (id: string) => eq(oportunidades.id, id);
 
         for (const id of ids) {
           try {
             switch (action) {
-              case "delete":
-                await db.delete(oportunidades).where(eq(oportunidades.id, id));
+              case "delete": {
+                const rows = await db
+                  .delete(oportunidades)
+                  .where(inScope(id))
+                  .returning({ id: oportunidades.id });
+                if (!rows.length) throw new Error("No encontrado");
                 break;
-              case "assign":
-                await db
+              }
+              case "assign": {
+                if (!payload?.propietarioId) {
+                  throw new Error("payload.propietarioId requerido");
+                }
+                const [owner] = await db
+                  .select({ id: users.id })
+                  .from(users)
+                  .where(eq(users.id, String(payload.propietarioId)))
+                  .limit(1);
+                if (!owner) throw new Error("propietarioId inexistente");
+                const upd = await db
                   .update(oportunidades)
                   .set({ propietarioId: payload.propietarioId })
-                  .where(eq(oportunidades.id, id));
+                  .where(inScope(id))
+                  .returning({ id: oportunidades.id });
+                if (!upd.length) throw new Error("No encontrado");
                 break;
-              case "change_stage":
+              }
+              case "change_stage": {
+                if (!payload?.stageId) {
+                  throw new Error("payload.stageId requerido");
+                }
+                const [opp] = await db
+                  .select({
+                    id: oportunidades.id,
+                    pipelineId: oportunidades.pipelineId,
+                  })
+                  .from(oportunidades)
+                  .where(inScope(id))
+                  .limit(1);
+                if (!opp) throw new Error("No encontrado");
+                const [stage] = await db
+                  .select({
+                    id: pipelineStages.id,
+                    pipelineId: pipelineStages.pipelineId,
+                  })
+                  .from(pipelineStages)
+                  .where(eq(pipelineStages.id, String(payload.stageId)))
+                  .limit(1);
+                if (!stage) throw new Error("stageId inexistente");
+                if (stage.pipelineId !== opp.pipelineId) {
+                  throw new Error("La etapa no pertenece al pipeline");
+                }
                 await db
                   .update(oportunidades)
                   .set({ stageId: payload.stageId })
-                  .where(eq(oportunidades.id, id));
+                  .where(inScope(id));
                 break;
+              }
               case "add_to_sequence":
-                // TODO: Implement sequence enrollment
-                break;
+                throw new Error("No implementado: add_to_sequence");
               default:
                 throw new Error(`Unknown action: ${action}`);
             }
@@ -3157,34 +3223,47 @@ export async function registerAuthRoutes(app: FastifyInstance) {
 
         const succeeded: string[] = [];
         const failed: { id: string; error: string }[] = [];
+        const tenantId = (req as any).tenantId ?? "default";
+        const inScope = (id: string) =>
+          and(eq(contactos.id, id), eq(contactos.tenantId, tenantId));
 
         for (const id of ids) {
           try {
             switch (action) {
-              case "delete":
-                await db.delete(contactos).where(eq(contactos.id, id));
+              case "delete": {
+                const rows = await db
+                  .delete(contactos)
+                  .where(inScope(id))
+                  .returning({ id: contactos.id });
+                if (!rows.length) throw new Error("No encontrado o sin acceso");
                 break;
-              case "assign":
+              }
+              case "assign": {
                 // Contactos don't have propietarioId, but could have a custom field
+                if (payload?.assignedTo === undefined) {
+                  throw new Error("payload.assignedTo requerido");
+                }
                 const existing = await db
                   .select({ custom: contactos.custom })
                   .from(contactos)
-                  .where(eq(contactos.id, id))
+                  .where(inScope(id))
                   .limit(1);
+                if (!existing.length)
+                  throw new Error("No encontrado o sin acceso");
                 const currentCustom = existing[0]?.custom || {};
                 await db
                   .update(contactos)
                   .set({
                     custom: {
                       ...currentCustom,
-                      assignedTo: payload.assignedTo,
+                      assignedTo: payload?.assignedTo,
                     },
                   })
-                  .where(eq(contactos.id, id));
+                  .where(inScope(id));
                 break;
+              }
               case "add_to_sequence":
-                // TODO: Implement sequence enrollment
-                break;
+                throw new Error("No implementado: add_to_sequence");
               default:
                 throw new Error(`Unknown action: ${action}`);
             }
@@ -3945,25 +4024,61 @@ export async function registerAuthRoutes(app: FastifyInstance) {
 
         const succeeded: string[] = [];
         const failed: { id: string; error: string }[] = [];
+        // Ownership: sin tenantId en tareas; solo propias salvo admin.
+        const me = (req as any).user!.id;
+        const isAdmin = (req as any).user!.role === "admin";
+        const ESTADOS = [
+          "pendiente",
+          "en_progreso",
+          "detenida",
+          "completada",
+          "cancelada",
+        ];
+        const ownScope = (id: string) =>
+          isAdmin
+            ? eq(tareas.id, id)
+            : and(
+                eq(tareas.id, id),
+                or(eq(tareas.asignadoId, me), eq(tareas.creadoPor, me)),
+              );
 
         for (const id of ids) {
           try {
             switch (action) {
-              case "delete":
-                await db.delete(tareas).where(eq(tareas.id, id));
+              case "delete": {
+                const rows = await db
+                  .delete(tareas)
+                  .where(ownScope(id))
+                  .returning({ id: tareas.id });
+                if (!rows.length) throw new Error("No encontrado o sin acceso");
                 break;
-              case "assign":
-                await db
+              }
+              case "assign": {
+                if (!payload?.asignadoId) {
+                  throw new Error("payload.asignadoId requerido");
+                }
+                const upd = await db
                   .update(tareas)
                   .set({ asignadoId: payload.asignadoId })
-                  .where(eq(tareas.id, id));
+                  .where(ownScope(id))
+                  .returning({ id: tareas.id });
+                if (!upd.length) throw new Error("No encontrado o sin acceso");
                 break;
-              case "change_state":
-                await db
+              }
+              case "change_state": {
+                if (!ESTADOS.includes(payload?.estado)) {
+                  throw new Error(
+                    `estado inválido (válidos: ${ESTADOS.join(", ")})`,
+                  );
+                }
+                const upd = await db
                   .update(tareas)
                   .set({ estado: payload.estado })
-                  .where(eq(tareas.id, id));
+                  .where(ownScope(id))
+                  .returning({ id: tareas.id });
+                if (!upd.length) throw new Error("No encontrado o sin acceso");
                 break;
+              }
               default:
                 throw new Error(`Unknown action: ${action}`);
             }
@@ -4973,25 +5088,33 @@ export async function registerAuthRoutes(app: FastifyInstance) {
 
         const succeeded: string[] = [];
         const failed: { id: string; error: string }[] = [];
+        // NOTA: email_campaigns no tiene tenantId ni owner (igual que las
+        // rutas single): el límite es el permiso de módulo campañas:w +
+        // existencia. Endurecer a ownership es decisión de producto.
+        const inScope = (id: string) => eq(emailCampaigns.id, id);
 
         for (const id of ids) {
           try {
             switch (action) {
-              case "delete":
-                await db
+              case "delete": {
+                const rows = await db
                   .delete(emailCampaigns)
-                  .where(eq(emailCampaigns.id, id));
+                  .where(inScope(id))
+                  .returning({ id: emailCampaigns.id });
+                if (!rows.length) throw new Error("No encontrado");
                 break;
-              case "send":
-                await db
+              }
+              case "send": {
+                const upd = await db
                   .update(emailCampaigns)
                   .set({ estado: "enviando", enviadaEn: new Date() })
-                  .where(eq(emailCampaigns.id, id));
-                // TODO: Actually queue the campaign send
+                  .where(inScope(id))
+                  .returning({ id: emailCampaigns.id });
+                if (!upd.length) throw new Error("No encontrado");
                 break;
+              }
               case "duplicate":
-                // TODO: Implement duplication
-                break;
+                throw new Error("No implementado: duplicate");
               default:
                 throw new Error(`Unknown action: ${action}`);
             }
@@ -5659,6 +5782,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
           const data = await MeetingSchedulerService.bookSlot(
             slotId,
             request.body as any,
+            { tenantId: (request as any).tenantId },
           );
           return data;
         } catch (err: any) {
@@ -5673,7 +5797,10 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       "/api/reuniones/slots/:slotId/cancelar",
       async (request: FastifyRequest, reply: FastifyReply) => {
         const { slotId } = request.params as { slotId: string };
-        const data = await MeetingSchedulerService.cancelSlot(slotId);
+        const data = await MeetingSchedulerService.cancelSlot(
+          slotId,
+          (request as any).tenantId,
+        );
         return data;
       },
     );

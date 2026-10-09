@@ -16,9 +16,12 @@ async function migrate() {
       name VARCHAR(100) NOT NULL,
       role VARCHAR(20) NOT NULL DEFAULT 'user',
       activo BOOLEAN NOT NULL DEFAULT true,
+      token_version INTEGER NOT NULL DEFAULT 0,
       created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
       updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
     );
+    -- Columnas añadidas tras el bootstrap inicial (idempotente en BD viejas)
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS token_version INTEGER NOT NULL DEFAULT 0;
     
     CREATE TABLE IF NOT EXISTS pipelines (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

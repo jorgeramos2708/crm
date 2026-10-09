@@ -92,7 +92,7 @@
                   @mousedown.prevent
                   :aria-label="verPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
                 >
-                  <component :is="verPassword ? 'eye-off' : 'eye'" class="h-5 w-5" />
+                  <component :is="verPassword ? EyeOff : Eye" class="h-5 w-5" />
                 </button>
               </div>
               <p v-if="passwordError" class="form-error" id="password-error">{{ passwordError }}</p>
@@ -292,17 +292,19 @@ const sso = (proveedor) => {
   window.location.href = `/api/auth/${proveedor}/login`;
 };
 
-// Proveedores SSO configurados: deshabilita botones sin credencial global.
-const ssoStatus = ref({ google: false, microsoft: false });
+// Proveedores SSO configurados. Por defecto se asumen disponibles y es el
+// backend quien decide (redirige a sso_no_configurado con mensaje exacto);
+// solo se deshabilitan cuando el status confirma ausencia de credencial.
+const ssoStatus = ref({ google: true, microsoft: true });
 const loadSsoStatus = async () => {
   try {
     const { data } = await axios.get("/api/auth/sso/status");
     ssoStatus.value = {
-      google: !!data?.google,
-      microsoft: !!data?.microsoft,
+      google: data?.google !== false,
+      microsoft: data?.microsoft !== false,
     };
   } catch {
-    /* botones deshabilitados por defecto */
+    /* se mantiene el default optimista: el backend valida */
   }
 };
 

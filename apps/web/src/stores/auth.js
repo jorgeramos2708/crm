@@ -16,13 +16,14 @@ export const useAuthStore = defineStore("auth", () => {
 
   const isAuthenticated = computed(() => !!user.value);
 
-  async function login(email, password) {
+  async function login(email, password, remember) {
     loading.value = true;
     error.value = null;
     try {
       const response = await axios.post("/api/auth/login", {
         email,
         password,
+        remember: remember === true,
       });
       user.value = response.data.user;
       return true;

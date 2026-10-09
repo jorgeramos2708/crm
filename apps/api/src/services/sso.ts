@@ -210,7 +210,10 @@ export async function findOrCreateSSOUser(
         })
         .where(eq(users.id, user.id));
     } else {
-      const [newUser] = await db
+      // onConflictDoNothing + re-SELECT: cierra la carrera de dos callbacks
+      // SAML concurrentes para el mismo email nuevo (unique_violation → 401
+      // espurio). El perdedor relee la fila del ganador.
+      const [inserted] = await db
         .insert(users)
         .values({
           email: profile.email,
@@ -223,8 +226,17 @@ export async function findOrCreateSSOUser(
           activo: true,
           tenantId,
         })
+        .onConflictDoNothing({ target: users.email })
         .returning();
-      user = newUser;
+      if (inserted) {
+        user = inserted;
+      } else {
+        [user] = await db
+          .select()
+          .from(users)
+          .where(eq(users.email, profile.email))
+          .limit(1);
+      }
     }
   }
 

@@ -147,41 +147,37 @@
                 </template>
               </EmptyState>
             </div>
-            <div v-else class="opportunities-table-container" tabindex="0" role="region" aria-label="Tabla de oportunidades">
+            <div v-else class="opportunities-table-container">
               <Table :cols="[null, '200px', '140px', '120px']">
                 <template #head>
-                  <thead class="bg-[var(--bg-subtle)]">
-                    <tr>
-                      <Th class="text-left">Oportunidad</Th>
-                      <Th class="text-left hidden md:table-cell">Empresa</Th>
-                      <Th class="text-right">Valor</Th>
-                      <Th class="text-center">Etapa</Th>
-                    </tr>
-                  </thead>
-                </template>
-                <TransitionGroup name="table-row" tag="tbody" class="divide-y divide-[var(--card-border)]">
-                  <tr
-                    v-for="opp in recientes"
-                    :key="opp.id"
-                    class="table-row hover:bg-[var(--bg-subtle)] transition-colors"
-                    @click="() => router.push(`/negocios/${opp.id}`)"
-                  >
-                    <Td class="font-medium text-[var(--fg)]">{{ opp.nombre }}</Td>
-                    <Td class="text-[var(--fg-muted)] hidden md:table-cell">{{ opp.empresa?.nombre || '—' }}</Td>
-                    <Td class="text-right font-semibold tabular-nums text-[var(--fg)]">
-                      {{ formatCurrency(opp.importe) }}
-                    </Td>
-                    <Td class="text-center">
-                      <Badge
-                        :variant="badgeVariant(opp.stageColor)"
-                        :color="opp.stageColor"
-                        size="sm"
-                      >
-                        {{ nombreEtapa(opp.stageId) }}
-                      </Badge>
-                    </Td>
+                  <tr>
+                    <Th class="text-left">Oportunidad</Th>
+                    <Th class="text-left hidden md:table-cell">Empresa</Th>
+                    <Th class="text-right">Valor</Th>
+                    <Th class="text-center">Etapa</Th>
                   </tr>
-                </TransitionGroup>
+                </template>
+                <tr
+                  v-for="opp in recientes"
+                  :key="opp.id"
+                  class="table-row hover:bg-[var(--bg-subtle)] transition-colors"
+                  @click="() => router.push(`/negocios/${opp.id}`)"
+                >
+                  <Td class="font-medium text-[var(--fg)]">{{ opp.nombre }}</Td>
+                  <Td class="text-[var(--fg-muted)] hidden md:table-cell">{{ opp.empresa?.nombre || '—' }}</Td>
+                  <Td class="text-right font-semibold tabular-nums text-[var(--fg)]">
+                    {{ formatCurrency(opp.importe) }}
+                  </Td>
+                  <Td class="text-center">
+                    <Badge
+                      :variant="badgeVariant(opp.stageColor)"
+                      :color="opp.stageColor"
+                      size="sm"
+                    >
+                      {{ nombreEtapa(opp.stageId) }}
+                    </Badge>
+                  </Td>
+                </tr>
               </Table>
             </div>
           </section>

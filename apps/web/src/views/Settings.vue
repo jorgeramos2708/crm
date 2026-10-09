@@ -1697,8 +1697,11 @@ const conectarGoogle = () => {
 };
 
 // Callbacks OAuth a registrar en Google Cloud y Entra: conexión de buzones
-// + login SSO. Se derivan del origen actual (= FRONTEND_URL del despliegue).
+// + login SSO. Se prefieren los que devuelve el backend (construidos con
+// FRONTEND_URL, idénticos a los que usa el flujo); fallback al origen actual.
+const ssoCbBackend = ref(null);
 const ssoCallbacks = computed(() => {
+  if (ssoCbBackend.value) return ssoCbBackend.value;
   const base = window.location.origin;
   return {
     googleConnect: `${base}/api/auth/google/callback`,
@@ -1707,6 +1710,14 @@ const ssoCallbacks = computed(() => {
     msLogin: `${base}/api/auth/microsoft/login/callback`,
   };
 });
+const fetchSsoCallbacks = async () => {
+  try {
+    const { data } = await axios.get("/api/auth/sso/status");
+    if (data?.callbacks) ssoCbBackend.value = data.callbacks;
+  } catch {
+    /* fallback al origen actual */
+  }
+};
 
 const desconectarGoogle = async () => {
   working.value = true;
@@ -1866,6 +1877,7 @@ onMounted(async () => {
     }
     await fetchCustomFields();
     await fetchWebhooks();
+    await fetchSsoCallbacks();
     try {
       const { data } = await axios.get("/api/microsoft/config");
       if (data.configured) {

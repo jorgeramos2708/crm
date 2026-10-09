@@ -27,9 +27,13 @@ export class FieldPermissionService {
     // Admin: acceso total (mapa vacío = los filtros dejan pasar todo).
     if (role === "admin") return {};
     const cacheKey = `${CACHE_PREFIX}${tenantId}:${role}`;
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      return JSON.parse(cached) as FieldPermissionsMap;
+    try {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        return JSON.parse(cached) as FieldPermissionsMap;
+      }
+    } catch {
+      // Sin Redis se sigue desde BD (fuente de verdad); sin caché.
     }
 
     const perms = await db
@@ -54,16 +58,20 @@ export class FieldPermissionService {
       };
     }
 
-    await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(map));
+    await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(map)).catch(() => {});
     return map;
   }
 
   static async invalidateCache(tenantId: string, role?: string): Promise<void> {
-    if (role) {
-      await redis.del(`${CACHE_PREFIX}${tenantId}:${role}`);
-    } else {
-      const keys = await redis.keys(`${CACHE_PREFIX}${tenantId}:*`);
-      if (keys.length > 0) await redis.del(...keys);
+    try {
+      if (role) {
+        await redis.del(`${CACHE_PREFIX}${tenantId}:${role}`);
+      } else {
+        const keys = await redis.keys(`${CACHE_PREFIX}${tenantId}:*`);
+        if (keys.length > 0) await redis.del(...keys);
+      }
+    } catch {
+      // Si falla la invalidación, el TTL (5 min) limita la rancidez.
     }
   }
 
@@ -110,10 +118,20 @@ export class FieldPermissionService {
   ): Promise<void> {
     if (permissions.length === 0) return;
 
+    // Dedup: duplicados en el mismo lote harían fallar el upsert
+    // ("ON CONFLICT DO UPDATE cannot affect row a second time" → 500).
+    const seen = new Set<string>();
+    const unique = permissions.filter((p) => {
+      const k = `${p.entity}|${p.field}`;
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+
     await db
       .insert(fieldPermissions)
       .values(
-        permissions.map((p) => ({
+        unique.map((p) => ({
           tenantId,
           role,
           entity: p.entity,
