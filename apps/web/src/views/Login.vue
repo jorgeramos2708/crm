@@ -20,13 +20,12 @@
       <div class="login-main">
         <!-- Brand Header -->
         <header class="login-header">
-          <div v-if="marca.logo" class="login-logo-container">
-            <img :src="marca.logo" :alt="marca.nombre" class="login-logo" />
-          </div>
-          <div v-else class="login-logo-fallback">
-            <span class="login-logo-mark">{{ (marca.nombre || "C").charAt(0).toUpperCase() }}</span>
-          </div>
-          <h1 class="login-brand-name">{{ marca.nombre }}<span class="login-brand-suffix"> CRM</span></h1>
+          <img
+            src="/logo-varko-hex.svg"
+            alt="Varko CRM"
+            class="login-lockup"
+          />
+          <h1 class="sr-only">{{ marca.nombre }} CRM</h1>
           <p class="login-tagline">Inicia sesión para continuar</p>
         </header>
 
@@ -387,6 +386,13 @@ watch(password, () => { if (error.value) error.value = null; });
 .login-header {
   @apply text-center mb-10;
   animation: slide-up var(--duration-slower) var(--ease-out);
+}
+
+.login-lockup {
+  width: min(320px, 78vw);
+  height: auto;
+  margin: 0 auto 14px;
+  display: block;
 }
 
 .login-logo-container,
