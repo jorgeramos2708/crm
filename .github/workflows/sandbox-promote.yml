@@ -62,8 +62,10 @@ jobs:
         id: export
         env:
           DATABASE_URL: ${{ secrets[format('{0}_DATABASE_URL', github.event.inputs.source_env)] }}
-          ${{ format('{0}_TENANT_ID', github.event.inputs.source_env) }}: ${{ secrets[format('{0}_TENANT_ID', github.event.inputs.source_env)] }}
+          TENANT_ID_VALUE: ${{ secrets[format('{0}_TENANT_ID', github.event.inputs.source_env)] }}
         run: |
+          ENV_UPPER=$(echo "${{ github.event.inputs.source_env }}" | tr '[:lower:]' '[:upper:]')
+          export "${ENV_UPPER}_TENANT_ID=${TENANT_ID_VALUE}"
           OUTPUT_FILE="sandbox-${{ github.event.inputs.source_env }}.json"
           pnpm sandbox:export --env ${{ github.event.inputs.source_env }} --output $OUTPUT_FILE
           echo "output_file=$OUTPUT_FILE" >> $GITHUB_OUTPUT
@@ -80,8 +82,10 @@ jobs:
         id: dry-run
         env:
           DATABASE_URL: ${{ secrets[format('{0}_DATABASE_URL', github.event.inputs.target_env)] }}
-          ${{ format('{0}_TENANT_ID', github.event.inputs.target_env) }}: ${{ secrets[format('{0}_TENANT_ID', github.event.inputs.target_env)] }}
+          TENANT_ID_VALUE: ${{ secrets[format('{0}_TENANT_ID', github.event.inputs.target_env)] }}
         run: |
+          ENV_UPPER=$(echo "${{ github.event.inputs.target_env }}" | tr '[:lower:]' '[:upper:]')
+          export "${ENV_UPPER}_TENANT_ID=${TENANT_ID_VALUE}"
           pnpm sandbox:import --env ${{ github.event.inputs.target_env }} --input sandbox-${{ github.event.inputs.source_env }}.json --dry-run
 
       - name: Wait for approval (production only)
@@ -107,8 +111,10 @@ jobs:
         id: import
         env:
           DATABASE_URL: ${{ secrets[format('{0}_DATABASE_URL', github.event.inputs.target_env)] }}
-          ${{ format('{0}_TENANT_ID', github.event.inputs.target_env) }}: ${{ secrets[format('{0}_TENANT_ID', github.event.inputs.target_env)] }}
+          TENANT_ID_VALUE: ${{ secrets[format('{0}_TENANT_ID', github.event.inputs.target_env)] }}
         run: |
+          ENV_UPPER=$(echo "${{ github.event.inputs.target_env }}" | tr '[:lower:]' '[:upper:]')
+          export "${ENV_UPPER}_TENANT_ID=${TENANT_ID_VALUE}"
           pnpm sandbox:import --env ${{ github.event.inputs.target_env }} --input sandbox-${{ github.event.inputs.source_env }}.json --force
 
       - name: Comment on workflow run
@@ -130,6 +136,6 @@ jobs:
                 ['Target Environment', '${{ github.event.inputs.target_env }}'],
                 ['Dry Run', '${{ github.event.inputs.dry_run }}'],
                 ['Status', '${{ job.status }}'],
-                ['Timestamp', '${{ github.event.workflow_run.created_at || new Date().toISOString() }}'],
+                ['Timestamp', context.payload.workflow_run?.created_at || new Date().toISOString()],
               ])
               .write()
