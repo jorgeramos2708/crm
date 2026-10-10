@@ -112,8 +112,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Build images
+        run: docker compose build postgres redis api worker web
+
       - name: Start services
-        run: docker compose up -d --build postgres redis api worker web
+        run: docker compose up -d postgres redis api worker web
 
       - name: Wait for postgres
         run: |
@@ -149,6 +152,12 @@ jobs:
             -d '{"nombre":"Test Pipeline"}')
           echo "Pipeline created: $PIPELINE"
           echo "$PIPELINE" | grep -q '"id"'
+
+      - name: Diagnose on failure
+        if: failure()
+        run: |
+          docker compose ps
+          docker compose logs --tail=80 postgres redis api worker web
 
       - name: Cleanup
         if: always()
