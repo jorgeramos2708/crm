@@ -19,6 +19,7 @@ jobs:
         with:
           node-version: 20
           cache: npm
+          cache-dependency-path: apps/api/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -47,6 +48,7 @@ jobs:
         with:
           node-version: 20
           cache: npm
+          cache-dependency-path: apps/web/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -70,7 +72,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
       - name: Install mermaid-cli
         run: npm install -g @mermaid-js/mermaid-cli
@@ -96,27 +97,35 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Start services
-        run: docker-compose up -d
+        run: docker compose up -d --build postgres redis api worker web minio
+
+      - name: Migrate and seed
+        run: |
+          docker compose exec -T api npx tsx src/migrate.ts
+          docker compose exec -T api npx tsx src/seed.ts
 
       - name: Wait for services
         run: |
-          sleep 10
-          curl -f http://localhost:3001/health
-          curl -f http://localhost:8081/
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:8081/api/push/vapid-key && break
+            sleep 10
+          done
+          curl -f http://localhost:8081/api/push/vapid-key
+          curl -sf http://localhost:8081/ | grep -q "Varko"
 
       - name: Run integration tests
         run: |
-          # Login
-          TOKEN=$(curl -s -X POST http://localhost:3001/api/auth/login \
+          # Login (sesión por cookie, como el frontend)
+          curl -s -c jar.txt -X POST http://localhost:8081/api/auth/login \
             -H "Content-Type: application/json" \
-            -d '{"email":"admin@crm.local","password":"admin1234"}' | jq -r .token)
-          
+            -d '{"email":"admin@crm.local","password":"admin1234"}'
           # Test pipeline CRUD
-          PIPELINE=$(curl -s -X POST http://localhost:3001/api/pipelines \
-            -H "Cookie: token=$TOKEN" \
+          PIPELINE=$(curl -s -b jar.txt -X POST http://localhost:8081/api/pipelines \
             -H "Content-Type: application/json" \
             -d '{"nombre":"Test Pipeline"}')
           echo "Pipeline created: $PIPELINE"
+          echo "$PIPELINE" | grep -q '"id"'
 
       - name: Cleanup
-        run: docker-compose down
+        if: always()
+        run: docker compose down -v
