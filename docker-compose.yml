@@ -101,9 +101,9 @@ services:
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001/health"]
       interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 60s
 
   worker:
     build:
@@ -144,8 +144,8 @@ services:
       test: ["CMD-SHELL", "ps aux | grep -q '[w]orker.ts'"]
       interval: 15s
       timeout: 5s
-      retries: 3
-      start_period: 30s
+      retries: 10
+      start_period: 90s
 
   web:
     build:

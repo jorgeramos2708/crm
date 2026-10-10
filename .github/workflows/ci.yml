@@ -115,6 +115,14 @@ jobs:
       - name: Start services
         run: docker compose up -d --build postgres redis api worker web
 
+      - name: Wait for postgres
+        run: |
+          for i in $(seq 1 36); do
+            docker compose exec -T postgres pg_isready -U crm -d crm && break
+            sleep 5
+          done
+          docker compose exec -T postgres pg_isready -U crm -d crm
+
       - name: Migrate and seed
         run: |
           docker compose exec -T api npx tsx src/migrate.ts
