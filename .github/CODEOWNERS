@@ -1,0 +1,29 @@
+# Blindaje CI: estos paths exigen revisión antes de mergear (ver branch
+# protection: checks api/web/mermaid/integration en verde + sin bypass).
+# Nombres de checks = nombres de jobs en .github/workflows/ci.yml.
+
+# Pipeline CI y tooling de release
+/.github/workflows/ci.yml @jorgeramos2708
+/.github/mermaid-puppeteer.json @jorgeramos2708
+
+# Contratos que blindan API/Web (romperlos rompe el CI a propósito)
+/apps/api/contracts.golden.json @jorgeramos2708
+/apps/web/contracts.golden.json @jorgeramos2708
+/apps/api/src/contracts.lock.test.ts @jorgeramos2708
+
+# Migraciones y bootstrap de BD (un drift aquí rompió el CI una vez)
+/apps/api/src/migrate.ts @jorgeramos2708
+/apps/api/src/seed.ts @jorgeramos2708
+/scripts/*.sql @jorgeramos2708
+
+# Infra local (puertos, healthchecks y depends_on alimentan al CI)
+/docker-compose.yml @jorgeramos2708
+/apps/api/Dockerfile @jorgeramos2708
+/apps/web/Dockerfile.vue @jorgeramos2708
+/apps/web/nginx.conf @jorgeramos2708
+
+# Gate de dependencias (un lock desincronizado tumba `npm ci`)
+/apps/api/package.json @jorgeramos2708
+/apps/api/package-lock.json @jorgeramos2708
+/apps/web/package.json @jorgeramos2708
+/apps/web/package-lock.json @jorgeramos2708
