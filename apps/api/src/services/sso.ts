@@ -368,10 +368,25 @@ async function generateToken(user: any): Promise<string> {
 export async function loadTenantSSOConfigs(
   app: FastifyInstance,
 ): Promise<void> {
-  const tenantConfigs = await db
-    .select()
-    .from(tenants)
-    .where(eq(tenants.estado, "activo"));
+  // Resiliente: si la BD no está migrada aún, el boot no debe morir.
+  // Las estrategias SAML se resuelven bajo demanda en cada callback.
+  let tenantConfigs: Array<{
+    id: string;
+    subdominio?: string | null;
+    ssoConfig?: unknown;
+  }> = [];
+  try {
+    tenantConfigs = await db
+      .select()
+      .from(tenants)
+      .where(eq(tenants.estado, "activo"));
+  } catch (err) {
+    console.warn(
+      "[sso] no se pudieron cargar configs de tenants:",
+      (err as Error)?.message || err,
+    );
+    return;
+  }
 
   for (const tenant of tenantConfigs) {
     if (tenant.ssoConfig) {
