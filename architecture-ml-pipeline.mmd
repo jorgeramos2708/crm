@@ -36,5 +36,5 @@ graph LR
     Model --> ML_API
     ML_API --> NBA
     NBA --> ML_API
-    ML_API -->|{prob, actions}| API
+    ML_API -->|"{prob, actions}"| API
     API -->|WebSocket| FE
