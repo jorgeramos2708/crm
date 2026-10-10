@@ -28,7 +28,7 @@ jobs:
       run:
         working-directory: ./apps/api
     steps:
-      - uses: actions/checkout@11d596a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
@@ -57,7 +57,7 @@ jobs:
       run:
         working-directory: ./apps/web
     steps:
-      - uses: actions/checkout@11d596a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       # Node 22: jsdom 30 usa el global Iterator (solo 22+). Prod sigue en 20.
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -82,7 +82,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@11d596a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Setup Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -110,7 +110,7 @@ jobs:
     timeout-minutes: 20
     needs: [api, web]
     steps:
-      - uses: actions/checkout@11d596a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Build images
         run: docker compose build postgres redis api worker web
