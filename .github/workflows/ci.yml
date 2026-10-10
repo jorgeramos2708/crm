@@ -96,7 +96,7 @@ jobs:
           echo "Validating Mermaid diagrams..."
           for file in $(find . -name "*.mmd" -not -path "./node_modules/*" -not -path "./.git/*"); do
             echo "Checking $file..."
-            mmdc -i "$file" -o /dev/null
+            mmdc -i "$file" -o /tmp/mermaid-check.svg
             if [ $? -ne 0 ]; then
               echo "::error file=$file::Mermaid syntax error in $file"
               exit 1
