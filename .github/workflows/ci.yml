@@ -59,9 +59,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Node 22: jsdom 30 usa el global Iterator (solo 22+). Prod sigue en 20.
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: apps/web/package-lock.json
 
@@ -96,7 +97,7 @@ jobs:
           echo "Validating Mermaid diagrams..."
           for file in $(find . -name "*.mmd" -not -path "./node_modules/*" -not -path "./.git/*"); do
             echo "Checking $file..."
-            mmdc -i "$file" -o /tmp/mermaid-check.svg
+            mmdc --puppeteerConfigFile "$GITHUB_WORKSPACE/.github/mermaid-puppeteer.json" -i "$file" -o /tmp/mermaid-check.svg
             if [ $? -ne 0 ]; then
               echo "::error file=$file::Mermaid syntax error in $file"
               exit 1
