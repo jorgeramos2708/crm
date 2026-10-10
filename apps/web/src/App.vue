@@ -172,7 +172,7 @@
         @click="mobileMenuOpen = !mobileMenuOpen"
         aria-label="Abrir menú"
         data-testid="mobile-menu-btn"
-        class="lg:hidden fixed left-4 top-4 z-50 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-2 shadow-sm"
+        class="lg:hidden fixed left-4 top-4 z-50 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-2.5 shadow-sm"
       >
         <svg
           class="h-6 w-6"
@@ -295,11 +295,12 @@
             class="mx-auto flex max-w-full items-center justify-between gap-4 px-4 py-3 pl-14 lg:pl-6"
           >
             <div class="min-w-0">
-              <h1
+              <p
                 class="truncate text-lg font-semibold text-zinc-900 dark:text-zinc-100"
+                aria-current="page"
               >
                 {{ pageTitle }}
-              </h1>
+              </p>
               <p
                 class="hidden text-xs text-zinc-500 dark:text-zinc-400 sm:block"
               >

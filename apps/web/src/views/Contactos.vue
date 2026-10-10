@@ -20,23 +20,27 @@
           </svg>
         </div>
         <div class="flex gap-2">
-        <Btn href="/api/contactos/export" variant="icon" title="Exportar CSV">
+        <Btn href="/api/contactos/export" variant="icon" title="Exportar CSV" aria-label="Exportar CSV">
           <Icon name="download" class="h-4 w-4" />
         </Btn>
-        <label
-          class="inline-flex items-center justify-center rounded-xl h-9 w-9 cursor-pointer text-white font-medium transition-colors transition-transform hover:opacity-90"
-          style="background-color: var(--marca, #2563eb)"
+        <Btn
+          variant="icon"
           title="Importar CSV"
+          aria-label="Importar CSV"
+          @click="importInput?.click()"
         >
           <Icon name="upload" class="h-4 w-4" />
-          <input
-            type="file"
-            accept=".csv"
-            class="hidden"
-            @change="importarCsv"
-          />
-        </label>
-        <Btn @click="openModal(null)" variant="icon" title="Nuevo Contacto">
+        </Btn>
+        <input
+          ref="importInput"
+          type="file"
+          accept=".csv"
+          class="hidden"
+          aria-hidden="true"
+          tabindex="-1"
+          @change="importarCsv"
+        />
+        <Btn @click="openModal(null)" variant="icon" title="Nuevo Contacto" aria-label="Nuevo Contacto">
           +
         </Btn>
         </div>
@@ -54,9 +58,9 @@
       {{ importMsg }}
     </p>
 
-    <Card class="overflow-hidden" data-testid="contactos-table">
-      <Table :cols="['18%', '18%', '13%', '18%', '15%', '18%']">
-        <template #head>
+      <Card class="overflow-hidden" data-testid="contactos-table">
+        <Table :cols="['18%', '18%', '13%', '18%', '15%', '18%']" class="min-w-[880px]">
+          <template #head>
           <tr>
             <Th>Nombre</Th>
             <Th>Email</Th>
@@ -71,10 +75,10 @@
           :key="contacto.id"
           class="hover:bg-zinc-50 dark:hover:bg-zinc-700/50"
         >
-          <Td primary>
+          <Td primary :title="contacto.nombre">
             {{ contacto.nombre }}
           </Td>
-          <Td>
+          <Td :title="contacto.email || ''">
             {{ contacto.email || "-" }}
           </Td>
           <Td>
@@ -91,7 +95,7 @@
               variant="ghost"
               class="mr-1"
               title="Editar"
-              aria-label="Editar"
+              :aria-label="'Editar a ' + contacto.nombre"
               @click="openModal(contacto)"
             >
               <Icon name="editar" class="h-4 w-4" />
@@ -100,7 +104,7 @@
               variant="ghost"
               class="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
               title="Eliminar"
-              aria-label="Eliminar"
+              :aria-label="'Eliminar a ' + contacto.nombre"
               @click="eliminarContacto(contacto)"
             >
               <Icon name="eliminar" class="h-4 w-4" />
@@ -240,6 +244,7 @@ const total = ref(0);
 const totalPages = ref(1);
 const sortBy = ref("createdAt");
 const q = ref("");
+const importInput = ref(null);
 let buscarTimer = null;
 
 const onBuscar = () => {

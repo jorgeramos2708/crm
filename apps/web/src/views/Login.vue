@@ -517,7 +517,7 @@ html.dark .login-card {
 }
 
 .form-input-toggle {
-  @apply absolute right-4 top-1/2 -translate-y-1/2 p-1 text-[var(--fg-muted)]
+  @apply absolute right-3 top-1/2 -translate-y-1/2 p-2 text-[var(--fg-muted)]
          hover:text-[var(--fg)] transition-colors;
 }
 

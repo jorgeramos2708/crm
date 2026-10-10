@@ -268,7 +268,7 @@ onMounted(() => {
 .btn-md { padding: 0.625rem 1.25rem; font-size: var(--text-sm); border-radius: var(--radius-xl); }
 .btn-lg { padding: 0.875rem 1.5rem; font-size: var(--text-base); border-radius: var(--radius-xl); }
 .btn-xl { padding: 1rem 2rem; font-size: var(--text-lg); border-radius: var(--radius-xl); }
-.btn-icon { width: 40px; height: 40px; padding: 0; border-radius: var(--radius-xl); }
+.btn-icon { width: 44px; height: 44px; padding: 0; border-radius: var(--radius-xl); }
 
 .btn-primary {
   @apply btn;
@@ -365,8 +365,8 @@ onMounted(() => {
 
 .btn-icon {
   @apply btn;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   border-radius: var(--radius-xl);
   display: inline-flex;

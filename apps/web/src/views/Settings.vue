@@ -1,6 +1,7 @@
 <template>
   <div class="p-6 max-w-4xl" data-testid="settings-form">
     <header class="mb-6">
+      <h1 class="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">Configuración</h1>
       <p class="text-sm text-zinc-500">Conexiones e integraciones del CRM</p>
     </header>
 

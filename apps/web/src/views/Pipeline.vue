@@ -1,6 +1,9 @@
 <template>
   <div class="min-h-screen bg-zinc-50 dark:bg-zinc-900 p-6">
-    <header class="mb-6 flex items-end justify-between flex-wrap gap-3">
+      <header class="mb-6 flex items-end justify-between flex-wrap gap-3">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">Pipeline</h1>
+      </div>
       <div class="flex items-center gap-3 flex-wrap">
         <Select v-model="alcance" name="alcance" aria-label="Alcance de oportunidades" @change="fetchData">
           <option value="">Todas</option>
@@ -19,6 +22,7 @@
           href="/api/oportunidades/export"
           variant="icon"
           title="Exportar CSV"
+          aria-label="Exportar CSV"
         >
           <Icon name="download" class="h-4 w-4" />
         </Btn>
@@ -26,6 +30,7 @@
           @click="showNewOportunidad = true"
           variant="icon"
           title="Nueva Oportunidad"
+          aria-label="Nueva Oportunidad"
         >
           +
         </Btn>
@@ -84,7 +89,7 @@
             @dragend="onDragEnd"
           >
             <div class="flex items-center justify-between mb-1">
-              <div class="font-medium text-xs truncate max-w-xs">
+              <div class="font-medium text-xs truncate max-w-xs" :title="opp.nombre">
                 {{ opp.nombre }}
               </div>
               <span class="text-[10px] px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100">
@@ -107,6 +112,7 @@
                 v-if="!bloqueada(opp)"
                 variant="icon"
                 :title="esEtapaCerrada(getStage(opp.stageId)) ? 'Cerrar como ganado' : 'Cerrar negocio'"
+                :aria-label="esEtapaCerrada(getStage(opp.stageId)) ? 'Cerrar como ganado' : 'Cerrar negocio'"
                 :class="esEtapaCerrada(getStage(opp.stageId)) ? 'text-green-600' : 'text-blue-600'"
                 @click="abrirCierre(opp)"
               >
