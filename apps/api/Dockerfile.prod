@@ -1,0 +1,17 @@
+# Producción: build TypeScript y runtime mínimo sin devDependencies ni tsx.
+# El CMD se sobrescribe por servicio (server.js / worker.js / migrate / seed).
+FROM node:20-alpine AS build
+WORKDIR /app
+COPY package.json package-lock.json* ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+FROM node:20-alpine AS runtime
+WORKDIR /app
+ENV NODE_ENV=production
+COPY package.json package-lock.json* ./
+RUN npm ci --omit=dev
+COPY --from=build /app/dist ./dist
+EXPOSE 3001
+CMD ["node", "dist/server.js"]
