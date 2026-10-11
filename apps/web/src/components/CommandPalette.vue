@@ -209,6 +209,7 @@ const getGlobalIndex = (cmdIndex: number, sectionIndex: number): number => {
 };
 
 const handleKeydown = (e: KeyboardEvent) => {
+  if (!isOpen.value) return;
   if (e.key === 'Escape') {
     close();
   } else if (e.key === 'ArrowDown') {
