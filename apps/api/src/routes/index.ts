@@ -2700,12 +2700,10 @@ export async function registerAuthRoutes(app: FastifyInstance) {
           .limit(1);
         if (!oldOpp) return res.code(404).send({ error: "No encontrada" });
         if (!duenoOk(oldOpp.propietarioId, req)) {
-          return res
-            .code(403)
-            .send({
-              error: "Sin acceso a esta oportunidad",
-              code: "FORBIDDEN",
-            });
+          return res.code(403).send({
+            error: "Sin acceso a esta oportunidad",
+            code: "FORBIDDEN",
+          });
         }
 
         // Validar stageId pertenece al pipelineId si se está cambiando
@@ -2892,12 +2890,10 @@ export async function registerAuthRoutes(app: FastifyInstance) {
           .limit(1);
         if (!todel) return res.code(404).send({ error: "No encontrada" });
         if (!duenoOk(todel.propietarioId, req)) {
-          return res
-            .code(403)
-            .send({
-              error: "Sin acceso a esta oportunidad",
-              code: "FORBIDDEN",
-            });
+          return res.code(403).send({
+            error: "Sin acceso a esta oportunidad",
+            code: "FORBIDDEN",
+          });
         }
         await db
           .delete(oportunidades)
@@ -4300,12 +4296,23 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         return res.code(404).send({ error: "No encontrado" });
       }
       try {
-        const url = await storage().presignedGetObject(
-          bucketName(),
-          row.clave,
-          3600,
+        // Streaming vía API (no redirect presigned): el storage no es alcanzable
+        // desde internet y así se respeta el control de acceso en cada descarga.
+        const stat = await storage().statObject(bucketName(), row.clave);
+        const filename = String(row.nombre || "archivo").replace(
+          /["\r\n]/g,
+          "_",
         );
-        return res.redirect(url);
+        res.header(
+          "Content-Type",
+          stat.metaData?.["content-type"] ||
+            (row as any).mime ||
+            "application/octet-stream",
+        );
+        res.header("Content-Length", String(stat.size));
+        res.header("Content-Disposition", `attachment; filename="${filename}"`);
+        const stream = await storage().getObject(bucketName(), row.clave);
+        return res.send(stream);
       } catch (e: any) {
         return res
           .code(500)
