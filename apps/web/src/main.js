@@ -25,6 +25,7 @@ const Reuniones = () => import("./views/Reuniones.vue");
 const AgendarReunion = () => import("./views/AgendarReunion.vue");
 const NotFound = () => import("./views/NotFound.vue");
 import { useAuthStore } from "./stores/auth";
+import { createThemeProvider } from "./composables/useTheme";
 import autoAnimate from "@formkit/auto-animate";
 import "./style.css";
 
@@ -84,6 +85,11 @@ const routes = [
   { path: "/tareas", component: Tareas, meta: { requiresAuth: true } },
   { path: "/calendario", component: Calendario, meta: { requiresAuth: true } },
   { path: "/negocios", component: Negocios, meta: { requiresAuth: true } },
+  {
+    path: "/negocios/crear",
+    component: Negocios,
+    meta: { requiresAuth: true },
+  },
   { path: "/productos", component: Productos, meta: { requiresAuth: true } },
   {
     path: "/presupuestos",
@@ -141,6 +147,7 @@ router.beforeEach(async (to, from, next) => {
 const app = createApp(App);
 app.use(pinia);
 app.use(router);
+app.use(createThemeProvider());
 
 // FLIP animation para listas (v-auto-animate). Respeta prefers-reduced-motion.
 app.directive("auto-animate", {

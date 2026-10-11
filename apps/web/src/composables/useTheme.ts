@@ -1,4 +1,4 @@
-import { ref, onMounted, watchEffect } from "vue";
+import { ref, watchEffect } from "vue";
 
 const THEME_KEY = "crm-theme";
 
@@ -18,17 +18,16 @@ export function useTheme() {
     theme.value = newTheme;
   };
 
-  onMounted(() => {
-    const stored = localStorage.getItem(THEME_KEY);
-    if (stored === "dark" || stored === "light") {
-      theme.value = stored;
-    } else {
-      const prefersDark = window.matchMedia(
-        "(prefers-color-scheme: dark)",
-      ).matches;
-      theme.value = prefersDark ? "dark" : "light";
-    }
-  });
+  // Init inmediato (sin onMounted: el provider se instala fuera de setup).
+  const stored = localStorage.getItem(THEME_KEY);
+  if (stored === "dark" || stored === "light") {
+    theme.value = stored;
+  } else {
+    const prefersDark = window.matchMedia(
+      "(prefers-color-scheme: dark)",
+    ).matches;
+    theme.value = prefersDark ? "dark" : "light";
+  }
 
   watchEffect(() => {
     applyTheme(theme.value);

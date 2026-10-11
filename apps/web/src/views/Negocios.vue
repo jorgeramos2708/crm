@@ -24,9 +24,12 @@
         <option value="mio">Míos</option>
         <option value="equipo">Mi equipo</option>
       </Select>
-      <Btn href="/api/oportunidades/export" variant="icon" title="Exportar CSV">
-        <Icon name="download" class="h-4 w-4" />
-      </Btn>
+        <Btn href="/api/oportunidades/export" variant="icon" title="Exportar CSV" aria-label="Exportar CSV">
+          <Icon name="download" class="h-4 w-4" />
+        </Btn>
+        <Btn @click="abrirCreacion" variant="primary">
+          + Nuevo Negocio
+        </Btn>
     </div>
 
     <Card class="overflow-hidden">
@@ -128,11 +131,22 @@
 
     <Modal :open="showModal" @close="showModal = false">
       <template #title>
-        <h2 class="text-xl font-bold mb-4">Editar Negocio</h2>
+        <h2 class="text-xl font-bold mb-4">{{ editing ? "Editar Negocio" : "Nuevo Negocio" }}</h2>
       </template>
       <form @submit.prevent="guardarEdicion" class="space-y-4">
         <Field label="Nombre">
           <Input v-model="form.nombre" type="text" required class="w-full" />
+        </Field>
+        <Field v-if="!editing" label="Pipeline">
+          <Select
+            v-model="form.pipelineId"
+            required
+            class="w-full"
+          >
+            <option v-for="p in pipelines" :key="p.id" :value="p.id">
+              {{ p.nombre }}
+            </option>
+          </Select>
         </Field>
         <Field label="Etapa">
           <Select
@@ -247,6 +261,7 @@
 
 <script setup>
 import { ref, onMounted } from "vue";
+import { useRoute } from "vue-router";
 import axios from "axios";
 import { toast } from "../utils/toast";
 import { confirmar } from "../utils/confirm";
@@ -273,8 +288,11 @@ const alcance = ref("");
 const cargando = ref(true);
 const showModal = ref(false);
 const editing = ref(null);
+const pipelines = ref([]);
+const route = useRoute();
 const form = ref({
   nombre: "",
+  pipelineId: "",
   stageId: "",
   importe: 0,
   probabilidad: 50,
@@ -429,6 +447,7 @@ const abrirEdicion = (o) => {
   editing.value = o;
   form.value = {
     nombre: o.nombre || "",
+    pipelineId: o.pipelineId || "",
     stageId: o.stageId || "",
     importe: o.importe || 0,
     probabilidad: o.probabilidad ?? 50,
@@ -437,13 +456,33 @@ const abrirEdicion = (o) => {
   showModal.value = true;
 };
 
+const abrirCreacion = () => {
+  editing.value = null;
+  const pipeId = pipelines.value[0]?.id || "";
+  const firstStage = stages.value.find((s) => !pipeId || s.pipelineId === pipeId) || stages.value[0];
+  form.value = {
+    nombre: "",
+    pipelineId: pipeId,
+    stageId: firstStage?.id || "",
+    importe: 0,
+    probabilidad: 50,
+    descripcion: "",
+  };
+  showModal.value = true;
+};
+
 const guardarEdicion = async () => {
   try {
-    await axios.put(`/api/oportunidades/${editing.value.id}`, form.value);
+    if (editing.value) {
+      await axios.put(`/api/oportunidades/${editing.value.id}`, form.value);
+      toast.exito("Negocio actualizado");
+    } else {
+      await axios.post("/api/oportunidades", form.value);
+      toast.exito("Negocio creado");
+    }
     showModal.value = false;
     editing.value = null;
     await fetchNegocios();
-    toast.exito("Negocio actualizado");
   } catch (e) {
     console.error(e);
     toast.error(e.response?.data?.error || "Error al guardar");
@@ -453,11 +492,18 @@ const guardarEdicion = async () => {
 onMounted(async () => {
   await loadCurrency();
   try {
+    const { data } = await axios.get("/api/pipelines");
+    pipelines.value = data.data || data;
+  } catch {
+    /* */
+  }
+  try {
     const { data } = await axios.get("/api/pipeline-stages");
     stages.value = data.data || data;
   } catch {
     /* */
   }
   await fetchNegocios();
+  if (route.path === "/negocios/crear") abrirCreacion();
 });
 </script>
