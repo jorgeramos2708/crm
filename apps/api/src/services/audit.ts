@@ -1,6 +1,6 @@
 import { createHash } from "crypto";
-import { db } from "../db";
-import { auditLog } from "../db/schema";
+import { db } from "../db/index.js";
+import { auditLog } from "../db/schema.js";
 import { eq, desc, sql, and, count } from "drizzle-orm";
 
 interface AuditEvent {

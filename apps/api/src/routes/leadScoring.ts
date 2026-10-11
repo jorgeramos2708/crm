@@ -1,6 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
-import { LeadScoringService } from "../services/leadScoring";
-import { LeadScoringEngine } from "../services/leadScoring";
+import { LeadScoringService } from "../services/leadScoring.js";
+import { LeadScoringEngine } from "../services/leadScoring.js";
 
 export async function registerLeadScoringRoutes(app: FastifyInstance) {
   // Lead Scoring Rules
