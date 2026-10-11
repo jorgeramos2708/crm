@@ -57,11 +57,18 @@ test.describe("Pipeline", () => {
 
     // Drag and drop to next stage (la tarjeta arrastrable es el contenedor div.group)
     const card = page.locator("div.group", { hasText: `Drag Test ${tag}` });
-    const targetColumn = page.locator('[data-testid="pipeline-column"]', {
-      hasText: "Calificado",
-    });
+    // Columna por su encabezado (hasText suelto matchea los selects "Mover a").
+    const targetColumn = page
+      .locator('[data-testid="pipeline-column"]')
+      .filter({
+        has: page.locator(".pipeline-column-name", { hasText: "Calificado" }),
+      });
 
-    await card.dragTo(targetColumn);
+    await card.dragTo(targetColumn, {
+      // Esquina superior: el centro de la tarjeta cae sobre controles
+      // interactivos (botón/select) que no inician el arrastre HTML5.
+      sourcePosition: { x: 8, y: 8 },
+    });
 
     // Verify move happened
     await expect(

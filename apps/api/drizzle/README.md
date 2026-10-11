@@ -1,14 +1,12 @@
-# drizzle/ — historial de journal (NO es la vía de migración activa)
+# drizzle/ — journal de migraciones
 
-Este directorio conserva el snapshot/journal inicial de drizzle-kit como
-referencia, pero **ningún código lo consume automáticamente**:
+Historial: `0000` (baseline) + `0001_audit-fixes` (`token_version` en users,
+índice único `meeting_slots_tipo_inicio_ux`).
 
-- No hay `drizzle.config.*` y ningún arranque ejecuta `drizzle-kit migrate`.
-- La vía canónica es `apps/api/src/migrate.ts` (bootstrap `CREATE TABLE IF
-EXISTS` + `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` para evolutivos) más
-  los scripts idempotentes de `scripts/*.sql`, aplicados con:
-  `docker exec -i crm-postgres psql -U crm -d crm < scripts/<migracion>.sql`.
+Regenerar tras cambiar `src/db/schema.ts`:
+`pnpm --filter @crm/api exec drizzle-kit generate --dialect=postgresql --schema=./src/db/schema.ts --out=./drizzle --name=<tema>`
 
-Si algún día se adopta drizzle-kit como migrador, hay que regenerar este
-journal (`token_version` en `users`, índice único
-`meeting_slots_tipo_inicio_ux`, etc.) antes de usarlo.
+La vía canónica de bootstrap sigue siendo `apps/api/src/migrate.ts`
+(`CREATE TABLE IF NOT EXISTS` + evolutivos) más los scripts idempotentes de
+`scripts/*.sql`, aplicados con:
+`docker exec -i crm-postgres psql -U crm -d crm < scripts/<migracion>.sql`.

@@ -1,0 +1,2 @@
+ALTER TABLE "users" ADD COLUMN "token_version" integer DEFAULT 0 NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "meeting_slots_tipo_inicio_ux" ON "meeting_slots" USING btree ("meeting_type_id","inicio");

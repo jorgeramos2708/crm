@@ -281,4 +281,93 @@ describe("security-regression", () => {
       expect(true).toBe(true);
     }
   }, 60000);
+
+  it("ownership en singles: ajeno denegado, propio permitido", async () => {
+    if (!reachable) return;
+    const c = await api(
+      "POST",
+      "/api/users",
+      { email: `o-${TAG}@test.com`, password: "Test1234!", name: "O" },
+      AC!,
+    );
+    track("DELETE", `/api/users/${c.data.id}`);
+    await api(
+      "PUT",
+      `/api/users/${c.data.id}/permisos`,
+      {
+        permisos: [
+          { modulo: "oportunidades", r: true, w: true },
+          { modulo: "tareas", r: true, w: true },
+        ],
+      },
+      AC!,
+    );
+    const u = await api("POST", "/api/auth/login", {
+      email: `o-${TAG}@test.com`,
+      password: "Test1234!",
+    });
+    const UC = u.cookie!;
+    // Oportunidad del admin: PUT y DELETE denegados al no-dueño.
+    const pipes = await api("GET", "/api/pipelines", undefined, AC!);
+    const pipeId =
+      (Array.isArray(pipes.data) ? pipes.data : [])[0]?.id ||
+      (await api("POST", "/api/pipelines", { nombre: `Pipe ${TAG}` }, AC!)).data
+        ?.id;
+    const stages = await api("GET", "/api/pipeline-stages", undefined, AC!);
+    const stageId = (Array.isArray(stages.data) ? stages.data : []).find(
+      (s: any) => s.pipelineId === pipeId,
+    )?.id;
+    const mine = await api(
+      "POST",
+      "/api/oportunidades",
+      { nombre: `Mia ${TAG}`, pipelineId: pipeId, stageId },
+      UC,
+    );
+    expect([200, 201]).toContain(mine.status);
+    track("DELETE", `/api/oportunidades/${mine.data?.id}`);
+    const adminOpp = await api(
+      "POST",
+      "/api/oportunidades",
+      { nombre: `Admin ${TAG}`, pipelineId: pipeId, stageId },
+      AC!,
+    );
+    track("DELETE", `/api/oportunidades/${adminOpp.data?.id}`);
+    const putAlien = await api(
+      "PUT",
+      `/api/oportunidades/${adminOpp.data?.id}`,
+      { nombre: "Robada" },
+      UC,
+    );
+    expect(putAlien.status).toBe(403);
+    const delAlien = await api(
+      "DELETE",
+      `/api/oportunidades/${adminOpp.data?.id}`,
+      undefined,
+      UC,
+    );
+    expect([403, 404]).toContain(delAlien.status);
+    // Propia: PUT permitido.
+    const putMine = await api(
+      "PUT",
+      `/api/oportunidades/${mine.data?.id}`,
+      { nombre: `Mia ${TAG} edit` },
+      UC,
+    );
+    expect(putMine.status).toBe(200);
+    // Tarea del admin: PUT denegado al no-dueño.
+    const t = await api(
+      "POST",
+      "/api/tareas",
+      { titulo: `Tarea admin ${TAG}` },
+      AC!,
+    );
+    track("DELETE", `/api/tareas/${t.data?.id}`);
+    const putTask = await api(
+      "PUT",
+      `/api/tareas/${t.data?.id}`,
+      { titulo: "Robada" },
+      UC,
+    );
+    expect(putTask.status).toBe(403);
+  }, 180000);
 });

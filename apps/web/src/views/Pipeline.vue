@@ -36,15 +36,15 @@
         </Btn>
       </div>
     </header>
-    <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3" data-testid="pipeline-board">
+    <div class="gap-3 max-md:flex max-md:overflow-x-auto max-md:pb-2 max-md:snap-x md:grid md:grid-cols-3 md:overflow-visible xl:grid-cols-5" data-testid="pipeline-board">
       <div
         v-for="stage in stagesVisibles"
         :key="stage.id"
         data-testid="pipeline-column"
         :data-stage="stage.id"
-        class="p-3 rounded-xl flex flex-col border"
+        class="p-3 rounded-xl flex flex-col border max-md:min-w-[260px] max-md:snap-start"
         :style="{
-          backgroundColor: `color-mix(in srgb, ${getStageColor(stage)} 9%, #f1f5f9)`,
+          backgroundColor: `color-mix(in srgb, ${getStageColor(stage)} 9%, var(--card))`,
           borderColor: 'var(--card-border)',
           minHeight: '400px',
         }"
@@ -92,7 +92,7 @@
               <div class="font-medium text-xs truncate max-w-xs" :title="opp.nombre">
                 {{ opp.nombre }}
               </div>
-              <span class="text-[10px] px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100">
+              <span class="text-[10px] px-1.5 py-0.5 rounded border border-zinc-200 bg-zinc-200/70 text-zinc-900 dark:border-zinc-600 dark:bg-zinc-700/60 dark:text-zinc-100">
                 {{ opp.probabilidad ?? 50 }}%
               </span>
             </div>
@@ -118,10 +118,27 @@
               >
                 <Icon :name="esEtapaCerrada(getStage(opp.stageId)) ? 'completar' : 'pipeline'" class="h-4 w-4" />
               </Btn>
+              <select
+                v-if="!bloqueada(opp)"
+                class="ml-auto max-w-[110px] truncate rounded-lg border border-zinc-200 bg-white/70 px-1 py-0.5 text-[10px] text-zinc-600 dark:border-zinc-600 dark:bg-zinc-800/70 dark:text-zinc-300"
+                :aria-label="'Mover ' + opp.nombre + ' a etapa'"
+                :value="opp.stageId"
+                @change="moverTeclado(opp, $event.target.value)"
+              >
+                <option value="" disabled>Mover a…</option>
+                <option
+                  v-for="s in stagesVisibles"
+                  :key="s.id"
+                  :value="s.id"
+                  :disabled="s.id === opp.stageId"
+                >
+                  {{ s.nombre }}
+                </option>
+              </select>
             </div>
             <div
               v-if="opp.descripcion"
-              class="absolute z-10 bottom-full left-0 mb-2 w-56 p-3 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity pointer-events-none"
+              class="absolute z-10 bottom-full left-0 mb-2 w-56 p-3 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-opacity pointer-events-none"
             >
               <p class="font-medium mb-1">{{ opp.nombre }}</p>
               <p class="opacity-80 text-[11px]">{{ opp.descripcion }}</p>
@@ -520,8 +537,14 @@ const onDragLeave = (stageId) => {
   if (dropTarget.value === stageId) dropTarget.value = null;
 };
 
-const onDrop = async (stageId) => {
-  const opp = draggedOportunidad.value;
+// Alternativa por teclado al drag-and-drop (accesibilidad).
+const moverTeclado = async (opp, stageId) => {
+  if (!stageId || bloqueada(opp) || opp.stageId === stageId) return;
+  draggedOportunidad.value = opp;
+  await onDrop(stageId);
+};
+
+const onDrop = async (stageId) => {  const opp = draggedOportunidad.value;
   draggedOportunidad.value = null;
   dropTarget.value = null;
   if (!opp || opp.stageId === stageId) return;

@@ -195,6 +195,17 @@ function stripReadonly<T extends Record<string, any>>(
   return rest;
 }
 
+// Ownership: mutations sobre recursos ajenos requieren admin.
+// Devuelve 403 con mensaje; 404 si no existe (sin oráculo).
+function esAdminReq(req: any): boolean {
+  return req?.user?.role === "admin";
+}
+function duenoOk(duenoId: string | null | undefined, req: any): boolean {
+  if (esAdminReq(req)) return true;
+  if (!duenoId) return true; // legado sin dueño: módulo manda
+  return duenoId === req?.user?.id;
+}
+
 interface AutomatizacionParams {
   id: string;
 }
@@ -2688,6 +2699,14 @@ export async function registerAuthRoutes(app: FastifyInstance) {
           .where(eq(oportunidades.id, req.params.id))
           .limit(1);
         if (!oldOpp) return res.code(404).send({ error: "No encontrada" });
+        if (!duenoOk(oldOpp.propietarioId, req)) {
+          return res
+            .code(403)
+            .send({
+              error: "Sin acceso a esta oportunidad",
+              code: "FORBIDDEN",
+            });
+        }
 
         // Validar stageId pertenece al pipelineId si se está cambiando
         const targetPipelineId = body.pipelineId ?? oldOpp.pipelineId;
@@ -2863,6 +2882,23 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         },
       },
       async (req, res) => {
+        const [todel] = await db
+          .select({
+            id: oportunidades.id,
+            propietarioId: oportunidades.propietarioId,
+          })
+          .from(oportunidades)
+          .where(eq(oportunidades.id, (req as any).params.id))
+          .limit(1);
+        if (!todel) return res.code(404).send({ error: "No encontrada" });
+        if (!duenoOk(todel.propietarioId, req)) {
+          return res
+            .code(403)
+            .send({
+              error: "Sin acceso a esta oportunidad",
+              code: "FORBIDDEN",
+            });
+        }
         await db
           .delete(oportunidades)
           .where(eq(oportunidades.id, (req as any).params.id));
@@ -2931,21 +2967,31 @@ export async function registerAuthRoutes(app: FastifyInstance) {
 
         const succeeded: string[] = [];
         const failed: { id: string; error: string }[] = [];
-        // NOTA: oportunidades no tiene tenantId (el tenant vive en el
-        // contacto/empresa); se espeja la semántica single (sin check de
-        // propietario) + existencia. Endurecer a ownership es decisión de
-        // producto (rompería flujos de managers).
-        const inScope = (id: string) => eq(oportunidades.id, id);
+        // Ownership igual que en singles: dueño o admin (legado sin dueño:
+        // manda el módulo).
+        const duenoDe = async (id: string) => {
+          const [o] = await db
+            .select({
+              id: oportunidades.id,
+              propietarioId: oportunidades.propietarioId,
+              pipelineId: oportunidades.pipelineId,
+            })
+            .from(oportunidades)
+            .where(eq(oportunidades.id, id))
+            .limit(1);
+          if (!o) throw new Error("No encontrado");
+          if (!duenoOk(o.propietarioId, req)) {
+            throw new Error("Sin acceso a esta oportunidad");
+          }
+          return o;
+        };
 
         for (const id of ids) {
           try {
             switch (action) {
               case "delete": {
-                const rows = await db
-                  .delete(oportunidades)
-                  .where(inScope(id))
-                  .returning({ id: oportunidades.id });
-                if (!rows.length) throw new Error("No encontrado");
+                await duenoDe(id);
+                await db.delete(oportunidades).where(eq(oportunidades.id, id));
                 break;
               }
               case "assign": {
@@ -2958,27 +3004,18 @@ export async function registerAuthRoutes(app: FastifyInstance) {
                   .where(eq(users.id, String(payload.propietarioId)))
                   .limit(1);
                 if (!owner) throw new Error("propietarioId inexistente");
-                const upd = await db
+                await duenoDe(id);
+                await db
                   .update(oportunidades)
                   .set({ propietarioId: payload.propietarioId })
-                  .where(inScope(id))
-                  .returning({ id: oportunidades.id });
-                if (!upd.length) throw new Error("No encontrado");
+                  .where(eq(oportunidades.id, id));
                 break;
               }
               case "change_stage": {
                 if (!payload?.stageId) {
                   throw new Error("payload.stageId requerido");
                 }
-                const [opp] = await db
-                  .select({
-                    id: oportunidades.id,
-                    pipelineId: oportunidades.pipelineId,
-                  })
-                  .from(oportunidades)
-                  .where(inScope(id))
-                  .limit(1);
-                if (!opp) throw new Error("No encontrado");
+                const opp = await duenoDe(id);
                 const [stage] = await db
                   .select({
                     id: pipelineStages.id,
@@ -2994,7 +3031,7 @@ export async function registerAuthRoutes(app: FastifyInstance) {
                 await db
                   .update(oportunidades)
                   .set({ stageId: payload.stageId })
-                  .where(inScope(id));
+                  .where(eq(oportunidades.id, id));
                 break;
               }
               case "add_to_sequence":
@@ -3125,7 +3162,12 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         const [current] = await db
           .select()
           .from(contactos)
-          .where(eq(contactos.id, req.params.id))
+          .where(
+            and(
+              eq(contactos.id, req.params.id),
+              eq(contactos.tenantId, (req as any).tenantId ?? "default"),
+            ),
+          )
           .limit(1);
         if (!current) return res.code(404).send({ error: "No encontrado" });
         let custom = current.custom as Record<string, unknown>;
@@ -3138,8 +3180,14 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         const [contacto] = await db
           .update(contactos)
           .set({ ...body, custom, updatedAt: new Date() })
-          .where(eq(contactos.id, req.params.id))
+          .where(
+            and(
+              eq(contactos.id, req.params.id),
+              eq(contactos.tenantId, (req as any).tenantId ?? "default"),
+            ),
+          )
           .returning();
+        if (!contacto) return res.code(404).send({ error: "No encontrado" });
         return contacto;
       },
     );
@@ -4008,6 +4056,23 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       const body = stripReadonly(req.body as Record<string, any>);
       if (body.vencimiento)
         body.vencimiento = new Date(body.vencimiento as any);
+      const [cur] = await db
+        .select({
+          id: tareas.id,
+          asignadoId: tareas.asignadoId,
+          creadoPor: tareas.creadoPor,
+        })
+        .from(tareas)
+        .where(eq(tareas.id, id))
+        .limit(1);
+      if (!cur) return res.code(404).send({ error: "No encontrada" });
+      // Estricto: asignado o creador o admin (null no equivale a dueño).
+      const me = (req as any).user!.id;
+      if (!esAdminReq(req) && cur.asignadoId !== me && cur.creadoPor !== me) {
+        return res
+          .code(403)
+          .send({ error: "Sin acceso a esta tarea", code: "FORBIDDEN" });
+      }
       const [t] = await db
         .update(tareas)
         .set({ ...body, updatedAt: new Date() })
@@ -4031,6 +4096,22 @@ export async function registerAuthRoutes(app: FastifyInstance) {
 
     app.delete("/api/tareas/:id", async (req, res) => {
       const id = (req as any).params.id;
+      const [cur] = await db
+        .select({
+          id: tareas.id,
+          asignadoId: tareas.asignadoId,
+          creadoPor: tareas.creadoPor,
+        })
+        .from(tareas)
+        .where(eq(tareas.id, id))
+        .limit(1);
+      if (!cur) return res.code(404).send({ error: "No encontrada" });
+      const me = (req as any).user!.id;
+      if (!esAdminReq(req) && cur.asignadoId !== me && cur.creadoPor !== me) {
+        return res
+          .code(403)
+          .send({ error: "Sin acceso a esta tarea", code: "FORBIDDEN" });
+      }
       try {
         await cancelJob(getTaskQueue(), `task-${id}`);
       } catch {
@@ -4836,7 +4917,8 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       };
     });
 
-    const { registerLeadScoringRoutes } = await import("../routes/leadScoring");
+    const { registerLeadScoringRoutes } =
+      await import("../routes/leadScoring.js");
     await registerLeadScoringRoutes(app);
 
     // Automatizaciones
