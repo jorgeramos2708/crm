@@ -31,12 +31,18 @@ async function triggerSync() {
   syncInProgress.value = true;
 
   try {
-    // Trigger service worker sync
-    if ("serviceWorker" in navigator) {
-      const registration = await navigator.serviceWorker.ready;
-      if ("sync" in registration) {
-        await (registration as any).sync.register("sync-mutations");
+    // Aviso best-effort al SW: solo si hay trabajo pendiente y sin bloquear
+    // el procesado directo (sync.register lanza NotAllowedError si el
+    // background sync está denegado en el navegador).
+    try {
+      if ("serviceWorker" in navigator && pendingMutationsCount.value > 0) {
+        const registration = await navigator.serviceWorker.ready;
+        if ("sync" in registration) {
+          await (registration as any).sync.register("sync-mutations");
+        }
       }
+    } catch {
+      /* sin background sync; se procesa directo abajo */
     }
 
     // Also try to process mutations directly

@@ -57,6 +57,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { usePushNotifications } from '@/composables/usePushNotifications';
+import { toast } from '../utils/toast';
 import Btn from '../components/Btn.vue';
 import Icon from '../components/Icon.vue';
 
@@ -89,6 +90,8 @@ async function enableNotifications() {
     if (granted) {
       showPermissionPrompt.value = false;
     }
+  } catch {
+    toast.error("No se pudieron activar las notificaciones");
   } finally {
     requesting.value = false;
   }

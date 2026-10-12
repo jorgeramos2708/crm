@@ -51,24 +51,29 @@ onMounted(() => {
     return;
   }
 
-  // Listen for beforeinstallprompt
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e as BeforeInstallPromptEvent;
-    if (!dismissed) {
-      showInstallPrompt.value = true;
-    }
-  });
-
-  // Hide prompt after install
-  window.addEventListener('appinstalled', () => {
-    showInstallPrompt.value = false;
-    deferredPrompt = null;
-  });
+  // Listen for beforeinstallprompt.
+  // Solo se intercepta (preventDefault) si vamos a mostrar la UI propia;
+  // si el usuario la descartó, se deja el banner nativo (sin preventDefault
+  // Chrome avisa en consola de que prompt() nunca se llamó).
+  window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+  window.addEventListener('appinstalled', onAppInstalled);
 });
 
+function onBeforeInstallPrompt(e: Event) {
+  if (dismissed) return;
+  e.preventDefault();
+  deferredPrompt = e as BeforeInstallPromptEvent;
+  showInstallPrompt.value = true;
+}
+
+function onAppInstalled() {
+  showInstallPrompt.value = false;
+  deferredPrompt = null;
+}
+
 onUnmounted(() => {
-  // Cleanup
+  window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+  window.removeEventListener('appinstalled', onAppInstalled);
 });
 
 async function install() {

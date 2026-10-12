@@ -293,12 +293,6 @@ import { marca, loadMarca } from "@/utils/marca";
 import Icon from "./Icon.vue";
 import Btn from "./Btn.vue";
 import { Tooltip } from "reka-ui";
-import { ConfirmDialog } from "./ConfirmDialog.vue";
-import { ToastContainer } from "./ToastContainer.vue";
-import { CommandPalette } from "./CommandPalette.vue";
-import { PWAInstallPrompt } from "./PWAInstallPrompt.vue";
-import { PushPermissionPrompt } from "./PushPermissionPrompt.vue";
-import { OfflineIndicator } from "./OfflineIndicator.vue";
 
 const router = useRouter();
 const route = useRoute();
