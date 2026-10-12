@@ -411,6 +411,14 @@ const cerrarNegocio = async () => {
   if (!closing.value) return;
   savingClose.value = true;
   try {
+    // Mueve a la etapa de cierre correspondiente si existe.
+    const norm = (s) =>
+      (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const etapaCierre = stages.value.find((s) =>
+      closeTipo.value === "ganado"
+        ? ["ganado", "won", "closed"].includes(norm(s.nombre))
+        : ["perdido", "lost", "perdida"].includes(norm(s.nombre)),
+    );
     const body = {
       estadoCierre: closeTipo.value,
       motivoGanado: closeTipo.value === "ganado" ? closeForm.value.motivo : null,
@@ -419,6 +427,7 @@ const cerrarNegocio = async () => {
       importe: closeForm.value.importe ?? closing.value.importe,
       completadoEn: new Date().toISOString(),
     };
+    if (etapaCierre) body.stageId = etapaCierre.id;
     await axios.put(`/api/oportunidades/${closing.value.id}`, body);
     showCloseModal.value = false;
     closing.value = null;

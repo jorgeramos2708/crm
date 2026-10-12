@@ -18,8 +18,8 @@ test.describe("Pipeline", () => {
     const names = page.locator(".pipeline-column-name");
     await expect(names.first()).toBeVisible({ timeout: 15000 });
     await expect(names).toContainText([
-      "Nuevo",
-      "Calificado",
+      "Prospección",
+      "Calificación",
       "Propuesta",
       "Negociación",
       "Ganado",
@@ -61,7 +61,7 @@ test.describe("Pipeline", () => {
     const targetColumn = page
       .locator('[data-testid="pipeline-column"]')
       .filter({
-        has: page.locator(".pipeline-column-name", { hasText: "Calificado" }),
+        has: page.locator(".pipeline-column-name", { hasText: "Calificación" }),
       });
 
     await card.dragTo(targetColumn, {
@@ -80,12 +80,12 @@ test.describe("Pipeline", () => {
     page,
   }) => {
     const tag = uid();
-    // Create completed opportunity (Ganado = índice 5: placeholder + 5 etapas)
+    // Create completed opportunity (Ganado = índice 6: placeholder + 6 etapas)
     await page.click("text=+");
     await page.fill('input[name="nombre"]', `Completed Test ${tag}`);
     await page.fill('input[name="importe"]', "10000");
     await page.selectOption('select[name="pipelineId"]', { index: 1 });
-    await page.selectOption('select[name="stageId"]', { index: 5 }); // Ganado
+    await page.selectOption('select[name="stageId"]', { index: 6 }); // Ganado
     await page.click('button:has-text("Crear")');
 
     // Verify it's not draggable (el atributo vive en el contenedor div.group)
@@ -96,7 +96,7 @@ test.describe("Pipeline", () => {
   });
 
   test("should filter by stage", async ({ page }) => {
-    await page.selectOption('select[name="filtroStage"]', { index: 2 }); // Calificado
+    await page.selectOption('select[name="filtroStage"]', { index: 2 }); // Calificación
     await expect(page.locator(".space-y-1\\.5")).toHaveCount(1);
   });
 });

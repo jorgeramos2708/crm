@@ -27,7 +27,7 @@ test.describe("Dashboard", () => {
     const names = page.locator(".pipeline-column-name");
     await expect(names.first()).toBeVisible({ timeout: 15000 });
     // Etapas sembradas en demo (forma array: reintenta hasta el fetch)
-    await expect(names).toContainText(["Nuevo", "Ganado"]);
+    await expect(names).toContainText(["Prospección", "Ganado"]);
   });
 
   test("should display recent activities", async ({ page }) => {
@@ -39,7 +39,7 @@ test.describe("Dashboard", () => {
     await expect(page).toHaveURL(/\/pipeline/);
     const names = page.locator(".pipeline-column-name");
     await expect(names.first()).toBeVisible({ timeout: 15000 });
-    await expect(names).toContainText(["Nuevo"]);
+    await expect(names).toContainText(["Prospección"]);
   });
 
   test("should display tasks and events widgets", async ({ page }) => {

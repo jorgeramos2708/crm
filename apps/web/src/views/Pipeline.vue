@@ -92,8 +92,15 @@
               <div class="font-medium text-xs truncate max-w-xs" :title="opp.nombre">
                 {{ opp.nombre }}
               </div>
-              <span class="text-[10px] px-1.5 py-0.5 rounded border border-zinc-200 bg-zinc-200/70 text-zinc-900 dark:border-zinc-600 dark:bg-zinc-700/60 dark:text-zinc-100">
-                {{ opp.probabilidad ?? 50 }}%
+              <span class="flex items-center gap-1">
+                <span
+                  class="h-2 w-2 rounded-full flex-shrink-0"
+                  :class="SALUD_ESTILO[saludOportunidad(opp, getStage(opp.stageId)?.nombre).nivel]"
+                  :title="textoSalud(opp)"
+                />
+                <span class="text-[10px] px-1.5 py-0.5 rounded border border-zinc-200 bg-zinc-200/70 text-zinc-900 dark:border-zinc-600 dark:bg-zinc-700/60 dark:text-zinc-100">
+                  {{ opp.probabilidad ?? 50 }}%
+                </span>
               </span>
             </div>
             <div class="text-[10px] text-zinc-800 dark:text-zinc-200">
@@ -287,6 +294,7 @@ import { ref, computed, onMounted } from "vue";
 import axios from "axios";
 import { toast } from "../utils/toast";
 import { formatCurrency, loadCurrency } from "../utils/currency";
+import { saludOportunidad, SALUD_ESTILO } from "../utils/salud";
 import CustomFields from "../components/CustomFields.vue";
 import Btn from "../components/Btn.vue";
 import Badge from "../components/Badge.vue";
@@ -351,15 +359,25 @@ const draggedOportunidad = ref(null);
 const dropTarget = ref(null);
 
 const stageColorMap = {
-  nuevo: "#3b82f6",
-  calificado: "#f59e0b",
-  propuesta: "#a855f7",
-  negociación: "#ec4899",
-  negociacion: "#ec4899",
+  prospeccion: "#3b82f6",
+  calificacion: "#0ea5e9",
+  reunion: "#8b5cf6",
+  "reunion/demostracion": "#8b5cf6",
+  demostracion: "#8b5cf6",
+  demo: "#8b5cf6",
+  propuesta: "#f59e0b",
+  negociacion: "#f97316",
   ganado: "#22c55e",
   won: "#22c55e",
   closed: "#22c55e",
-  lost: "#ef4444",
+  perdido: "#991b1b",
+  perdida: "#991b1b",
+  lost: "#991b1b",
+  postventa: "#14b8a6",
+  "post-venta": "#14b8a6",
+  // Nombres viejos (compatibilidad durante la migración)
+  nuevo: "#3b82f6",
+  calificado: "#0ea5e9",
 };
 
 const getStageColor = (stage) => {
@@ -378,7 +396,9 @@ const nombreNorm = (s) =>
 
 const esEtapaCerrada = (stage) =>
   stage?.esFinal ||
-  ["ganado", "won", "closed"].includes(nombreNorm(stage.nombre));
+  ["ganado", "won", "closed", "perdido", "lost", "perdida"].includes(
+    nombreNorm(stage.nombre),
+  );
 
 const bloqueada = (opp) => {
   if (opp.completadoEn) return true;
@@ -542,6 +562,14 @@ const moverTeclado = async (opp, stageId) => {
   if (!stageId || bloqueada(opp) || opp.stageId === stageId) return;
   draggedOportunidad.value = opp;
   await onDrop(stageId);
+};
+
+// Texto del punto de salud para tooltip.
+const textoSalud = (opp) => {
+  const { nivel, dias } = saludOportunidad(opp, getStage(opp.stageId)?.nombre);
+  if (nivel === "riesgo") return `En riesgo: ${dias} días sin movimiento`;
+  if (nivel === "alerta") return `${dias} días sin movimiento`;
+  return dias === 0 ? "Movimiento hoy" : `Al día (${dias} días)`;
 };
 
 const onDrop = async (stageId) => {  const opp = draggedOportunidad.value;

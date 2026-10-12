@@ -10,8 +10,11 @@ import {
   emailTracking,
   tareas,
   contactos,
+  oportunidades,
+  pipelineStages,
+  users,
 } from "./db/schema.js";
-import { eq, lt, and, ilike, sql } from "drizzle-orm";
+import { eq, lt, and, ilike, sql, isNull, gte } from "drizzle-orm";
 import { storage, bucketName } from "./services/storage.js";
 import {
   getUserGraphClient,
@@ -323,6 +326,117 @@ async function startBullWorkers() {
 }
 
 const CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
+const STALLED_INTERVAL_MS = 60 * 60 * 1000; // revisión horaria de tratos quietos
+
+// Umbrales por categoría de etapa. Espejo de apps/web/src/utils/salud.js:
+// temprana 3d (Prospección, Calificación), media 7d (Reunión, Propuesta),
+// tardía 15d (Negociación, Postventa). Finales exentas (null).
+function umbralEtapa(nombre: string | null | undefined): number | null {
+  const n = (nombre || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  if (["ganado", "won", "closed", "perdido", "lost", "perdida"].includes(n)) {
+    return null;
+  }
+  if (["prospeccion", "calificacion"].includes(n)) return 3;
+  if (
+    [
+      "reunion",
+      "reunion/demostracion",
+      "demostracion",
+      "demo",
+      "propuesta",
+    ].includes(n)
+  ) {
+    return 7;
+  }
+  if (["negociacion", "postventa", "post-venta"].includes(n)) return 15;
+  return 7;
+}
+
+async function stalledLoop() {
+  while (running) {
+    try {
+      const abiertas = await db
+        .select({
+          id: oportunidades.id,
+          nombre: oportunidades.nombre,
+          importe: oportunidades.importe,
+          updatedAt: oportunidades.updatedAt,
+          propietarioId: oportunidades.propietarioId,
+          stageId: oportunidades.stageId,
+          stageNombre: pipelineStages.nombre,
+        })
+        .from(oportunidades)
+        .leftJoin(pipelineStages, eq(oportunidades.stageId, pipelineStages.id))
+        .where(isNull(oportunidades.completadoEn));
+      const ahora = Date.now();
+      let alertadas = 0;
+      for (const o of abiertas) {
+        try {
+          const umbral = umbralEtapa(o.stageNombre);
+          if (umbral == null) continue;
+          const dias = Math.max(
+            0,
+            Math.floor((ahora - new Date(o.updatedAt).getTime()) / 86400000),
+          );
+          if (dias < umbral) continue;
+          // Anti-spam: si ya hay alerta reciente, no duplicar.
+          const [reciente] = await db
+            .select({ id: tareas.id })
+            .from(tareas)
+            .where(
+              and(
+                eq(tareas.entityType, "oportunidad"),
+                eq(tareas.entityId, o.id),
+                ilike(tareas.titulo, "Seguimiento urgente%"),
+                gte(tareas.createdAt, new Date(ahora - umbral * 86400000)),
+              ),
+            )
+            .limit(1);
+          if (reciente) continue;
+          await db.insert(tareas).values({
+            titulo: `Seguimiento urgente: ${o.nombre} (${dias}d sin movimiento)`,
+            descripcion: `El trato lleva ${dias} días quieto en etapa "${o.stageNombre || "?"}". Llamar de urgencia para seguimiento.`,
+            estado: "pendiente",
+            prioridad: "alta",
+            vencimiento: new Date(ahora + 86400000),
+            entityType: "oportunidad",
+            entityId: o.id,
+            asignadoId: o.propietarioId,
+          });
+          if (o.propietarioId) {
+            const [dueno] = await db
+              .select({ email: users.email, name: users.name })
+              .from(users)
+              .where(eq(users.id, o.propietarioId))
+              .limit(1);
+            if (dueno?.email) {
+              await sendEmail({
+                to: dueno.email,
+                subject: `Trato frío: ${o.nombre} (${dias}d sin movimiento)`,
+                html: `<p>Hola ${dueno.name || ""},</p><p>El trato <strong>${o.nombre}</strong> lleva <strong>${dias} días</strong> sin movimiento en etapa "${o.stageNombre || "?"}".</p><p>Se creó una tarea urgente de seguimiento en el CRM.</p>`,
+                text: `El trato ${o.nombre} lleva ${dias} días sin movimiento. Se creó tarea urgente en el CRM.`,
+              });
+            }
+          }
+          alertadas++;
+        } catch (err) {
+          console.error(
+            "Worker stalled opp error:",
+            (err as Error)?.message || err,
+          );
+        }
+      }
+      if (alertadas > 0)
+        console.log(`?? Stalled: ${alertadas} alertas creadas`);
+    } catch (err) {
+      console.error("Worker stalled error:", (err as Error)?.message || err);
+    }
+    await new Promise((r) => setTimeout(r, STALLED_INTERVAL_MS));
+  }
+}
 
 async function cleanupLoop() {
   while (running) {
@@ -400,11 +514,12 @@ async function main() {
     );
   }
   console.log(
-    `👷 Worker ${CONSUMER} iniciado (consume + renovador + limpieza + bullmq + reportes)`,
+    `?? Worker ${CONSUMER} iniciado (consume + renovador + limpieza + alertas + bullmq + reportes)`,
   );
   // Renovación inicial al arrancar (sin bloquear el consumo)
   renewLoop();
   cleanupLoop();
+  stalledLoop();
   await consumeLoop();
 }
 
