@@ -124,6 +124,9 @@
           <EmptyState icon="negocios">
             Sin negocios. Créalos desde el
             <Btn variant="link" to="/pipeline">Pipeline</Btn>.
+            <template #action>
+              <Btn @click="abrirCreacion" variant="primary">+ Nuevo Negocio</Btn>
+            </template>
           </EmptyState>
         </TableState>
       </Table>

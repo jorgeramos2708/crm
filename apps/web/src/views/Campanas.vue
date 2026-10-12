@@ -76,7 +76,12 @@
         v-if="!cargando && !errorCarga && campanas.length === 0"
         class="p-12"
       >
-        <EmptyState icon="campanas">No hay campañas creadas</EmptyState>
+        <EmptyState icon="campanas">
+          No hay campañas creadas
+          <template #action>
+            <Btn @click="openModal(null)" variant="primary">+ Nueva Campaña</Btn>
+          </template>
+        </EmptyState>
       </Card>
       <Card v-if="!cargando && !errorCarga && campanas.length > 0" class="p-6">
         <p class="text-sm text-zinc-500">

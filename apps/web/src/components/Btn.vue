@@ -342,7 +342,7 @@ onMounted(() => {
 .btn-danger {
   @apply btn;
   background: linear-gradient(135deg, var(--destructive), #b91c1c);
-  color: var(--destructive-fg);
+  color: #fff; /* token -fg es para texto sobre fondo tenue, aquí va blanco */
   box-shadow: 0 2px 8px -2px rgba(220, 38, 38, 0.25);
   border: none;
 }
@@ -354,7 +354,7 @@ onMounted(() => {
 .btn-success {
   @apply btn;
   background: linear-gradient(135deg, var(--success), #15803d);
-  color: var(--success-fg);
+  color: #fff; /* token -fg es para texto sobre fondo tenue, aquí va blanco */
   box-shadow: 0 2px 8px -2px rgba(22, 163, 74, 0.25);
   border: none;
 }
@@ -372,6 +372,7 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  color: var(--brand-fg); /* fondo siempre brand gradient → icono blanco */
 }
 
 .btn-pressed:active:not(:disabled):not(.loading) {
