@@ -613,6 +613,11 @@ html.dark[data-theme-custom] {
   --brand: var(--marca);
   --brand-hover: color-mix(in srgb, var(--marca) 85%, black);
   --brand-light: color-mix(in srgb, var(--marca) 15%, white);
+  /* El sidebar se tiñe con el color del menú manteniendo base navy
+     para legibilidad del texto blanco. */
+  --sidebar-bg: color-mix(in srgb, var(--marca) 45%, #0a1428);
+  --sidebar-bg-soft: color-mix(in srgb, var(--marca) 35%, #0a1428);
+  --sidebar-border: color-mix(in srgb, var(--marca) 30%, transparent);
   html.dark & {
     --brand-light: color-mix(in srgb, var(--marca) 15%, #0a0f1a);
   }
