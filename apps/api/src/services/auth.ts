@@ -42,8 +42,8 @@ export function setAuthCookie(reply: any, token: string, maxAge?: number) {
     sameSite: isProduction ? "none" : "lax",
     maxAge: maxAge ?? env.SESSION_TTL_SECONDS,
     path: "/",
-    // Explicitly set domain for localhost in development
-    ...(!isProduction && { domain: "localhost" }),
+    // Sin Domain explícito: cookie host-only válida para localhost,
+    // 127.0.0.1 o cualquier hostname (Domain=localhost la bloqueaba).
   });
 }
 
