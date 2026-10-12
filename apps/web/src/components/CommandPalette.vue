@@ -28,7 +28,6 @@
               spellcheck="false"
               ref="inputRef"
             />
-            <kbd class="command-palette-shortcut">⌘K</kbd>
           </div>
         </div>
 
@@ -141,12 +140,17 @@ const allCommands = computed(() => {
 });
 
 const fuseInstance = ref<any>(null);
+let fuseBuiltFor: unknown[] | null = null;
 
 const buildFuse = () => {
   const cmds = allCommands.value;
   fuseInstance.value = new Fuse(cmds, {
-    keys: ['label', 'description', 'group'],
-    threshold: 0.3,
+    keys: ["label", "description", "group"],
+    // Búsqueda de paleta: tolerante a subcadenas ("cont" debe hallar
+    // "Ir a Contactos"). Sin ignoreLocation, los matches no iniciales
+    // puntúan >0.3 y la lista queda vacía.
+    threshold: 0.45,
+    ignoreLocation: true,
     includeScore: true,
     minMatchCharLength: 1,
   });
@@ -156,7 +160,11 @@ const filteredCommands = computed(() => {
   if (!searchQuery.value.trim()) {
     return allCommands.value.filter(cmd => !cmd.when || cmd.when());
   }
-  if (!fuseInstance.value) buildFuse();
+  // Reindexar si cambió el catálogo (p. ej. comandos cargados tras login).
+  if (!fuseInstance.value || fuseBuiltFor !== allCommands.value) {
+    buildFuse();
+    fuseBuiltFor = allCommands.value;
+  }
   const results = fuseInstance.value.search(searchQuery.value);
   return results.map(r => r.item).filter(cmd => !cmd.when || cmd.when());
 });
@@ -174,6 +182,7 @@ const isOpen = computed({
 
 const close = () => {
   isOpen.value = false;
+  emit("close");
 };
 
 const select = (index: number) => {

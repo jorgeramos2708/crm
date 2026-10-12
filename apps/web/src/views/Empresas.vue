@@ -5,8 +5,8 @@
         <Btn href="/api/companies/export" variant="icon" title="Exportar CSV">
           <Icon name="download" class="h-4 w-4" />
         </Btn>
-        <Btn @click="openModal(null)" variant="icon" title="Nueva Empresa">
-          +
+        <Btn @click="openModal(null)" variant="primary" title="Nueva Empresa">
+          + Nueva Empresa
         </Btn>
       </div>
     </header>
@@ -50,7 +50,7 @@
             <EmptyState icon="empresas">
               No hay empresas.
               <template #action>
-                <Btn @click="openModal(null)" variant="icon">+</Btn>
+                <Btn @click="openModal(null)" variant="primary">+ Nueva Empresa</Btn>
               </template>
             </EmptyState>
           </li>

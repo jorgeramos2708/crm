@@ -6,7 +6,7 @@
         <Btn @click="openBuilderModal" variant="outline" icon="layout">
           Constructor Visual
         </Btn>
-        <Btn @click="openModal(null)" variant="icon">+</Btn>
+        <Btn @click="openModal(null)" variant="primary">+ Nueva Plantilla</Btn>
       </div>
     </header>
 
@@ -60,7 +60,7 @@
         <EmptyState icon="plantillas">
           No hay plantillas creadas
           <template #action>
-            <Btn @click="openModal(null)" variant="icon">+</Btn>
+            <Btn @click="openModal(null)" variant="primary">+ Nueva Plantilla</Btn>
           </template>
         </EmptyState>
       </Card>

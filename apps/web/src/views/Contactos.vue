@@ -40,10 +40,10 @@
           tabindex="-1"
           @change="importarCsv"
         />
-        <Btn @click="openModal(null)" variant="icon" title="Nuevo Contacto" aria-label="Nuevo Contacto">
-          +
+        <Btn @click="openModal(null)" variant="primary" title="Nuevo Contacto" aria-label="Nuevo Contacto">
+          + Nuevo Contacto
         </Btn>
-        </div>
+      </div>
       </div>
     </header>
     <p

@@ -14,9 +14,9 @@
         />
       </div>
       <div class="ml-auto">
-        <Btn @click="openModal(null)" variant="icon" title="Nuevo Producto">
-          +
-        </Btn>
+<Btn @click="openModal(null)" variant="primary" title="Nuevo Producto">
++ Nuevo Producto
+</Btn>
       </div>
     </div>
 
@@ -85,7 +85,7 @@
           <EmptyState icon="productos">
             Sin productos en el catálogo.
             <template #action>
-              <Btn @click="openModal(null)" variant="icon">+</Btn>
+              <Btn @click="openModal(null)" variant="primary" title="Nuevo Producto">+ Nuevo Producto</Btn>
             </template>
           </EmptyState>
         </TableState>

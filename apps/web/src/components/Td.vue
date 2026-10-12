@@ -2,7 +2,7 @@
   Atributos extra (colspan...) se heredan a la celda. -->
 <template>
   <td
-    class="whitespace-nowrap text-sm"
+    class="whitespace-nowrap text-sm overflow-hidden text-ellipsis"
     :class="[
       compact ? 'px-3 py-2' : 'px-6 py-4',
       primary ? 'font-medium' : '',

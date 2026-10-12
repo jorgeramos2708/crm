@@ -1,7 +1,7 @@
 <template>
   <div class="p-6">
     <header class="mb-6 flex justify-end">
-      <Btn @click="openModal(null)" variant="icon">+</Btn>
+      <Btn @click="openModal(null)" variant="primary">+ Nueva Lista</Btn>
     </header>
 
     <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -54,7 +54,7 @@
         <EmptyState icon="listas">
           No hay listas creadas
           <template #action>
-            <Btn @click="openModal(null)" variant="icon">+</Btn>
+            <Btn @click="openModal(null)" variant="primary">+ Nueva Lista</Btn>
           </template>
         </EmptyState>
       </Card>

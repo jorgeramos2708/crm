@@ -117,11 +117,11 @@
               v-if="collapsed"
               class="sidebar-divider mx-3 mb-1 mt-3 border-t transition-opacity duration-200"
             ></div>
-            <Transition name="accordion" appear>
-              <div
-                v-show="collapsed || openGroups.includes(group.label)"
-                class="overflow-hidden"
-              >
+            <div
+              v-show="collapsed || openGroups.includes(group.label)"
+              class="nav-acc"
+              :class="{ 'nav-acc-open': collapsed || openGroups.includes(group.label) }"
+            >
                 <router-link
                   v-for="item in group.items"
                   :key="item.to"
@@ -137,7 +137,6 @@
                   <span v-if="!collapsed">{{ item.name }}</span>
                 </router-link>
               </div>
-            </Transition>
           </template>
 
           <div
@@ -698,6 +697,7 @@ const paletteCommands = computed(() => {
 });
 
 const onPaletteSelect = (cmd) => {
+  paletteAbierta.value = false;
   if (cmd.to) router.push(cmd.to);
   else if (cmd.run) cmd.run();
 };
@@ -807,6 +807,25 @@ onUnmounted(() => {
 .accordion-enter-to,
 .accordion-leave-from {
   max-height: 500px;
+}
+
+/* Acordeón del nav por grid-rows (sin max-height ni appear):
+   imposible que los items se solapen durante la animación. */
+.nav-acc {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 0.25s ease-out,
+    opacity 0.2s ease-out;
+}
+.nav-acc > * {
+  overflow: hidden;
+  min-height: 0;
+}
+.nav-acc-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
 }
 
 /* Sidebar collapse transition */

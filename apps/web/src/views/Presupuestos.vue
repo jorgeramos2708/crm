@@ -10,7 +10,7 @@
         <option value="vencido">Vencido</option>
       </Select>
       <div class="ml-auto">
-        <Btn @click="openModal(null)" variant="icon">+</Btn>
+        <Btn @click="openModal(null)" variant="primary">+ Nuevo Presupuesto</Btn>
       </div>
     </div>
 
@@ -62,7 +62,7 @@
           <EmptyState icon="presupuestos">
             Sin presupuestos.
             <template #action>
-              <Btn @click="openModal(null)" variant="icon">+</Btn>
+              <Btn @click="openModal(null)" variant="primary">+ Nuevo Presupuesto</Btn>
             </template>
           </EmptyState>
         </TableState>

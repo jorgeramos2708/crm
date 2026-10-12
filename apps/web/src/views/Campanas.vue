@@ -1,7 +1,7 @@
 <template>
   <div class="p-6">
     <header class="mb-6 flex justify-end">
-      <Btn @click="openModal(null)" variant="icon">+</Btn>
+      <Btn @click="openModal(null)" variant="primary">+ Nueva Campaña</Btn>
     </header>
 
     <div class="space-y-4">

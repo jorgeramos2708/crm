@@ -1,7 +1,7 @@
 <template>
   <div class="p-6">
     <div class="mb-4 flex flex-wrap items-center gap-2 justify-end">
-      <Btn @click="openModal(null)" variant="icon">+</Btn>
+      <Btn @click="openModal(null)" variant="primary">+ Nueva Tarea</Btn>
     </div>
 
     <Card v-if="cargando && !tareas.length" class="p-6 mb-4"
@@ -202,6 +202,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
+import { useRoute } from "vue-router";
 import axios from "axios";
 import { toast } from "../utils/toast";
 import { confirmar } from "../utils/confirm";
@@ -461,6 +462,7 @@ onMounted(async () => {
     console.error(e);
   }
   await fetchTareas();
+if (useRoute().query.nuevo !== undefined) openModal(null);
 });
 </script>
 

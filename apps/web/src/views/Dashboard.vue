@@ -142,7 +142,7 @@
               >
                 <template #action>
                   <Btn variant="primary" size="sm" to="/negocios/crear">
-                    <Icon name="plus" class="h-3.5 w-3.5" /> Nueva
+                    <Icon name="plus" class="h-3.5 w-3.5" /> Nueva Oportunidad
                   </Btn>
                 </template>
               </EmptyState>
@@ -202,7 +202,13 @@
                 compact
                 title="Sin tareas pendientes"
                 description="¡Todo al día! Disfruta el momento."
-              />
+              >
+                <template #action>
+                  <Btn variant="primary" size="sm" to="/tareas?nuevo=1">
+                    + Nueva Tarea
+                  </Btn>
+                </template>
+              </EmptyState>
             </div>
             <div v-else class="task-list">
               <router-link
@@ -249,7 +255,7 @@
                 description="Conecta tu Google u Outlook en Configuración."
               >
                 <template #action>
-                  <Btn variant="outline" size="sm" to="/settings/integrations">
+                  <Btn variant="outline" size="sm" to="/settings">
                     Conectar
                   </Btn>
                 </template>

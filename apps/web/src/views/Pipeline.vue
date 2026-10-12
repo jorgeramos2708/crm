@@ -28,11 +28,11 @@
         </Btn>
         <Btn
           @click="showNewOportunidad = true"
-          variant="icon"
+          variant="primary"
           title="Nueva Oportunidad"
           aria-label="Nueva Oportunidad"
         >
-          +
+          + Nueva Oportunidad
         </Btn>
       </div>
     </header>
