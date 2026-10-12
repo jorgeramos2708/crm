@@ -25,6 +25,7 @@ const Reuniones = () => import("./views/Reuniones.vue");
 const AgendarReunion = () => import("./views/AgendarReunion.vue");
 const NotFound = () => import("./views/NotFound.vue");
 import { useAuthStore } from "./stores/auth";
+import axios from "axios";
 import { createThemeProvider } from "./composables/useTheme";
 import autoAnimate from "@formkit/auto-animate";
 import "./style.css";
@@ -108,6 +109,38 @@ const router = createRouter({
   history: createWebHistory(),
   routes,
 });
+
+// Sesión global: ningún 401 deja pantallas en blanco.
+// - Primer 401 (no auth): se revalida la sesión una vez; si sigue viva se
+//   reintenta la petición original (transitorio superado).
+// - Si la sesión murió: recarga a /login (boot limpio, sin estado rancio).
+let revalidando = null;
+axios.interceptors.response.use(
+  (r) => r,
+  async (error) => {
+    const { config, response } = error || {};
+    const url = config?.url || "";
+    if (!config || !response || response.status !== 401 || config._authRetry) {
+      return Promise.reject(error);
+    }
+    if (url.startsWith("/api/auth/")) return Promise.reject(error);
+    config._authRetry = true;
+    try {
+      revalidando ??= axios.get("/api/auth/me").finally(() => {
+        revalidando = null;
+      });
+      const me = await revalidando;
+      useAuthStore().user = me.data?.user || null;
+      return axios(config);
+    } catch {
+      useAuthStore().user = null;
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
+      return Promise.reject(error);
+    }
+  },
+);
 
 router.beforeEach(async (to, from, next) => {
   // El navegador entrega location.pathname percent-encoded (ej: /campa%C3%B1as)
