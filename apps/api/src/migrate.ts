@@ -50,7 +50,7 @@ COMMENT ON EXTENSION "uuid-ossp" IS 'generate universally unique identifiers (UU
 -- Name: _log_marca_change(); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public._log_marca_change() RETURNS trigger
+CREATE OR REPLACE FUNCTION public._log_marca_change() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS public._audit_marca_log (
 -- Name: _audit_marca_log_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public._audit_marca_log_id_seq
+CREATE SEQUENCE IF NOT EXISTS public._audit_marca_log_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -816,7 +816,7 @@ CREATE TABLE IF NOT EXISTS public.presupuestos (
 -- Name: presupuestos_folio_seq_2026; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.presupuestos_folio_seq_2026
+CREATE SEQUENCE IF NOT EXISTS public.presupuestos_folio_seq_2026
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -2077,6 +2077,7 @@ CREATE INDEX IF NOT EXISTS webhook_deliveries_endpoint_idx ON public.webhook_del
 -- Name: ajustes trg_audit_marca; Type: TRIGGER; Schema: public; Owner: -
 --
 
+DROP TRIGGER IF EXISTS trg_audit_marca ON public.ajustes;
 CREATE TRIGGER trg_audit_marca AFTER UPDATE ON public.ajustes FOR EACH ROW EXECUTE FUNCTION public._log_marca_change();
 
 
@@ -2743,9 +2744,53 @@ ALTER TABLE ONLY public.webhook_deliveries
 
 `;
 
+// Códigos PG benignos al re-ejecutar sobre una BD ya migrada (el objeto ya existe).
+const DUPLICATE_CODES = new Set([
+  "42P07", // relation already exists
+  "42710", // duplicate object (constraint, trigger, index...)
+  "42701", // duplicate column
+  "42723", // duplicate function
+  "42P16", // primary key already present
+]);
+
+// Parte BOOTSTRAP en sentencias. Respeta cuerpos $$...$$ (funciones) y
+// descarta comentarios de línea; el resto se ejecuta tal cual.
+function splitStatements(sql: string): string[] {
+  const out: string[] = [];
+  let current = "";
+  let inDollar = false;
+  for (const line of sql.split("\n")) {
+    const trimmed = line.trim();
+    if (!inDollar && trimmed.startsWith("--")) continue;
+    const markers = (line.match(/\$\$/g) || []).length;
+    current += line + "\n";
+    if (markers % 2 === 1) inDollar = !inDollar;
+    if (!inDollar && trimmed.endsWith(";")) {
+      if (current.trim()) out.push(current);
+      current = "";
+    }
+  }
+  if (current.trim()) out.push(current);
+  return out;
+}
+
 async function migrate() {
-  await pool.query(BOOTSTRAP);
-  console.log("Tables created successfully");
+  const statements = splitStatements(BOOTSTRAP);
+  let applied = 0;
+  let skipped = 0;
+  for (const stmt of statements) {
+    try {
+      await pool.query(stmt);
+      applied++;
+    } catch (err: any) {
+      if (err?.code && DUPLICATE_CODES.has(err.code)) {
+        skipped++;
+        continue;
+      }
+      throw err;
+    }
+  }
+  console.log(`Migrate OK: ${applied} aplicadas, ${skipped} ya existían`);
   await pool.end();
   process.exit(0);
 }
