@@ -41,23 +41,39 @@ export function applyMarca() {
       t.fondo !== TEMA_BASE.fondo ||
       t.panel !== TEMA_BASE.panel;
     if (personalizado) {
+      const fondo = t.fondo || TEMA_BASE.fondo;
+      const panel = t.panel || TEMA_BASE.panel;
       if (marca.value.color) {
+        root.style.setProperty("--marca", marca.value.color);
         root.style.setProperty("--crm-brand", marca.value.color);
         // Calculate contrasting foreground for brand color
         root.style.setProperty(
           "--crm-brand-fg",
           getContrastColor(marca.value.color),
         );
+        // Activa el override completo ([data-theme-custom] deriva --brand,
+        // --brand-hover y --brand-light de --marca). Solo con color: sin él,
+        // var(--marca) quedaría inválido y se perdería el azul Varko.
+        root.setAttribute("data-theme-custom", "");
       } else {
+        root.style.removeProperty("--marca");
         root.style.removeProperty("--crm-brand");
         root.style.removeProperty("--crm-brand-fg");
+        root.removeAttribute("data-theme-custom");
       }
-      root.style.setProperty("--fondo", t.fondo || TEMA_BASE.fondo);
-      root.style.setProperty("--panel", t.panel || TEMA_BASE.panel);
+      // Superficies que los componentes leen con estos nombres:
+      root.style.setProperty("--crm-bg", fondo);
+      root.style.setProperty("--crm-bg-secondary", panel);
+      root.style.setProperty("--fondo", fondo);
+      root.style.setProperty("--panel", panel);
       document.body.classList.add("tema-marca");
     } else {
+      root.style.removeProperty("--marca");
       root.style.removeProperty("--crm-brand");
       root.style.removeProperty("--crm-brand-fg");
+      root.removeAttribute("data-theme-custom");
+      root.style.removeProperty("--crm-bg");
+      root.style.removeProperty("--crm-bg-secondary");
       root.style.removeProperty("--fondo");
       root.style.removeProperty("--panel");
       document.body.classList.remove("tema-marca");

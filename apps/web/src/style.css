@@ -679,21 +679,6 @@ html.dark[data-theme-custom] {
   color: #ffffff;
 }
 
-.varko-status-card {
-  border: 1px solid var(--sidebar-border);
-  border-radius: 0.75rem;
-  padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.04);
-}
-.varko-status-dot {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 9999px;
-  background: #22c55e;
-  box-shadow: 0 0 8px rgba(34, 197, 94, 0.8);
-  animation: pulse-soft 2s ease-in-out infinite;
-}
-
 .varko-topbar {
   background: color-mix(in srgb, var(--bg-elevated) 82%, transparent);
   backdrop-filter: blur(12px);

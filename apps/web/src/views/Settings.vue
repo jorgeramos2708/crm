@@ -1294,7 +1294,7 @@ const temasPreset = [
 const aplicarTema = (t) => {
   marcaForm.value.temaFondo = t.fondo;
   marcaForm.value.temaPanel = t.panel;
-  marcaForm.value.color = t.primario === "#1c1917" ? "" : t.primario;
+  marcaForm.value.color = t.primario;
 };
 const temaActivo = (t) =>
   marcaForm.value.temaFondo === t.fondo &&

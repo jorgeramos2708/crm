@@ -154,14 +154,6 @@
             <Icon name="ajustes" class="h-5 w-5" />
             <span v-if="!collapsed">Configuración</span>
           </router-link>
-          <div v-if="!collapsed" class="varko-status-card mx-1 mb-1 mt-3">
-            <p class="flex items-center gap-2 text-xs font-semibold text-white">
-              <span class="varko-status-dot"></span> Sistema en línea
-            </p>
-            <p class="mt-1 text-[11px] leading-4" style="color: var(--sidebar-muted)">
-              Sincronizado con API y worker
-            </p>
-          </div>
         </nav>
       </aside>
 
