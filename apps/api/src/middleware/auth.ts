@@ -22,6 +22,27 @@ function getToken(
   return token;
 }
 
+async function logAuthFail(
+  request: FastifyRequest,
+  code: string,
+  reason: string,
+) {
+  // Auditoría de 401s: url + motivo + si venía cookie (nunca el token).
+  try {
+    request.log.warn(
+      {
+        authFail: code,
+        url: request.url,
+        method: request.method,
+        hasCookie: !!request.cookies?.token,
+        reason,
+      },
+      "auth 401",
+    );
+  } catch {
+    /* logging nunca rompe auth */
+  }
+}
 async function getDefaultTenantId(db: any): Promise<string> {
   const { tenants } = await import("../db/schema.js");
   const { eq } = await import("drizzle-orm");
@@ -79,6 +100,7 @@ export async function authMiddleware(
   // 2) Sesión web: cookie JWT — también validar contra BD (activo/rol fresco)
   const token = getToken(request.cookies);
   if (!token) {
+    await logAuthFail(request, "UNAUTHORIZED", "sin cookie token");
     return reply
       .code(401)
       .send({ error: "No autorizado", code: "UNAUTHORIZED" });
@@ -105,6 +127,11 @@ export async function authMiddleware(
       .where(eq(users.id, decoded.id))
       .limit(1);
     if (!u || !u.activo) {
+      await logAuthFail(
+        request,
+        "UNAUTHORIZED",
+        "usuario inactivo/inexistente",
+      );
       return reply.code(401).send({
         error: "Usuario inactivo o no encontrado",
         code: "UNAUTHORIZED",
@@ -112,6 +139,7 @@ export async function authMiddleware(
     }
     // Revocación: el token lleva la versión vigente al emitirse.
     if ((decoded.v ?? 0) !== (u.tokenVersion ?? 0)) {
+      await logAuthFail(request, "TOKEN_REVOKED", "version de token obsoleta");
       return reply.code(401).send({
         error: "Sesión revocada, inicia sesión de nuevo",
         code: "TOKEN_REVOKED",
@@ -120,6 +148,7 @@ export async function authMiddleware(
     request.user = { id: u.id, email: u.email, role: u.role, name: u.name };
     request.tenantId = u.tenantId || (await getDefaultTenantId(db));
   } catch {
+    await logAuthFail(request, "INVALID_TOKEN", "firma/expiracion invalida");
     return reply
       .code(401)
       .send({ error: "Token inválido", code: "INVALID_TOKEN" });
