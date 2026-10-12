@@ -5516,6 +5516,44 @@ export async function registerAuthRoutes(app: FastifyInstance) {
       },
     );
 
+    // Activities: alta manual de notas (las automáticas las escribe el sistema).
+    // La nota se vincula a su autor como entidad (entityType/entityId NOT NULL).
+    app.post(
+      "/api/activities",
+      async (
+        req: FastifyRequest<{
+          Body: { titulo?: string; descripcion?: string };
+        }>,
+        reply: FastifyReply,
+      ) => {
+        const titulo = (req.body?.titulo || "").trim();
+        const descripcion = (req.body?.descripcion || "").trim();
+        if (!titulo || titulo.length > 200) {
+          return reply
+            .status(400)
+            .send({ error: "titulo es requerido (máx. 200 caracteres)" });
+        }
+        if (descripcion.length > 2000) {
+          return reply
+            .status(400)
+            .send({ error: "descripcion supera 2000 caracteres" });
+        }
+        const authorId = req.user!.id;
+        const [row] = await db
+          .insert(activities)
+          .values({
+            tipo: "nota",
+            titulo,
+            descripcion: descripcion || null,
+            entityType: "nota",
+            entityId: authorId,
+            userId: authorId,
+          })
+          .returning();
+        return reply.status(201).send(row);
+      },
+    );
+
     // Timeline: correos y actividad vinculada a un contacto u oportunidad
     app.get(
       "/api/contactos/:id/timeline",

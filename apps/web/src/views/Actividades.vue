@@ -192,6 +192,7 @@ const getTipoClass = (tipo) => {
       "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
     stage_changed:
       "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+    nota: "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400",
   };
   return `px-2 py-1 rounded-full text-xs font-medium ${classes[tipo] || "bg-zinc-100 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400"}`;
 };

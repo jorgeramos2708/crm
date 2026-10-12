@@ -72,7 +72,7 @@
                 v-for="stage in pipelineStages"
                 :key="stage.id"
                 class="pipeline-column"
-                :style="{ backgroundColor: `color-mix(in srgb, ${stage.color || '#3b82f6'} 8%, #f1f5f9)` }"
+                :style="{ backgroundColor: `color-mix(in srgb, ${stage.color || '#3b82f6'} 8%, var(--card))` }"
               >
                 <div class="pipeline-column-head">
                   <span class="pipeline-dot" :style="{ backgroundColor: stage.color || '#3b82f6' }" />
@@ -266,8 +266,14 @@
                 icon="calendar"
                 compact
                 title="Sin eventos esta semana"
-                description="Tu agenda está despejada."
-              />
+                description="Tu agenda está despejada. Agenda una reunión."
+              >
+                <template #action>
+                  <Btn variant="primary" size="sm" to="/reuniones">
+                    + Nuevo Evento
+                  </Btn>
+                </template>
+              </EmptyState>
             </div>
             <div v-else class="event-list">
               <router-link
@@ -307,7 +313,13 @@
                 compact
                 title="Sin actividad reciente"
                 description="La actividad aparecerá aquí automáticamente."
-              />
+              >
+                <template #action>
+                  <Btn variant="primary" size="sm" @click="showNotaModal = true">
+                    + Nueva Actividad
+                  </Btn>
+                </template>
+              </EmptyState>
             </div>
             <div v-else class="activity-list">
               <router-link
@@ -334,6 +346,32 @@
       </div>
     </div>
   </div>
+
+  <Modal
+    :open="showNotaModal"
+    max-width="max-w-md"
+    @close="showNotaModal = false"
+  >
+    <template #title>
+      <h2 class="text-xl font-bold mb-4">Nueva Actividad</h2>
+    </template>
+    <form @submit.prevent="guardarNota" class="space-y-4">
+      <Field label="Título" required>
+        <Input v-model="notaTitulo" type="text" required maxlength="200" class="w-full" />
+      </Field>
+      <Field label="Descripción">
+        <Input v-model="notaDescripcion" multiline :rows="3" maxlength="2000" class="w-full" />
+      </Field>
+      <div class="flex gap-2 pt-2">
+        <Btn type="button" variant="outline" class="flex-1" @click="showNotaModal = false">
+          Cancelar
+        </Btn>
+        <Btn type="submit" variant="primary" class="flex-1" :disabled="guardandoNota">
+          {{ guardandoNota ? "Guardando…" : "Guardar" }}
+        </Btn>
+      </div>
+    </form>
+  </Modal>
 </template>
 
 <script setup>
@@ -347,6 +385,9 @@ import EmptyState from "../components/EmptyState.vue";
 import { formatCurrency, loadCurrency } from "../utils/currency";
 import Btn from "../components/Btn.vue";
 import Badge from "../components/Badge.vue";
+import Modal from "../components/Modal.vue";
+import Field from "../components/Field.vue";
+import Input from "../components/Input.vue";
 import Card from "../components/Card.vue";
 import Table from "../components/Table.vue";
 import Th from "../components/Th.vue";
@@ -510,6 +551,7 @@ const entityRoute = (type) => {
     contacto: "/contactos",
     empresa: "/empresas",
     campana: "/campañas",
+    nota: "/actividades",
   };
   return map[type] || "/";
 };
@@ -525,6 +567,7 @@ const activityIcon = (tipo) => {
     oportunidad_created: "briefcase",
     oportunidad_won: "trophy",
     oportunidad_lost: "x-circle",
+    nota: "file-text",
   };
   return map[tipo] || "activity";
 };
@@ -540,6 +583,7 @@ const activityColor = (tipo) => {
     oportunidad_created: '#10b981',
     oportunidad_won: '#10b981',
     oportunidad_lost: '#ef4444',
+    nota: '#14b8a6',
   };
   return map[tipo] || '#64748b';
 };
@@ -550,6 +594,7 @@ const activityEntityLabel = (type) => {
     contacto: 'Contacto',
     empresa: 'Empresa',
     campana: 'Campaña',
+    nota: 'Nota',
   };
   return map[type] || 'Sistema';
 };
@@ -657,6 +702,31 @@ const fetchActividad = async () => {
     console.error("Error fetching actividad:", e);
   } finally {
     loadingActividad.value = false;
+  }
+};
+
+const showNotaModal = ref(false);
+const notaTitulo = ref("");
+const notaDescripcion = ref("");
+const guardandoNota = ref(false);
+
+const guardarNota = async () => {
+  if (!notaTitulo.value.trim() || guardandoNota.value) return;
+  guardandoNota.value = true;
+  try {
+    await axios.post("/api/activities", {
+      titulo: notaTitulo.value.trim(),
+      descripcion: notaDescripcion.value.trim(),
+    });
+    toast.success("Actividad registrada");
+    showNotaModal.value = false;
+    notaTitulo.value = "";
+    notaDescripcion.value = "";
+    await fetchActividad();
+  } catch (e) {
+    toast.error(e.response?.data?.error || "Error al guardar la nota");
+  } finally {
+    guardandoNota.value = false;
   }
 };
 
