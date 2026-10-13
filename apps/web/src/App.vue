@@ -707,10 +707,8 @@ const initial = computed(() =>
 
 const headerBg = computed(() => {
   const c = marca.value?.color;
-  if (c) {
-    return theme.value === "dark"
-      ? `color-mix(in srgb, ${c} 15%, #18181bcc)`
-      : `color-mix(in srgb, ${c} 10%, #ffffffcc)`;
+  if (c && theme.value !== "dark") {
+    return `color-mix(in srgb, ${c} 10%, #ffffffcc)`;
   }
   return theme.value === "dark"
     ? "rgba(24, 24, 27, 0.8)"

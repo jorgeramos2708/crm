@@ -1,4 +1,5 @@
 import { ref, watchEffect } from "vue";
+import { applyMarca } from "../utils/marca";
 
 const THEME_KEY = "crm-theme";
 
@@ -31,6 +32,8 @@ export function useTheme() {
 
   watchEffect(() => {
     applyTheme(theme.value);
+    // Las superficies claras de la marca no aplican en oscuro.
+    applyMarca();
   });
 
   return {

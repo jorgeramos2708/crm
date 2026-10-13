@@ -61,11 +61,19 @@ export function applyMarca() {
         root.style.removeProperty("--crm-brand-fg");
         root.removeAttribute("data-theme-custom");
       }
-      // Superficies que los componentes leen con estos nombres:
-      root.style.setProperty("--crm-bg", fondo);
-      root.style.setProperty("--crm-bg-secondary", panel);
-      root.style.setProperty("--fondo", fondo);
-      root.style.setProperty("--panel", panel);
+      // Superficies que los componentes leen con estos nombres. En oscuro
+      // NO aplican las claras de la marca: mandan los tokens del tema.
+      const oscuro = root.classList.contains("dark");
+      const superficies = [
+        ["--crm-bg", fondo],
+        ["--crm-bg-secondary", panel],
+        ["--fondo", fondo],
+        ["--panel", panel],
+      ];
+      for (const [prop, valor] of superficies) {
+        if (oscuro) root.style.removeProperty(prop);
+        else root.style.setProperty(prop, valor);
+      }
       document.body.classList.add("tema-marca");
     } else {
       root.style.removeProperty("--marca");
