@@ -618,9 +618,14 @@ html.dark[data-theme-custom] {
   --sidebar-bg: color-mix(in srgb, var(--marca) 45%, #0a1428);
   --sidebar-bg-soft: color-mix(in srgb, var(--marca) 35%, #0a1428);
   --sidebar-border: color-mix(in srgb, var(--marca) 30%, transparent);
-  html.dark & {
-    --brand-light: color-mix(in srgb, var(--marca) 15%, #0a0f1a);
-  }
+}
+
+/* En oscuro el sidebar vuelve al navy de referencia: el tinte de marca
+   sobre fondo oscuro queda teal y rompe el modo oscuro. */
+html.dark[data-theme-custom] {
+  --sidebar-bg: #0b1e3f;
+  --sidebar-bg-soft: #10254d;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
 }
 
 /* ============================================================
