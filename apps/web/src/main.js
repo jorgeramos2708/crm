@@ -25,6 +25,7 @@ const Reuniones = () => import("./views/Reuniones.vue");
 const AgendarReunion = () => import("./views/AgendarReunion.vue");
 const NotFound = () => import("./views/NotFound.vue");
 import { useAuthStore } from "./stores/auth";
+import { toast } from "./utils/toast";
 import axios from "axios";
 import { createThemeProvider } from "./composables/useTheme";
 import autoAnimate from "@formkit/auto-animate";
@@ -108,6 +109,23 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
+});
+
+// Módulos lazy: si el chunk falla (despliegue a mitad de sesión, red, AV),
+// el router-view quedaría en blanco sin aviso. Una sola recarga lo cura
+// (boot limpio = estado que siempre funciona); si repite, avisa.
+let chunkRecargado = false;
+router.onError((err) => {
+  const msg = String(err?.message || err || "");
+  if (/ChunkLoadError|Loading chunk|dynamically imported module/i.test(msg)) {
+    if (!chunkRecargado) {
+      chunkRecargado = true;
+      toast.info("Actualizando módulo, recargando…");
+      setTimeout(() => window.location.reload(), 800);
+    } else {
+      toast.error("No se pudo cargar el módulo. Recarga la página.");
+    }
+  }
 });
 
 // Sesión global: ningún 401 deja pantallas en blanco.
