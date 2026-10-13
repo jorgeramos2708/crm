@@ -620,11 +620,15 @@ html.dark[data-theme-custom] {
   --sidebar-border: color-mix(in srgb, var(--marca) 30%, transparent);
 }
 
-/* En oscuro el sidebar vuelve al navy de referencia: el tinte de marca
-   sobre fondo oscuro queda teal y rompe el modo oscuro. */
+/* En oscuro, chrome unificado en escala near-black (nada de navy ni tintes):
+   sidebar, header y fondo en la misma familia; letras en blancos/grises
+   neutros del tema. Cubre con y sin marca personalizada. */
+html.dark,
 html.dark[data-theme-custom] {
-  --sidebar-bg: #0b1e3f;
-  --sidebar-bg-soft: #10254d;
+  --sidebar-bg: #0a0f1a;
+  --sidebar-bg-soft: #111827;
+  --sidebar-fg: #f1f5f9;
+  --sidebar-muted: #94a3b8;
   --sidebar-border: rgba(255, 255, 255, 0.08);
 }
 
