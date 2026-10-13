@@ -319,7 +319,6 @@
                   />
                 </svg>
                 <span class="hidden md:inline">Buscar...</span>
-                <kbd class="hidden md:inline rounded-md border border-zinc-300 dark:border-zinc-600 px-1.5 text-[11px]">⌘K</kbd>
               </button>
               <Tooltip
                 :content="
