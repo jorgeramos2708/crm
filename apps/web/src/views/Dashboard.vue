@@ -984,9 +984,9 @@ html.dark .pipeline-column-empty {
 }
 
 .task-urgent .task-title { color: var(--destructive); }
-.task-high .task-title { color: var(--warning); }
-.task-medium .task-title { color: var(--info); }
-.task-low .task-title { color: var(--success); }
+.task-high .task-title { color: var(--warning-fg); }
+.task-medium .task-title { color: var(--info-fg); }
+.task-low .task-title { color: var(--success-fg); }
 
 /* Event List */
 .event-list {

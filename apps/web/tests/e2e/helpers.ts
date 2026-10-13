@@ -59,6 +59,8 @@ export async function loginAsAdmin(page: Page) {
 
 // Navegación por menú lateral: en viewports móviles el aside está oculto
 // (hidden lg:flex) y la navegación vive en el Sheet lateral.
+// OJO: se acota al sidebar (varko-sidebar) porque el Resumen usa <aside>
+// para su columna lateral con links a entidades (/contactos, etc.).
 export async function navegarMenu(page: Page, href: string) {
   const mobileBtn = page.locator('[data-testid="mobile-menu-btn"]');
   if (await mobileBtn.isVisible()) {
@@ -66,6 +68,6 @@ export async function navegarMenu(page: Page, href: string) {
     const sheet = page.locator(".sheet-shell");
     await sheet.locator(`nav a[href="${href}"]`).click();
   } else {
-    await page.locator(`aside a[href="${href}"]`).click();
+    await page.locator(`aside.varko-sidebar a[href="${href}"]`).click();
   }
 }

@@ -114,6 +114,7 @@
     "GET /api/webhooks",
     "GET /api/webhooks/:id/deliveries",
     "GET /health",
+    "POST /api/activities",
     "POST /api/api-tokens",
     "POST /api/api-tokens/:id/rotar",
     "POST /api/archivos",
@@ -181,7 +182,7 @@
     "PUT /api/users/:id",
     "PUT /api/users/:id/permisos"
   ],
-  "routeCount": 180,
+  "routeCount": 181,
   "schema": {
     "tenants": {
       "exportName": "tenants",

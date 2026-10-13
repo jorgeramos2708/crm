@@ -721,6 +721,7 @@
     "/tareas",
     "/calendario",
     "/negocios",
+    "/negocios/crear",
     "/productos",
     "/presupuestos",
     "/empresas",

@@ -402,9 +402,9 @@
           </div>
         </header>
         <router-view v-slot="{ Component }">
-          <PageTransition>
-            <component :is="Component" />
-          </PageTransition>
+          <!-- Sin PageTransition: el out-in dejaba el slot vacio tras navegar
+            (shortcut: reintroducir transicion solo con key por ruta + test e2e). -->
+          <component :is="Component" :key="$route.fullPath" />
         </router-view>
         <OfflineIndicator />
         <PWAInstallPrompt />
@@ -433,7 +433,6 @@ import OfflineIndicator from "./components/OfflineIndicator.vue";
 import PWAInstallPrompt from "./components/PWAInstallPrompt.vue";
 import PushPermissionPrompt from "./components/PushPermissionPrompt.vue";
 import Icon from "./components/Icon.vue";
-import PageTransition from "./components/PageTransition.vue";
 import CommandPalette from "./components/CommandPalette.vue";
 import Sheet from "./components/Sheet.vue";
 import DropdownMenu from "./components/DropdownMenu.vue";
