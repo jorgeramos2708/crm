@@ -462,7 +462,12 @@ onMounted(async () => {
     console.error(e);
   }
   await fetchTareas();
-if (useRoute().query.nuevo !== undefined) openModal(null);
+  // Auto-apertura desde ?nuevo=1 (Dashboard). Con router ausente (tests) se omite.
+  try {
+    if (useRoute()?.query?.nuevo !== undefined) openModal(null);
+  } catch {
+    /* sin router */
+  }
 });
 </script>
 
