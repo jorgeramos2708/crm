@@ -628,6 +628,14 @@ html.dark[data-theme-custom] {
   --sidebar-border: rgba(255, 255, 255, 0.08);
 }
 
+/* En oscuro las columnas van neutras: los washes pastel con color de etapa
+   son del tema día (el inline style obliga el !important). Dots, nombres
+   y badges conservan el color semántico. */
+html.dark .pipeline-column,
+html.dark [data-testid="pipeline-column"] {
+  background-color: var(--card) !important;
+}
+
 /* ============================================================
    VARKO SHELL — sidebar navy + topbar (estilo referencia)
    Clases planas para evitar dependencias circulares de @apply
