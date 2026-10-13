@@ -74,6 +74,9 @@
       <Card v-if="!cargando && automatizaciones.length === 0" class="p-12">
         <EmptyState icon="automatizaciones">
           No hay automatizaciones configuradas
+          <template #action>
+            <Btn @click="openModal(null)" variant="primary">+ Nueva Automatización</Btn>
+          </template>
         </EmptyState>
       </Card>
     </div>

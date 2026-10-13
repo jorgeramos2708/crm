@@ -856,132 +856,6 @@
       </div>
     </div>
 
-    <!-- Campos personalizados (admin) -->
-    <div
-      v-if="authStore.user?.role === 'admin'"
-      class="panel-flat mb-3 overflow-hidden"
-    >
-      <button
-        @click="acordeon = acordeon === 'campos' ? '' : 'campos'"
-        class="flex w-full items-center gap-3 p-5 text-left"
-      >
-        <Icon name="campos" class="h-5 w-5 text-zinc-500" />
-        <span class="flex-1">
-          <span class="block font-semibold">Campos</span>
-          <span class="block text-xs text-zinc-500"
-            >Campos propios de contactos, empresas y oportunidades</span
-          >
-        </span>
-        <svg
-          class="h-4 w-4 text-zinc-400 transition-transform"
-          :class="acordeon === 'campos' ? '' : '-rotate-90'"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
-      </button>
-      <div v-show="acordeon === 'campos'" class="px-5 pb-5">
-        <div class="flex gap-2 mb-4">
-          <button
-            v-for="ent in ['contacto', 'empresa', 'oportunidad']"
-            :key="ent"
-            @click="
-              cfEntidad = ent;
-              fetchCustomFields();
-            "
-            class="px-3 py-1.5 rounded-full text-xs border"
-            :class="
-              cfEntidad === ent
-                ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-zinc-900'
-                : 'border-zinc-300 dark:border-zinc-600'
-            "
-          >
-            {{ ent }}
-          </button>
-        </div>
-        <ul class="divide-y divide-zinc-200 dark:divide-zinc-700 mb-4">
-          <li
-            v-for="f in customFields"
-            :key="f.id"
-            class="py-2 flex items-center justify-between text-sm"
-          >
-            <span
-              >{{ f.etiqueta }}
-              <span class="text-zinc-500 font-mono text-xs"
-                >{{ f.clave }} · {{ f.tipo
-                }}{{ f.requerido ? " · requerido" : "" }}</span
-              ></span
-            >
-            <Btn
-              variant="ghost"
-              class="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-              title="Eliminar"
-              aria-label="Eliminar"
-              @click="borrarCustomField(f)"
-            >
-              <Icon name="eliminar" class="h-4 w-4" />
-            </Btn>
-          </li>
-          <li v-if="!customFields.length" class="py-2 text-sm text-zinc-500">
-            Sin campos en {{ cfEntidad }}.
-          </li>
-        </ul>
-        <form
-          @submit.prevent="crearCustomField"
-          class="grid grid-cols-1 md:grid-cols-3 gap-2"
-        >
-          <input
-            v-model="cfForm.clave"
-            type="text"
-            required
-            pattern="[a-z][a-z0-9_]{1,49}"
-            placeholder="clave (ej. rfc)"
-            class="px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm font-mono"
-          />
-          <input
-            v-model="cfForm.etiqueta"
-            type="text"
-            required
-            placeholder="Etiqueta (ej. RFC)"
-            class="px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm"
-          />
-          <select
-            v-model="cfForm.tipo"
-            class="px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm"
-          >
-            <option value="texto">Texto</option>
-            <option value="numero">Número</option>
-            <option value="fecha">Fecha</option>
-            <option value="booleano">Sí/No</option>
-            <option value="seleccion">Selección</option>
-          </select>
-          <input
-            v-model="cfForm.opciones"
-            type="text"
-            placeholder="Opciones separadas por coma (solo selección)"
-            class="px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-sm"
-          />
-          <label class="flex items-center gap-2 text-sm px-1"
-            ><input
-              type="checkbox"
-              v-model="cfForm.requerido"
-              class="w-4 h-4"
-            />
-            Requerido</label
-          >
-          <Btn type="submit">Añadir campo</Btn>
-        </form>
-        <p v-if="cfMsg" class="text-sm text-zinc-500 mt-2">{{ cfMsg }}</p>
-      </div>
-    </div>
-
     <!-- Modal usuario -->
     <Modal :open="showUserModal" @close="showUserModal = false">
       <template #title>
@@ -1424,64 +1298,6 @@ const whEventos = ref([]);
 const whForm = ref({ nombre: "", url: "", secret: "", eventos: [] });
 const deliveries = ref({});
 
-const customFields = ref([]);
-const cfEntidad = ref("contacto");
-const cfForm = ref({
-  clave: "",
-  etiqueta: "",
-  tipo: "texto",
-  opciones: "",
-  requerido: false,
-});
-const cfMsg = ref("");
-
-const fetchCustomFields = async () => {
-  try {
-    const { data } = await axios.get("/api/custom-fields", {
-      params: { entidad: cfEntidad.value },
-    });
-    customFields.value = data || [];
-  } catch {
-    customFields.value = [];
-  }
-};
-const crearCustomField = async () => {
-  cfMsg.value = "";
-  try {
-    await axios.post("/api/custom-fields", {
-      entidad: cfEntidad.value,
-      clave: cfForm.value.clave,
-      etiqueta: cfForm.value.etiqueta,
-      tipo: cfForm.value.tipo,
-      opciones: cfForm.value.opciones
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean),
-      requerido: cfForm.value.requerido,
-    });
-    cfForm.value = {
-      clave: "",
-      etiqueta: "",
-      tipo: "texto",
-      opciones: "",
-      requerido: false,
-    };
-    await fetchCustomFields();
-  } catch (e) {
-    cfMsg.value = e.response?.data?.error || "Error creando campo";
-  }
-};
-const borrarCustomField = async (f) => {
-  if (
-    !(await confirmar(
-      `¿Eliminar campo ${f.etiqueta}? Los valores guardados se conservan.`,
-    ))
-  )
-    return;
-  await axios.delete(`/api/custom-fields/${f.id}`);
-  await fetchCustomFields();
-};
-
 const equipos = ref([]);
 const usuarios = ref([]);
 const eqNombre = ref("");
@@ -1876,7 +1692,6 @@ onMounted(async () => {
     } catch {
       /* sin config */
     }
-    await fetchCustomFields();
     await fetchWebhooks();
     await fetchSsoCallbacks();
     try {
