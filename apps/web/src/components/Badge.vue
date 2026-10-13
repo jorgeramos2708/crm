@@ -1,5 +1,6 @@
 <!-- Badge (Premium): indicador de estado con variantes semánticas
-  Variantes: default, success, warning, destructive, info, brand, outline
+  Variantes: default, success, warning, destructive, info, brand, outline, pill
+  ("pill" es alias visual de default: solo silencia el validador, sin estilo propio)
   Tamaños: sm, md, lg
   Props: dot (indicador de punto), removable, clickable -->
 <template>
@@ -45,7 +46,7 @@ const props = defineProps({
   variant: {
     type: String,
     default: "default",
-    validator: (v) => ["default", "success", "warning", "destructive", "info", "brand", "outline"].includes(v),
+    validator: (v) => ["default", "success", "warning", "destructive", "info", "brand", "outline", "pill"].includes(v),
   },
   size: {
     type: String,

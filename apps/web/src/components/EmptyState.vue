@@ -23,6 +23,7 @@ import {
   Activity, BarChart2, Zap, FileText, Send, LayoutTemplate,
   List, Building2, Package, GitBranch, Settings, Search,
   Filter, Funnel, DollarSign, TrendingUp, Clock, AlertCircle,
+  Megaphone,
 } from "@lucide/vue";
 
 const props = defineProps({
@@ -34,6 +35,8 @@ const props = defineProps({
       "activity", "bar-chart", "zap", "file-text", "send", "layout-template",
       "list", "building", "package", "git-branch", "settings", "search",
       "filter", "funnel", "dollar-sign", "trending-up", "clock", "alert-circle",
+      "contactos", "empresas", "campanas", "actividades", "automatizaciones",
+      "negocios", "listas", "productos", "presupuestos", "plantillas",
     ].includes(v),
   },
   title: { type: String, default: "" },
@@ -66,6 +69,17 @@ const iconMap = {
   "trending-up": TrendingUp,
   clock: Clock,
   "alert-circle": AlertCircle,
+  // Alias por vista (cada vista pasa su propio nombre)
+  contactos: Users,
+  empresas: Building2,
+  campanas: Megaphone,
+  actividades: Activity,
+  automatizaciones: Zap,
+  negocios: Briefcase,
+  listas: List,
+  productos: Package,
+  presupuestos: FileText,
+  plantillas: LayoutTemplate,
 };
 
 const iconComponent = computed(() => iconMap[props.icon] || Inbox);
