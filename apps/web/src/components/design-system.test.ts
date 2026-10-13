@@ -426,6 +426,11 @@ describe("CommandPalette", () => {
       history: createWebHistory(),
       routes: [
         {
+          path: "/",
+          name: "home",
+          component: { template: "<div>Home</div>" },
+        },
+        {
           path: "/contactos",
           name: "contactos",
           component: { template: "<div>Contactos</div>" },

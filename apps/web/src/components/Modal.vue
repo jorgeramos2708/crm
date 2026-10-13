@@ -38,6 +38,7 @@
             class="modal-content"
             :class="[
               maxWidthClass,
+              maxWidth,
               contentClass,
               'modal-panel',
               { 'modal-sm': size === 'sm' },
@@ -48,9 +49,15 @@
             ]"
             role="dialog"
             aria-modal="true"
-            :aria-labelledby="title ? undefined : 'modal-title'"
-            :aria-describedby="description ? 'modal-description' : undefined"
           >
+            <!-- Reka exige Title/Description: invisibles si el llamador no los da.
+              Los ids los genera Reka (ids fijos rompian su lookup + aria). -->
+            <DialogTitle v-if="!(title || $slots.header || $slots.title)" class="sr-only">
+              Diálogo
+            </DialogTitle>
+            <DialogDescription v-if="!description" class="sr-only">
+              Cuadro de diálogo
+            </DialogDescription>
             <!-- Header -->
             <header v-if="title || $slots.header || $slots.title" class="modal-header">
               <DialogTitle v-if="$slots.header" as-child>
@@ -59,10 +66,10 @@
               <DialogTitle v-else-if="$slots.title" as-child>
                 <slot name="title" />
               </DialogTitle>
-              <DialogTitle v-else-if="title" id="modal-title" class="modal-title">
+              <DialogTitle v-else-if="title" class="modal-title">
                 {{ title }}
               </DialogTitle>
-              <DialogDescription v-if="description" id="modal-description" class="sr-only">
+              <DialogDescription v-if="description" class="sr-only">
                 {{ description }}
               </DialogDescription>
 
@@ -134,6 +141,8 @@ const props = defineProps({
     validator: (v) => ["sm", "md", "lg", "xl", "full"].includes(v),
   },
   contentClass: { type: String, default: "" },
+  // Ancho extra tal cual (ej. max-width="max-w-md"); vacío = size.
+  maxWidth: { type: String, default: "" },
   z: { type: String, default: "z-50" },
   closable: { type: Boolean, default: true },
   showDefaultFooter: { type: Boolean, default: false },
